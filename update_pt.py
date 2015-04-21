@@ -238,13 +238,17 @@ for (ClANr,PhANr) in todo:
 todo2 = list(c.execute("select Node from pt"))
 
 for Node in todo2:
+    check=False
     Node = eval(Node[0])
     parents = give_me_your_parents_up_to(Node)
-    print(parents)
+    print(F.etcbc4_db_otype.v(Node),parents)
     for x in parents:
         print(x,F.etcbc4_db_otype.v(x))
         if F.etcbc4_db_otype.v(x) == "phrase":
-            c.execute("update pt set Phfunc=:Phfunc where Node=:Node", {"Phfunc":F.etcbc4_ft_function.v(x),"Node":Node})
-        elif F.etcbc4_db_otype.v(x) == "subphrase":
-            c.execute("update pt set SPhNr=:SPhNr where Node=:Node", {"SPhNr":Node,"Node":Node})
+            check=True
+    if check == False:
+        print("Strange behaviour!")
+#            c.execute("update pt set Phfunc=:Phfunc where Node=:Node", {"Phfunc":F.etcbc4_ft_function.v(x),"Node":Node})
+#        elif F.etcbc4_db_otype.v(x) == "subphrase":
+#            c.execute("update pt set SPhNr=:SPhNr where Node=:Node", {"SPhNr":Node,"Node":Node})
 #}}}

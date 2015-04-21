@@ -1,0 +1,931 @@
+\documentclass{report}
+%\usepackage[landscape]{geometry}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage[inline]{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{calc,shapes, positioning,arrows}
+
+\usepackage{bibleref}
+\usepackage{ecjhebrew}
+\newcommand{\cl}[2]{\color{black} #2 \color{#1}}
+
+\usepackage{minted}
+\usepackage{listings}
+\newcommand{\mi}[1]{\lstinline{#1}}
+
+\makeatletter
+\newenvironment{python}{%
+  \VerbatimEnvironment
+  \minted@resetoptions
+  \setkeys{minted@opt}{}
+      \begin{VerbatimOut}{\jobname.pyg}}
+{%
+      \end{VerbatimOut}
+      \minted@pygmentize{python}
+      \DeleteFile{\jobname.pyg}}
+\makeatother
+
+\usepackage{multicol}
+
+%\usepackage[usenames, dvipsnames]{color}
+%\newcommand{\fixme}[1]{{#1}}
+
+\title{Encoding options}
+\author{Grietje Commelin}
+
+\begin{document}
+\maketitle
+
+\section{Packages and stuff to be loaded}
+
+\begin{python}
+#{{{ Import all important libraries
+import os, sys, time
+if not '/projects/1fdd6b0b-5199-4b0e-9f7f-7759af4a5e7a/.local/lib/python3.4/site-packages/' in sys.path:
+    sys.path.append('/projects/1fdd6b0b-5199-4b0e-9f7f-7759af4a5e7a/.local/lib/python3.4/site-packages/')
+import collections
+import random
+import laf
+from laf.fabric import LafFabric
+import etcbc
+from etcbc.preprocess import prepare
+from etcbc.lib import Transcription, monad_set
+from etcbc.trees import Tree
+from etcbc.featuredoc import FeatureDoc
+fabric = LafFabric()
+tr = Transcription()
+
+#}}}
+\end{python}
+
+\begin{python} 
+#{{{ Load the API
+API = fabric.load('etcbc4', '--', 'feature-doc', {
+    "xmlids": {"node": False, "edge": False},
+    "features": ('''
+            otype
+            domain
+            function
+            g_cons
+            g_cons_utf8
+            g_lex
+            g_lex_utf8
+            g_nme
+            g_nme_utf8
+            g_pfm
+            g_pfm_utf8
+            g_prs
+            g_prs_utf8
+            g_uvf
+            g_uvf_utf8
+            g_vbe
+            g_vbe_utf8
+            g_vbs
+            g_vbs_utf8
+            g_word
+            g_word_utf8
+            gn
+            lex
+            lex_utf8
+            ls
+            nme
+            nu
+            number
+            pdp
+            pfm
+            prs
+            ps
+            rela
+            sp
+            st
+            tab
+            trailer_utf8
+            txt
+            typ
+            uvf
+            vbe
+            vbs
+            vs
+            vt
+            book
+            chapter
+            label
+            verse
+    ''','''
+            mother
+    '''),
+    "primary": False,
+    "prepare": prepare,
+})
+exec(fabric.localnames.format(var='fabric'))
+
+#}}}
+
+#{{{ Stuff necessary to load parents relationships
+type_info = (
+    ("word", ''),
+    ("subphrase", 'U'),
+    ("phrase", 'P'),
+    ("phrase_atom", 'PA'),
+    ("clause", 'C'),
+    ("clause_atom", 'CA'),
+    ("sentence", 'S'),
+)
+type_table = dict(t for t in type_info)
+type_order = [t[0] for t in type_info]
+
+pos_table = {
+    'adjv': 'aj',
+    'advb': 'av',
+    'art': 'dt',
+    'conj': 'cj',
+    'intj': 'ij',
+    'inrg': 'ir',
+    'nega': 'ng',
+    'subs': 'n',
+    'nmpr': 'n-pr',
+    'prep': 'pp',
+    'prps': 'pr-ps',
+    'prde': 'pr-dem',
+    'prin': 'pr-int',
+    'verb': 'vb',
+}
+
+ccr_info = {
+    'Adju': ('r', 'Cadju'),
+    'Attr': ('r', 'Cattr'),
+    'Cmpl': ('r', 'Ccmpl'),
+    'CoVo': ('n', 'Ccovo'),
+    'Coor': ('x', 'Ccoor'),
+    'Objc': ('r', 'Cobjc'),
+    'PrAd': ('r', 'Cprad'),
+    'PreC': ('r', 'Cprec'),
+    'Resu': ('n', 'Cresu'),
+    'RgRc': ('r', 'Crgrc'),
+    'Spec': ('r', 'Cspec'),
+    'Subj': ('r', 'Csubj'),
+    'NA':   ('n', 'C'),
+}
+
+tree_types = ('sentence', 'clause', 'clause_atom', 'phrase', 'phrase_atom', 'subphrase', 'word')
+(root_type, leaf_type, clause_type) = (tree_types[0], tree_types[-1], 'clause')
+ccr_table = dict((c[0],c[1][1]) for c in ccr_info.items())
+ccr_class = dict((c[0],c[1][0]) for c in ccr_info.items())
+
+root_verse = {}
+root_clause_atom = {}
+
+for n in NN():
+    otype = F.otype.v(n)
+    if otype == "book" and F.etcbc4_sft_book.v(n) != "Genesis":
+        break
+    elif otype == "chapter" and int(F.etcbc4_sft_chapter.v(n)) > 5:
+        break
+    elif otype == 'verse': cur_verse = F.label.v(n)
+    elif otype == "clause_atom":
+        root_verse[n] = cur_verse
+        cur_clause_atom = F.etcbc4_ft_number.v(n)
+    elif otype == "word":
+        root_verse[n] = cur_verse
+        root_clause_atom[n] = cur_clause_atom
+#        print(list(C.parent.v(n)))
+
+tree = Tree(API, otypes = tree_types,
+     clause_type=clause_type,
+     ccr_feature='rela',
+     pt_feature='typ',
+     pos_feature='sp',
+     mother_feature = 'mother',
+     )
+#tree.restructure_clauses(ccr_class)
+results = tree.relations()
+parent = results['eparent']
+sisters = results['sisters']
+children = results['echildren']
+elder_sister = results['elder_sister']
+print("Ready for processing") # Was msg()
+
+#}}}
+\end{python}
+
+\begin{python}
+#{{{ Import the helper functions
+def give_me_your_words(n):
+        global F
+        if F.etcbc4_db_otype.v(n) == 'word':
+                return [n]
+        else:
+            list_of_word_lists = [give_me_your_words(c) for c in children[n]]
+            return [item for sublist in list_of_word_lists for item in sublist]
+
+def get_text_of_word_list(word_list):
+        global F
+        return ' '.join(map(F.etcbc4_ft_g_cons_utf8.v, word_list))
+
+def get_cons_of_word_list(word_list):
+        global F
+        return ' '.join(map(F.etcbc4_ft_g_cons.v, word_list))
+
+def give_me_your_parents_up_to(node, parent_type='clause', limit=19):
+    # This function is very dangerous. If you feed it something larger than a clause, stuff explodes.
+        global parent
+        if limit < 0:
+                return []
+        if not node in parent:
+#                return []
+                return ["not in parent"]
+        p = parent[node]
+        if F.etcbc4_db_otype.v(p) == parent_type:
+                return [p]
+        else:
+                return [p] + give_me_your_parents_up_to(p, parent_type, limit-1)
+
+def insert_dict_in_db(cursor, table, values):
+    columns = ', '.join(values.keys())
+    placeholders = ':'+', :'.join(values.keys())
+    query = 'INSERT INTO %s (%s) VALUES (%s)' % (table, columns, placeholders)
+    print(query)
+    cursor.execute(query, values)
+
+#}}}
+\end{python}
+
+\begin{python}
+types = {}
+DSU = False
+
+for node in NN():
+    otype = F.etcbc4_db_otype.v(node)
+#    if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
+#        break
+#    elif otype == "chapter" and int(F.etcbc4_sft_chapter.v(node)) > 30:
+#        break
+    if otype == "verse":
+        label = F.etcbc4_sft_label.v(node)
+    if otype == "clause":
+        DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
+    elif otype == "word":
+        cl_type = ""
+        ph_type = ""
+        ph_func = ""
+        if DSU == True:
+            if not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA")):    # Potential participant
+                parents = give_me_your_parents_up_to(node)
+                for x in parents:
+                    if F.etcbc4_db_otype.v(x) == "phrase":
+                        ph_type = F.etcbc4_ft_typ.v(x)
+                        ph_func = F.etcbc4_ft_function.v(x)
+                    elif F.etcbc4_db_otype.v(x) == "clause":
+                        cl_type = F.etcbc4_ft_typ.v(x)
+                if not cl_type in types:
+                    types[cl_type] = {}
+                if not str((ph_func,ph_type)) in types[cl_type]:
+                    types[cl_type][str((ph_func,ph_type))] = []
+                if not F.etcbc4_ft_sp.v(node) in types[cl_type][str((ph_func,ph_type))]:    # Not yet saved in dictionary
+                    types[cl_type][str((ph_func,ph_type))].append(str(F.etcbc4_ft_sp.v(node)))    # Add to dictionary
+            if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):    # Potential participant (suffix)
+                parents = give_me_your_parents_up_to(node)
+                for x in parents:
+                    if F.etcbc4_db_otype.v(x) == "phrase":
+                        ph_type = F.etcbc4_ft_typ.v(x)
+                        ph_func1 = F.etcbc4_ft_function.v(x)
+                        if ph_func1 in ("ExsS","IntS","ModS","NCoS","PrcS","PreS"):
+                            ph_func = "Subj"
+                        elif ph_func1 in ("PreO","PtcO"): 
+                            ph_func = "Objc"
+                        else:
+                            ph_func = "Unknown"
+#                            print(F.etcbc4_ft_g_cons.v(node),"function?", F.etcbc4_ft_sp.v(node),F.etcbc4_ft_ls.v(node))
+                    elif F.etcbc4_db_otype.v(x) == "clause":
+                        cl_type = F.etcbc4_ft_typ.v(x)
+                if not cl_type in types:
+                    types[cl_type] = {}
+                if not str((ph_func,ph_type)) in types[cl_type]:
+                    types[cl_type][str((ph_func,ph_type))] = []
+                if not "suffix" in types[cl_type][str((ph_func,ph_type))]:    # Not yet saved in dictionary
+                    types[cl_type][str((ph_func,ph_type))].append("suffix")   # Add to dictionary
+
+#}}}
+\end{python}
+
+\section{Overview \mi{clause_types}}
+This is my own ordering of all \mi{clause_types} occurring in the ETCBC database, to create an overview.
+
+\begin{itemize}
+\item \mi{ clause_types["verb"]}
+\begin{itemize}
+\item \mi{ "Ptcp":"Participle clause"}
+\item \mi{ "Voct":"Vocative clause"}
+\item \mi{ "Way0":"Wayyiqtol-null clause"}
+\item \mi{ "WIm0":"We-imperative-null clause"}
+\item \mi{ "WQt0":"We-qatal-null clause"}
+\item \mi{ "WYq0":"We-yiqtol-null clause"}
+\item \mi{ "InfC":"Infinitive construct clause"}
+\item \mi{ "InfA":"Infinitive absolute clause"}
+\item \mi{ "ZIm0":"Zero-imperative-null clause"}
+\item \mi{ "ZQt0":"Zero-qatal-null clause"}
+\item \mi{ "ZYq0":"Zero-yiqtol-null clause"}
+\end{itemize}
+\item \mi{ clause_types["X-verb"]}
+\begin{itemize}
+\item \mi{ "WXIm":"We-X-imperative clause"}
+\item \mi{ "WXQt":"We-X-qatal clause"}
+\item \mi{ "WXYq":"We-X-yiqtol clause"}
+\item \mi{ "XImp":"X-imperative clause"}
+\item \mi{ "XQtl":"X-qatal clause"}
+\item \mi{ "XYqt":"X-yiqtol clause"}
+\end{itemize}
+\item \mi{ clause_types["verb-X"]}
+\begin{itemize}
+\item \mi{ "WayX":"Wayyiqtol-X clause"}
+\item \mi{ "WImX":"We-imperative-X clause"}
+\item \mi{ "WQtX":"We-qatal-X clause"}
+\item \mi{ "WYqX":"We-yiqtol-X clause"}
+\item \mi{ "ZImX":"Zero-imperative-X clause"}
+\item \mi{ "ZQtX":"Zero-qatal-X clause"}
+\item \mi{ "ZYqX":"Zero-yiqtol-X clause"}
+\end{itemize}
+\item \mi{ clause_types["x-verb"]}
+\begin{itemize}
+\item \mi{"WxI0":"We-x-imperative-null clause"}
+\item \mi{ "WxQ0":"We-x-qatal-null clause"}
+\item \mi{ "WxY0":"We-x-yiqtol-null clause"}
+\item \mi{ "xIm0":"x-imperative-null clause"}
+\item \mi{ "xQt0":"x-qatal-null clause"}
+\item \mi{ "xYq0":"x-yiqtol-null clause"}
+\end{itemize}
+\item \mi{ clause_types["x-verb-X"]}
+\begin{itemize}
+\item \mi{"WxIX":"We-x-imperative-X clause"}
+\item \mi{ "WxQX":"We-x-qatal-X clause"}
+\item \mi{ "WxYX":"We-x-yiqtol-X clause"}
+\item \mi{ "xImX":"x-imperative-X clause"}
+\item \mi{ "xQtX":"x-qatal-X clause"}
+\item \mi{ "xYqX":"x-yiqtol-X clause"}
+\end{itemize}
+\item \mi{ clause_types["unclear"]}
+\begin{itemize}
+\item \mi{"CPen":"Casus pendens"}
+\item \mi{ "Defc":"Defective clause atom"}
+\item \mi{ "Ellp":"Ellipsis"}
+\item \mi{ "MSyn":"Macrosyntactic sign"}
+\item \mi{ "XPos":"Extraposition"}
+\item \mi{ "Reop":"Reopening"}
+\item \mi{ "Unkn":"Unknown"}
+\item \mi{ "NmCl":"Nominal clause"}
+\item \mi{ "AjCl":"Adjective clause"}
+\end{itemize}
+\end{itemize}
+
+\section{Prominence}
+\mi{Part_of_speech} occurring in direct speech words that are a potential participant (otype = \mi{"word"}, DSU = True, at least one of person/number/gender features):
+Verb, subs, adjv, prde, prps, nmpr. And, or course, suffix.
+Other types likely have no person/number/gender.
+
+Proposal for prominence:
+\begin{itemize}
+\item 0 is reserved for `no reference at all'
+\item 1 is for verbal inflection
+\item 2 is for suffixes
+\item 3 is for the personal pronouns
+\item 4 if for the demonstrative pronouns
+\item 5 is for the noun (subs), proper noun (nmpr) and adjective (adjv)
+\item 6 is reserved for phrases etc, so noun+
+\end{itemize}
+
+\section{Order \mi{clause_types} to prominence}
+\begin{python}
+#{{{ Find (or create?) order in mess of types-dict
+tuples = {}
+sp = {} # list of sp for every pair of Cl_type and Ph_func
+sp_coded = {}   # Same list, but coded as indicated above
+
+for cl_type in types:
+    tuples[cl_type] = sorted(types[cl_type].keys())
+
+for cl_type in tuples:
+    sp[cl_type] = {}
+    sp_coded[cl_type] = {}
+    for pair in tuples[cl_type]:
+        ph_func = eval(pair)[0]
+        if not ph_func in sp[cl_type]:
+            sp[cl_type][ph_func] = []
+            sp_coded[cl_type][ph_func] = []
+        for z in types[cl_type][pair]:
+            if not z in sp[cl_type][ph_func]:
+                sp[cl_type][ph_func].append(z)
+                if z == "verb":
+                    if not 1 in sp_coded[cl_type][ph_func]:
+                        sp_coded[cl_type][ph_func].append(1)
+                elif z == "suffix":
+                    if not 2 in sp_coded[cl_type][ph_func]:
+                        sp_coded[cl_type][ph_func].append(2)
+                elif z == "prps":
+                    if not 3 in sp_coded[cl_type][ph_func]:
+                        sp_coded[cl_type][ph_func].append(3)
+                elif z == "prde":
+                    if not 4 in sp_coded[cl_type][ph_func]:
+                        sp_coded[cl_type][ph_func].append(4)
+                elif z in ("subs","nmpr","adjv"):
+                    if not 5 in sp_coded[cl_type][ph_func]:
+                        sp_coded[cl_type][ph_func].append(5)
+                else:
+                    print("Problem! Found sp with type",z)
+        sp_coded[cl_type][ph_func].sort()
+#print(sp)
+
+#}}}
+\end{python}
+
+\begin{python}
+#{{{ Save dictionaries sp and sp_coded in gcdata.enc
+import sqlite3
+
+db = sqlite3.connect('gcdata.sqlite')
+c = db.cursor()
+create_table_query = open("enc.sql").read()
+c.execute(create_table_query)
+db.commit()
+
+data = {}
+for cl_type in sp:
+    print(cl_type)
+    if cl_type == "":
+        data["Cl_type"] = "None"
+    else:
+        data["Cl_type"] = cl_type
+    for ph_func in sp[cl_type]:
+        if ph_func == "":
+            data["Ph_func"] = "None"
+        else:
+            data["Ph_func"] = ph_func
+        data["Enc_options"] = str(sorted(sp[cl_type][ph_func]))
+        data["Enc_options_coded"] = str(sp_coded[cl_type][ph_func])
+        insert_dict_in_db(c,"enc",data)
+
+#}}}
+\end{python}
+
+\section{Idea for further processing}
+For every saved participant reference in gcdata.pt we want to insert the corresponding list of \mi{sp_coded} in a column named 'Encoding options' or something like that.
+Then, the index of the chosen encoding (see column PartSpeech) in this list gives the prominence of the reference given the grammatical options in the clause and phrase.
+
+\section{New thoughts}
+* Subphrases with feature ``rec'' and suffixes on nouns are similar. Together they form a category of sub-participants
+* Other suffixes are either (a) in the category of PreO etc, or (b) attached to verbs or prepositions
+* Other subphrases / words / phrases fulfill a slot and thus function. Find these!
+
+\begin{python}
+#{{{ Think about suffixes and their functions
+DSU = False
+rec_try = []    # Contains 18476 instances
+subj = []       # 865 instances
+objc = []       # 4269 instances
+function = {}   # 9075 instances
+rest = []
+verbs= {}       # 35 for ptcp, 589 for ptca, 18 for infc
+ET = []
+notET = []
+spec = []
+notspec = []
+spec2 = []
+notspec2 = []
+
+for node in NN():
+    rec = False
+    rela = ""
+    otype = F.etcbc4_db_otype.v(node)
+    if otype == "verse":
+        label = F.etcbc4_sft_label.v(node)
+    if otype == "clause":
+        DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
+    elif otype == "word":
+        cl_type = ""
+        ph_func = ""
+        if DSU == True:
+            if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):    # Potential participant (suffix)
+                parents = give_me_your_parents_up_to(node)
+                for x in parents:
+                    if F.etcbc4_db_otype.v(x) == "clause":
+                        cl_type = F.etcbc4_ft_typ.v(x)
+                    elif F.etcbc4_db_otype.v(x) == "phrase":
+                        ph_func = F.etcbc4_ft_function.v(x)
+
+                if ph_func in ("ExsS","IntS","ModS","NCoS","PrcS","PreS"):
+                    suf_func = "Subj"
+                    subj.append(node)
+                elif ph_func in ("PreO","PtcO"):
+                    suf_func = "Objc"
+                    objc.append(node)
+                elif F.etcbc4_ft_sp.v(node) == "prep":
+                    if not ph_func in function:
+                        function[ph_func] = []
+                    if ph_func == "Objc":
+                        if F.etcbc4_ft_lex.v(node) == ">T":
+                            ET.append((label,node))
+                        else:
+                            notET.append((label,node))
+                        parents = give_me_your_parents_up_to(node)
+                        for x in parents:
+                            if F.etcbc4_db_otype.v(x) == "phrase_atom":
+                                if F.etcbc4_ft_rela.v(x) == "Spec":
+                                    spec.append((label,node))
+                                else:
+                                    notspec.append((label,node))
+                    elif ph_func == "Subj":
+                        parents = give_me_your_parents_up_to(node)
+                        for x in parents:
+                            if F.etcbc4_db_otype.v(x) == "phrase_atom":
+                                if F.etcbc4_ft_rela.v(x) == "Spec":
+                                    spec2.append((label,node))
+                                else:
+                                    notspec2.append((label,node))
+                    function[ph_func].append((label,node))
+                elif F.etcbc4_ft_sp.v(node) in ("subs","adjv"):
+                    rec_try.append(node)
+                elif F.etcbc4_ft_vt.v(node) in ("ptca","ptcp","infa","infc"):
+                    if not F.etcbc4_ft_vt.v(node) in verbs:
+                        verbs[F.etcbc4_ft_vt.v(node)] = []
+                    verbs[F.etcbc4_ft_vt.v(node)].append(node)
+                else:
+                    rest.append((label,node))
+
+#}}}
+\end{python}
+
+\section{Analyze suffixes}
+function['Subj']:
+Gen 6:18 (2959) and Gen 8:16 (3870): Noah --> take wife etc with you
+Gen 40:8 (22045) and Gen 41:15 (22624): Object marker with suffix annotated as subject instead of negation
+Gen 44:18 (25174): correct. ``Like you'' or something like that
+Exo 16:32 (38022): real subject is addressee of command, but imperative annotated as subs?
+Exo 19:24 (39562): You and Aaron ``with you''
+Exo 29:21 (44985): His sons and the clothes of his son ``with him''
+
+--> Is there something possible with rela-a (\mi{rela.v(phrase_atom})?) being ``Spec''?
+It seems that in most cases,this Spec is present and the Subject-assignment is wrong. If \mi{rela.v(phrase_atom)} == 'NA', the assignment seems correct (this is only happening in a few cases). Cases with Spec are in list spec2, others in notspec2.
+len(function['Subj']) = 59
+len(spec2) = 53
+len(notspec2) = 6
+``Spec''-cases are comparable with function['Adju']?
+
+function['Objc'] in most cases is a suffix on the object marker >T.
+Most other cases are like ``Spec''? Listed in ET vs notET and spec vs notspec.
+len(function['Objc']) =  1241
+len(spec) = 32
+len(notspec) = 1209
+len(ET) = 1204
+len(notET) = 37
+Two texts are in spec and in ET: Gen 41:10 (22536) seems to be an object and Eze 16:60 (272086) seems to be a ``with you'', so not an object
+
+7 texts are not in spec and not in ET:
+    Deut 1-:21 (99550) ``with you'' / ``in your presence'' or something (pp)
+    Deut 28:8 (108203) pp (blessing [over? to?] you)
+    Jes 48:13 (228973) call to them
+    Jer 47:2 (260254) sit in her (city). Rec
+    Eze 20:35 (274290) judge with them. Might be object indeed, but in pp
+    Eze 38:22 (284288) idem
+    IIChr 10:11 (411950) load a yoke upon them
+General conclusion: preposition is more leading than the \mi{ph_function being} ``Objc''.
+
+1 instance of function['Voct']: addressee is a wood and all the trees ``in it''. So pp
+
+5 instances of function['Time']: 1 in Est, 4 in Dan.
+    Est 3:12 (366942) some extensive time reference, suffix unclear to me. Maybe ``in the first month, in the 30th day ``in it'' ''?
+    Dan 3:6 (371706) ``In this? (suffix) hour''
+    Dan 3:15 (371924) idem
+    dAN 4:30 (372991) idem
+    dAN 4:33 (373086) ``In this? (suffix) time''
+
+
+IDEA: filter on prepositions instead of \mi{ph_func}. Might give more insight.
+
+\begin{python}
+#{{{
+text = []
+check = False
+check2 = False
+
+for node in NN():
+    otype = F.etcbc4_db_otype.v(node)
+    if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
+        break
+    elif otype == "chapter":
+        if F.etcbc4_sft_chapter.v(node) in ("1","2"):
+            check = False
+        elif F.etcbc4_sft_chapter.v(node) == "3":
+            check = True
+        elif int(F.etcbc4_sft_chapter.v(node)) > 3:
+            break
+    elif otype == "verse":
+        if F.etcbc4_sft_verse.v(node)  == "20":
+            check2 = True
+        else:
+            check2 = False
+    elif otype == "clause" and check == True and check2 == True:
+        text.append(get_cons_of_word_list(give_me_your_words(node)))
+
+#}}}
+
+#{{{
+losers = []
+double = []
+
+for (label,node) in notET:
+    if (label,node) not in spec:
+        losers.append((label,node))
+
+for (label,node) in spec:
+    if (label,node) in ET:
+        double.append((label,node))
+#}}}
+\end{python}
+
+\begin{python}
+#{{{ New try to understand suffixes
+
+DSU = False
+rec_try = []    # Contains 18476 instances
+subj = []       # 865 instances
+objc = []       # 4269 instances
+function = {}   # 9075 instances
+rest = []
+verbs= {}       # 35 for ptcp, 589 for ptca, 18 for infc
+preps = {}
+
+for node in NN():
+    rec = False
+    rela = ""
+    otype = F.etcbc4_db_otype.v(node)
+    if otype == "verse":
+        label = F.etcbc4_sft_label.v(node)
+    if otype == "clause":
+        DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
+    elif otype == "word":
+        cl_type = ""
+        ph_func = ""
+        if DSU == True:
+            if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):    # Potential participant (suffix)
+                parents = give_me_your_parents_up_to(node)
+                for x in parents:
+                    if F.etcbc4_db_otype.v(x) == "clause":
+                        cl_type = F.etcbc4_ft_typ.v(x)
+                    elif F.etcbc4_db_otype.v(x) == "phrase":
+                        ph_func = F.etcbc4_ft_function.v(x)
+
+                if ph_func in ("ExsS","IntS","ModS","NCoS","PrcS","PreS"):
+                    suf_func = "Subj"
+                    subj.append(node)
+                elif ph_func in ("PreO","PtcO"):
+                    suf_func = "Objc"
+                    objc.append(node)
+                elif F.etcbc4_ft_sp.v(node) == "prep":
+                    if not F.etcbc4_ft_lex.v(node) in preps:
+                        preps[F.etcbc4_ft_lex.v(node)] = []
+                    preps[F.etcbc4_ft_lex.v(node)].append((label,node))
+                elif F.etcbc4_ft_sp.v(node) in ("subs","adjv"):
+                    rec_try.append(node)
+                elif F.etcbc4_ft_vt.v(node) in ("ptca","ptcp","infa","infc"):
+                    if not F.etcbc4_ft_vt.v(node) in verbs:
+                        verbs[F.etcbc4_ft_vt.v(node)] = []
+                    verbs[F.etcbc4_ft_vt.v(node)].append(node)
+                else:
+                    rest.append((label,node))
+#}}}
+\end{python}
+
+\section{Results of script}
+Results of this script:
+
+Suffixes can be categorized into some groups:
+\begin{itemize}
+\item 865 suffixes that are annotated in the ETCBC database as having a subject function. 
+\item 4269 suffixes that are annotated in the ETCBC database as having a object function. 
+\item 9075 suffixes on various prepositions. Sometimes prepositions can be combined into a compound preposition. In the first running of the script, these will be counted twice: once for every preposition.
+\begin{itemize}
+\item        \cjRL{L} 3318
+\item        \cjRL{KMW} 72
+\item        \cjRL{>T==} 302 ``with''
+\item        \cjRL{B} 1089
+\item        \cjRL{K} 13   ``as''
+\item        \cjRL{<M} 332
+\item        \cjRL{<L} 1165
+\item        \cjRL{>L} 1033
+\item        \cjRL{JT} 1  DAN 3:12 (371818) Nota accusativi, so probably not a real preposition.
+\item        \cjRL{MN} 465
+\item        \cjRL{>T} 1250 This is the nota objecti, which I think is not a real preposition.
+\item        \cjRL{LM<N} 12
+\item        \cjRL{BL<DJ} 8 GEN and JES ``without me!'' as in ``no way!''? / ``Dat is niet aan mij'' / ``without your consent'' --> seems to be an expression?. JES: ``besides me there is no God''
+\item        \cjRL{LWT} 1   ESR 4:12 (379722) ``with you''
+\item        \cjRL{<D} 14
+\end{itemize}
+\item Suffixes on nouns and adjectives, that probably have the same function as words with a \mi{Regens-rectum relation}. The ETCBC database counts 18476 of these.
+\item Suffixes on verbs, without the function being annotated. There are 642 of these suffixes (35 for ptcp, 589 for ptca, 18 for infc).
+\end{itemize}
+
+
+\begin{python}
+#{{{ Try which participant encoding types can occur with prepositions
+
+DSU = False
+prepositions = {}
+candidate = ""
+types = []
+
+for node in NN():
+    otype = F.etcbc4_db_otype.v(node)
+    if otype == "verse":
+        label = F.etcbc4_sft_label.v(node)
+    if otype == "clause":
+        DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
+    elif otype == "phrase":
+        parents = []
+    elif otype == "word" and DSU == True:
+        if F.etcbc4_ft_sp.v(node) == "prep":
+            types = []
+            candidate = label + " "
+            prep = 0
+            notprep = 0
+            parents = (give_me_your_parents_up_to(node,'phrase_atom'))
+            for x in give_me_your_words(parents[0]):# Use subphrase if available, else phrase_atom
+#                if not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA")):    # Potential participant
+                candidate += " " + F.etcbc4_ft_lex.v(x)
+                if not F.etcbc4_ft_sp.v(x) == "prep":
+                    types.append(F.etcbc4_ft_sp.v(x))
+                    notprep = 1
+                elif F.etcbc4_ft_sp.v(x) == "prep":
+                    prep += 1
+                    if not "suffix" in types and not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):    # Potential participant (suffix)
+                        types.append("suffix")
+                    if prep > 1:
+#                        if not "prep" in types:
+#                            types.append("prep")
+                        if notprep == 1:
+                            types.append("WARNING! DOUBLE PREP")
+            if len(types) > 1 and not "WARNING! DOUBLE PREP" in types:
+                types = ['>= subphrase']
+            if not F.etcbc4_ft_lex.v(node) in prepositions:
+                prepositions[F.etcbc4_ft_lex.v(node)] = {}
+            if not str(types) in prepositions[F.etcbc4_ft_lex.v(node)]:
+                prepositions[F.etcbc4_ft_lex.v(node)][str(types)] = []
+            prepositions[F.etcbc4_ft_lex.v(node)][str(types)].append(candidate)
+
+#}}}
+\end{python}
+
+
+\begin{python}
+family = {}
+mothers = set()
+daughters = daughters = set()
+for daughter in NN():
+    for mother in C.mother.v(daughter):
+        mothers.add(mother)
+        daughters.add(daughter)
+        family[daughter] = mother
+
+\end{python}
+
+Alternative: Ci.mother.v(mother) gives list of daughters (?)
+So, C and Ci are forward and backward.
+If we have a mother, we can ask: \\
+  for x in Ci.mother.v(mother): \\
+    print(x)
+
+\begin{python}
+#{{{ Try to understand prepositions better
+
+DSU = False
+prepositions = {}
+candidate = ""
+types = []
+start = False
+done = False
+
+for node in NN():
+    otype = F.etcbc4_db_otype.v(node)
+    if otype == "verse":
+        label = F.etcbc4_sft_label.v(node)
+    if otype == "clause":
+        DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
+    elif otype == "phrase":
+        parents = []
+    elif otype == "word" and DSU == True:
+        if F.etcbc4_ft_sp.v(node) == "prep":
+            types = []
+            candidate = label + " "
+            prep = 0
+            notprep = 0
+            start = False
+            done = False
+            if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):    # Potential participant (suffix)
+                types.append("suffix")
+                done = True
+            parents = (give_me_your_parents_up_to(node,'phrase_atom'))
+            for x in give_me_your_words(parents[0]):# Use subphrase if available, else phrase_atom
+                if done == False:
+                    if x == node:   # Make sure that we start only after the preposition
+                        start = True
+                    if start == True:
+                        candidate += " " + F.etcbc4_ft_g_cons.v(x)
+                        if not (F.etcbc4_ft_sp.v(x) == "prep" and prep == 0):
+                            types.append(F.etcbc4_ft_sp.v(x)) 
+                        if not F.etcbc4_ft_prs.v(x) in ("absent","n/a"):
+                            types.append("suffix")
+                            done = True
+                        if not F.etcbc4_ft_sp.v(x) == "prep":
+                            notprep = 1
+                        elif F.etcbc4_ft_sp.v(x) == "prep":
+                            prep += 1
+                            if prep > 1 and notprep == 1:
+                                types.append("WARNING! DOUBLE PREP")
+                        if F.etcbc4_ft_sp.v(x) in ("art","prep","conj","intj","nega"):
+                            done = False
+                        elif x in mothers:
+                            for y in Ci.mother.v(x):
+                                types.append(F.etcbc4_ft_sp.v(y))
+                            done = True
+                        else:
+                            done = True
+            if len(types) > 2 and not "WARNING! DOUBLE PREP" in types:
+                types = ['>= subphrase']
+            if not F.etcbc4_ft_lex.v(node) in prepositions:
+                prepositions[F.etcbc4_ft_lex.v(node)] = {}
+            if not str(types) in prepositions[F.etcbc4_ft_lex.v(node)]:
+                prepositions[F.etcbc4_ft_lex.v(node)][str(types)] = []
+            prepositions[F.etcbc4_ft_lex.v(node)][str(types)].append(candidate)
+
+#}}}
+\end{python}
+
+\subsection{Encoding options with prepositions}
+The Old Testament has many prepositions, usually followed by participant references. The option of encoding a participant by (verbal) inflection obviously is not available for prepositions, since these do not have inflection. They just serve as an introduction to a participant reference, and do not form part of the reference themselves. Except for inflection (and zero encoding), all options are available for prepositions, as will be shown with examples below.
+
+\begin{itemize}
+\item With suffix: \bibleverse{Gen}(4:10) -- \cjRL{QWL DMY >XYK Y<QJM \cl{red}{>LJ} MN H>DMH} -- ``Your brother's blood cries to me from the ground.''
+\item With a personal pronoun: \bibleverse{Ex}(36:1) -- \cjRL{NTN JHWH XKMH WTBWNH \cl{red}{BHMH}} -- ``... JHWH has put wisdom and understanding in them... [GC]''
+\item With a demonstrative pronoun: \bibleverse{Gen}(2:23) -- \cjRL{\cl{red}{LZ>T} YQR> >CH} -- ``She will be called `woman'... ''
+\item With an interrogative pronoun:  \bibleverse{Gen}(15:8) -- \cjRL{>DNJ JHWH B MH >D< KJ >JRCNH} -- ``Lord Yahweh, how will I know that I will inherit it?''
+\item With a verb (participle): \bibleverse{Gen}(1:14) -- \cjRL{JHJ M>RT BRQJ< HCMJM \cl{red}{LHBDJL} BJN HJWM WBJN HLJLH} -- ``Let there be lights in the expanse of the sky to divide the day from the night''
+\item With article and noun: \bibleverse{Gen}(4:10) -- \cjRL{QWL DMY >XYK Y<QJM >LY \cl{red}{MN H>DMH}} -- ``Your brother's blood cries to me from the ground.''
+\item With a noun with suffix:
+\item With a personal noun:
+\item With an adjective:
+\end{itemize}
+
+\subsubsection{>T}
+A special category form the nota objecti \cjRL{>T} and the nota accusativi \cjRL{JT} (occurring only once, in \bibleverse{Dan}(3:12)). These introduce an object slot, and have the same options as other prepositions, except for the personal pronoun, which does not occur anywhere in the Old Testament.
+\begin{itemize}
+\item With suffix: \bibleverse{Gen}(7:1) -- \cjRL{KJ \cl{red}{>TK} R>JTJ YDJQ} -- ``I have seen your righteousness before me in this generation.''
+\item With a demonstrative pronoun: \bibleverse{Gen}(29:33) -- \cjRL{KJ CM< JHWH KJ FNW>H >NKJ W JTN LJ GM \cl{red}{>T ZH}} -- ``Because Yahweh has heard that I am hated, he has therefore given me this son also.''
+\item With an interrogative pronoun: \bibleverse{IIKings}(19:22) -- \cjRL{\cl{red}{>T MJ} XRPT} --  ``Whom have you defied?''
+\item With a verb (participle): \bibleverse{Gen}(23:6) -- \cjRL{BMBXR } --
+\item With article and noun: \bibleverse{Gen}(4:12) \cjRL{T<BD >T H>DMH} ``When you till the ground...''
+\item With a noun with suffix: \bibleverse{Gen}(22:2) \cjRL{QX N> -- \cl{red}{>T BNK} >T JXJDK >CR >HBT >T JYXQ} -- ``Now take your son, your only [son], whom you love, Isaac [GC]''
+\item With a personal noun: \bibleverse{Gen}(22:2) -- \cjRL{QX N> >T BNK >T JXJDK >CR >HBT \cl{red}{>T JYXQ}.} -- ``Now take your son, your only [son], whom you love, Isaac [GC]''
+\item With an adjective: \bibleverse{Gen}(22:2) -- \cjRL{QX N> >T BNK \cl{red}{>T JXJDK} >CR >HBT >T JYXQ} -- ``Now take your son, your only [son], whom you love, Isaac [GC]''
+\end{itemize}
+These options can, of course, be extended by subphrases or elaborate descriptions of the object, thus creating an extensive participant reference. The reference to \bibleverse{Gen}(22:2) can serve as an example here.
+
+
+\begin{python}
+# Find words of a text
+text = ""
+for node in NN():
+    otype = F.etcbc4_db_otype.v(node)
+    if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
+        break
+    elif otype == "chapter":
+        chapter = F.etcbc4_sft_chapter.v(node)
+    elif otype == "verse":
+        verse = F.etcbc4_sft_verse.v(node)
+    elif otype == "word" and chapter == "2" and verse == "7":
+        text += " " + F.etcbc4_ft_g_cons.v(node)
+#print(text)
+
+\end{python}
+
+\begin{python}
+
+for node in NN():
+    otype = F.etcbc4_db_otype.v(node)
+#    if otype == "book" and not F.etcbc4_sft_book.v(node) == "Genesis":
+#        break
+    if otype == "verse":
+        label = F.etcbc4_sft_label.v(node)
+#    elif otype == "clause":
+#        DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
+    elif otype == "word": # and DSU == True:
+        if F.etcbc4_ft_lex.v(node) == ">T" and F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
+            check = True
+        elif F.etcbc4_ft_sp.v(node) == "prps" and check == True:
+            print(label, node)
+            check = False
+        else:
+            check = False
+        
+\end{python}
+
+\end{document}
+%sagemathcloud={"latex_command":"pdflatex -synctex=1 -shell-escape -interact=nonstopmode encoding_options_version2.0.tex"}

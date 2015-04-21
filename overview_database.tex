@@ -1,0 +1,165 @@
+\documentclass{article}
+\usepackage[landscape]{geometry}
+\usepackage{longtable}
+
+\usepackage[usenames, dvipsnames]{color}
+\newcommand{\fixme}[1]{\color{red} #1}
+
+\title{Overview of database structure GCdata}
+\author{Grietje Commelin}
+
+\begin{document}
+\maketitle
+
+\section{GCdata.gcdsu}
+
+
+\begin{longtable}{|l|p{.7\textwidth}|l|}
+\hline
+\emph{Column} & \emph{Description} & \emph{How?}\\ \hline
+ID          & Automatically created key & DSU+QF \\ \hline
+Level       & Level of embedding (number of Q's in text\_type (txt)) & DSU+QF \\ \hline
+a           & Place in corpus where DSU proper starts: Book, chapter, verse & DSU+QF \\ \hline
+Start\_node & ETCBC node\_ID of first clause\_atom & DSU+QF \\ \hline
+ClANrs      & List of clause\_atom ID's in DSU, as indicated by ETCBC & DSU+QF \\ \hline
+QFClANrs    & List of clause\_atom ID's in QF, as indicated by ETCBC & DSU+QF input \\ \hline
+Con1        & Textual context (txt) before the slot of the Quotative Frame (QF): Discursive, Narrative, Quotation, or Unknown (or a combination of these) & DSU+QF \\ \hline
+Con2        & Textual context (txt) after the DSU & DSU+QF \\ \hline
+QF          & Presence or absence of QF (Yes or No) & DSU+QF \\ \hline
+QFverb      & Verbs occurring in QF & DSU+QF \\ \hline
+QFverbspeech & Verbs with F.etcbc4\_ft\_ls.v(node) == "quot" & DSU+QF \\ \hline
+QFLMR       & Presence or absence of LMR in QF & DSU+QF \\ \hline
+QFSp        & Mentioning of speaker in QF: text of mentioning & DSU+QF input \\ \hline
+QFSptype    & Mentioning of speaker in QF: type of mentioning (Noun, Noun\_phrase, Name, Name\_phrase, Pers\_pronoun, Other\_pronoun, Suffix, Verb) & DSU+QF input \\ \hline
+MySp        & My impression of the speaker of the DSU & DSU+QF input \\ \hline
+QFAd        & Mentioning of addressee in QF: text of mentioning & DSU+QF input \\ \hline
+QFAdtype    & Mentioning of addressee in QF: type of mentioning (Noun, Noun\_phrase, Name, Name\_phrase, Pers\_pronoun, Other\_pronoun, Suffix, Verb) & DSU+QF input \\ \hline
+MyAd        & My impression of the addressee of the DSU & DSU+QF input \\ \hline
+QFAdprep    & Preposition used to introduce addressee in QF & DSU+QF input \\ \hline
+QFplus      & Extra information in QF: text of mentioning & DSU+QF input \\ \hline
+QFplustype  & Extra information in QF: type of mentioning (something like Time or Space) & DSU+QF input \\ \hline
+Part        & Participants involved in this DSU & Part-2.py \\ \hline
+Clos        & Open or closed conversation & \\ \hline
+DSUtag      & Unique tag, composed of Start\_node and Level & DSU+QF \\ \hline
+\end{longtable}
+
+\section{GCdata.pt}
+
+\begin{longtable}{|l|p{.7\textwidth}|l|}
+\hline
+\emph{Column} & \emph{Description} & \emph{How?}\\ \hline
+\multicolumn{3}{|l|}{\bf{Place where reference is found}} \\ \hline
+ID & Automatically created ID (of SQLite entry) & Part-1.py \\ \hline
+a & Place in corpus where participant reference is found (book, chapter, verse) & Part-1.py \\ \hline
+Node & Node ID in ETCBC data & Part-1.py \\ \hline
+Nodetype & Type of node: 1=part\_suffix, 2=part\_word, 3=part\_phrase, 4=part\_clause, 5=part\_sentence & Part-1.py input\\ \hline
+ClANr & Clause atom ID & Part-1.py \\ \hline
+PhANr & Phrase atom ID & Part-1.py \\ \hline
+WNr & Word ID & Part-1.py \\ \hline
+Level & Levels of embedding (of whole DSU) as computed by text\_type and stored in GCdata.db & Part-2.py\\ \hline
+Emb & Levels of embedding as indicated by ETCBC & \fixme{F.etcbc4\_ft\_tab.v(node)} \\ \hline
+DSU & ID of the DSU to which reference belongs & Part-2.py \\ \hline
+
+\multicolumn{3}{|l|}{\bf{Place where first found}} \\ \hline
+
+a1 & Place in corpus where participant is found for the first time & Part-2.py \\ \hline
+Node1 & Node ID (in ETCBC data) of first reference to this participant & Part-2.py \\ \hline
+Nodetype1 & Node type of first reference: 1=part\_suffix, 2=part\_word, 3=part\_phrase, 4=part\_clause, 5=part\_sentence & Part-2.py\\ \hline
+ClANr1 & Clause\_atom ID of first reference to this participant & Part-2.py\\ \hline
+PhANr1 & Phrase\_atom ID & Part-2.py\\ \hline
+WNr1 & Word number (within book) & Part-2.py\\ \hline
+DSU1 & ID of the DSU to which first reference belongs & Part-2.py\\ \hline
+Name & Identifying name / label for this participant (referent) & Part-1.py \\ \hline
+
+\multicolumn{3}{|l|}{\bf{Previous participant reference}} \\ \hline
+
+Preva & Place in corpus where previous participant reference is found (book, chapter, verse) & Part-2.py \\ \hline
+PrevNode & Node ID of previous reference in ETCBC data & Part-2.py \\ \hline
+PrevNodetype & Type of node: 1=part\_suffix, 2=part\_word, 3=part\_phrase, 4=part\_clause, 5=part\_sentence & Part-2.py \\ \hline
+PrevClANr & Clause atom ID of previous reference & Part-2.py \\ \hline
+PrevPhANr & Phrase atom ID of previous reference & Part-2.py \\ \hline
+PrevWNr & Word number (within book) of previous reference & Part-2.py \\ \hline
+PrevCon & Context of previous participant reference in text &  Part-2.py\\ \hline
+PrevLevel & Levels of embedding as computed by text\_type and stored in GCdata.db & Part-2.py \\ \hline
+PrevEmb & Levels of embedding as indicated by ETCBC & Part-2.py \\ \hline
+PrevDSU & ID of the DSU to which previous reference belongs & Part-2.py \\ \hline
+PrevDes & Surface consonants of previous participant reference in text & Part-2.py \\ \hline
+PrevDestype & Type of designation of previous reference in text & Part-2.py \\ \hline
+PrevRole & Role or grammatical function of previous reference in text & Part-2.py \\ \hline
+PrevP & Person of previous reference & Part-2.py \\ \hline
+PrevN & Number of previous reference & Part-2.py \\ \hline
+PrevG & Gender of previous reference & Part-2.py \\ \hline
+PrevLexset & Lexical set of previous reference & Part-2.py \\ \hline
+PrevPartSpeech & Part of speech of previous reference & Part-2.py \\ \hline
+PrevName & Identifying name / label of participant in previous reference & Part-2.py \\ \hline
+
+\multicolumn{3}{|l|}{\bf{Previous reference to same participant}} \\ \hline
+Refa & Place in corpus where previous reference to this participant is found (book, chapter, verse) & Part-2.py \\ \hline
+RefNode & Node ID of previous reference to this participant in ETCBC data & Part-2.py \\ \hline
+RefNodetype & Type of node: 1=part\_suffix, 2=part\_word, 3=part\_phrase, 4=part\_clause, 5=part\_sentence & Part-2.py \\ \hline
+RefClANr & Clause atom ID of previous reference to same participant & Part-2.py \\ \hline
+RefPhANr & Phrase atom ID of previous reference to same participant & Part-2.py \\ \hline
+RefWNr & Word number (within book) of previous reference to same participant & Part-2.py \\ \hline
+RefCon & Context of previous reference to same participant & Part-2.py \\ \hline
+RefLevel & Levels of embedding as computed by text\_type and stored in GCdata.db & Part-2.py \\ \hline
+RefEmb & Levels of embedding as indicated by ETCBC & Part-2.py \\ \hline
+RefDSU & ID of the DSU to which previous reference to same participant belongs & Part-2.py \\ \hline
+RefDes & Surface consonants of previous reference to same participant & Part-2.py \\ \hline
+RefDestype & Type of designation by which this participant is mentioned in previous reference & Part-2.py \\ \hline
+RefRole & Role or grammatical function of previous reference to same participant & Part-2.py \\ \hline
+RefP & Person of previous reference to same participant & Part-2.py \\ \hline
+RefN & Number of previous reference to same participant & Part-2.py \\ \hline
+RefG & Gender of previous reference to same participant & Part-2.py \\ \hline
+RefLexset & Lexical set of previous reference to same participant & Part-2.py \\ \hline
+RefPartSpeech & Part of speech of previous reference to same participant & Part-2.py \\ \hline
+RefInt & Number of different intervening participants between current and Ref & \\ \hline
+
+\multicolumn{3}{|l|}{\bf{Current reference}} \\ \hline
+
+Con & Context of current reference & \\ \hline
+Des & Surface consonants of designation & Part-1.py \\ \hline
+Destype & Type of designation by which this participant is mentioned (Noun, Noun\_phrase, Name, Name\_phrase, Pers\_pronoun, Other\_pronoun,  Suffix, Verb) & Part-1.py input \\ \hline
+Role & Role or grammatical function within the sentence (??) == F.etcbc4\_ft\_function.v(node) & \\ \hline
+P & Person of current reference & Part-1.py \\ \hline
+N & Number of current reference & Part-1.py \\ \hline
+G & Gender of current reference & Part-1.py \\ \hline
+PartSpeech & Part of speech of current reference (article, verb, noun, proper noun, adverb, preposition, conjunction, pers. pronoun, demons. pron, interr. pronoun, interjection, negative, interrogative, adjective) & Part-1.py \\ \hline
+Lexset & Lexical set of current reference(distributive noun, copulative noun, potential adverb, anaphoric adverb, potential preposition, conjunctive adverb, ordinal, copulative verb, noun of multitude, focus particle, interrogative particle, gentilic, quotation verb, cardinal)\footnote{Be aware: might be wrong in case of higher level reference type (e.g. part\_clause), because is it based on the central word only. Same for P,N,G,PartSpeech} & Part-1.py \\ \hline
+Anim & 1=animate, 2=non-animate & Part-1.py input \\ \hline
+Human & 1=human (or divine), 2=non-human & Part-1.py input \\ \hline
+MinGram & Minimal encoding possible in this grammatical context & \\ \hline
+MinSem & Minimal encoding that would be semantically unambiguous in this context & \\ \hline
+Ext & How extensive is the current reference? & \\ \hline
+Nr & Counter how often the current referent (name) has been referred to in the corpus & Part-2.py \\ \hline
+NewDSU & Is current reference a new participant, already mentioned, active participant in same role, or active participant in different role (all within DSU)?  & \\ \hline
+NewChap & Is current reference a new participant, already mentioned, active participant in same role, or active participant in different role (all within chapter)?  & \\ \hline
+Col & Is the participant an individual, collective or an individual in a compound design? & Part-1.py input \\ \hline
+ColPart & Name of collective / compound / individuals to which current reference belongs\footnote{Overlap with ``Referents"} & Part-1.py input \\ \hline
+MajDSU & Importance of the participant in current DSU & \\ \hline
+MajChap & Importance of the participant in current chapter & \\ \hline
+Var & Textual variants influencing the reading of this reference and its context & \\ \hline
+Tag & Unique tag, composed of various place indicators: place (``a"), ClANr, PhANr, WNr, Nodetype & Part-1.py \\ \hline
+Referents & Referents included in this reference (if not identical with Name, but relevant in textual context) & Part-1.py input \\ \hline
+Cltype & Type of the clause to which reference belongs as given by F.etcbc4\_ft\_typ.v(node) & Part-1.py \\ \hline
+Phtype & Type of the phrase to which reference belongs as given by F.etcbc4\_ft\_typ.v(node) & Part-1.py \\ \hline
+Phfunc & Function of the phrase to which reference belongs as given by F.etcbc4\_ft\_function.v(node) & Part-1.py \\ \hline
+SPhNr & Subphrase number & Part-1.py \\ \hline
+Sub & ``Yes'' if sub-participant, else ``No'' \\ \hline
+
+%Enc\_opt & Encoding options given the cl\_type and ph\_func & Part-1.py \\ \hline
+%Enc\_opt\_coded & Encoding options given the cl\_type and ph\_func, coded with numbers of prominence & Part-1.py \\ \hline
+%Prom & Prominence of the encoding given the list enc\_opt & Part-1.py
+\\ \hline
+
+\section{gcdata.enc}
+ID & Automatically created key & encoding_options.py \\ \hline
+Cl_type & Clause_type (F.etcbc4_ft_typ.v(node)) & encoding_options.py \\ \hline
+Ph_type & Phrase_type (F.etcbc4_ft_typ.v(node)) & \\ \hline
+Ph_func & Phrase_function (F.etcbc4_ft_function.v(node)) & encoding_options.py \\ \hline
+Enc_options & Options for encoding, given Cl_type and Ph_function & encoding_options.py \\ \hline
+Enc_options_coded & Options for encoding, coded with numbers indicating prominence & encoding_options.py \\ \hline
+
+\end{longtable}
+
+\end{document}
+

@@ -1,0 +1,409 @@
+\documentclass{article}
+\usepackage[landscape]{geometry}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage[inline]{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{calc,shapes, positioning,arrows}
+
+\usepackage{bibleref}
+
+\usepackage{minted}
+\usepackage{listings}
+\newcommand{\mi}[1]{\lstinline{#1}}
+
+\usepackage{multicol}
+
+%\usepackage[usenames, dvipsnames]{color}
+%\newcommand{\fixme}[1]{{#1}}
+
+\title{Work flow with gcdata.sqlite and several Python scripts}
+\author{Grietje Commelin}
+
+\begin{document}
+\maketitle
+\lstset{language=python,basicstyle=\ttfamily}
+
+\begin{multicols}{2}
+In this task I want to extract information from the ETCBC database + ask for user-input about DSU's and QF's + put it into an SQLite-table.
+A DSU is a Direct\_Speech\_Unit, and a QF is a Quotative\_Frame.
+
+\textbf{WARNING:} DSU's are found on the basis of \mi{text\_type}s of clause\_atoms as stored in the ETCBC database. However, testing shows that these are not 100\% correct and will need improvement.
+
+\textbf{WARNING2:} This task assumes that a DSU ends when the embedding (number of \mi{Q}'s in the \mi{text\_type} of a \mi{clause\_atom}) decreases.
+
+However, it might very well be possible that various DSU's follow each other on the same level of embedding without intervening lower-\mi{Q} \mi{clause\_atom}s.
+At the moment these cases will not be detected by this script!
+\end{multicols}
+
+\begin{minted}{python}
+#{{{ Import all important libraries
+import os, sys, time
+if not '/projects/1fdd6b0b-5199-4b0e-9f7f-7759af4a5e7a/.local/lib/python3.4/site-packages/' in sys.path:
+    sys.path.append('/projects/1fdd6b0b-5199-4b0e-9f7f-7759af4a5e7a/.local/lib/python3.4/site-packages/')
+import collections
+import random
+import laf
+from laf.fabric import LafFabric
+import etcbc
+from etcbc.preprocess import prepare
+from etcbc.lib import Transcription, monad_set
+from etcbc.trees import Tree
+from etcbc.featuredoc import FeatureDoc
+fabric = LafFabric()
+tr = Transcription()
+
+print("It works so far." )
+#}}}
+\end{minted}
+
+\begin{minted}{python}
+#{{{ Load the API
+API = fabric.load('etcbc4', '--', 'feature-doc', {
+    "xmlids": {"node": False, "edge": False},
+    "features": ('''
+            otype
+            domain
+            function
+            g_cons
+            g_cons_utf8
+            g_lex
+            g_lex_utf8
+            g_nme
+            g_nme_utf8
+            g_pfm
+            g_pfm_utf8
+            g_prs
+            g_prs_utf8
+            g_uvf
+            g_uvf_utf8
+            g_vbe
+            g_vbe_utf8
+            g_vbs
+            g_vbs_utf8
+            g_word
+            g_word_utf8
+            gn
+            lex
+            lex_utf8
+            ls
+            nme
+            nu
+            number
+            pdp
+            pfm
+            prs
+            ps
+            rela
+            sp
+            st
+            tab
+            trailer_utf8
+            txt
+            typ
+            uvf
+            vbe
+            vbs
+            vs
+            vt
+            book
+            chapter
+            label
+            verse
+    ''',""),
+    "primary": False,
+})
+exec(fabric.localnames.format(var='fabric'))
+#}}}
+\end{minted}
+
+\begin{minted}{python}
+#{{{ Stuff necessary to load parents relationships
+type_info = (
+    ("word", ''),
+    ("subphrase", 'U'),
+    ("phrase", 'P'),
+    ("clause", 'C'),
+    ("sentence", 'S'),
+)
+type_table = dict(t for t in type_info)
+type_order = [t[0] for t in type_info]
+
+pos_table = {
+    'adjv': 'aj',
+    'advb': 'av',
+    'art': 'dt',
+    'conj': 'cj',
+    'intj': 'ij',
+    'inrg': 'ir',
+    'nega': 'ng',
+    'subs': 'n',
+    'nmpr': 'n-pr',
+    'prep': 'pp',
+    'prps': 'pr-ps',
+    'prde': 'pr-dem',
+    'prin': 'pr-int',
+    'verb': 'vb',
+}
+
+ccr_info = {
+    'Adju': ('r', 'Cadju'),
+    'Attr': ('r', 'Cattr'),
+    'Cmpl': ('r', 'Ccmpl'),
+    'CoVo': ('n', 'Ccovo'),
+    'Coor': ('x', 'Ccoor'),
+    'Objc': ('r', 'Cobjc'),
+    'PrAd': ('r', 'Cprad'),
+    'PreC': ('r', 'Cprec'),
+    'Resu': ('n', 'Cresu'),
+    'RgRc': ('r', 'Crgrc'),
+    'Spec': ('r', 'Cspec'),
+    'Subj': ('r', 'Csubj'),
+    'NA':   ('n', 'C'),
+}
+
+tree_types = ('sentence', 'clause', 'clause_atom', 'phrase', 'subphrase', 'word')
+(root_type, leaf_type, clause_type) = (tree_types[0], tree_types[-1], 'clause')
+ccr_table = dict((c[0],c[1][1]) for c in ccr_info.items())
+ccr_class = dict((c[0],c[1][0]) for c in ccr_info.items())
+
+root_verse = {}
+root_clause_atom = {}
+
+for n in NN():
+    otype = F.otype.v(n)
+    if otype == "book" and F.etcbc4_sft_book.v(n) != "Genesis":
+        break
+    elif otype == "chapter" and int(F.etcbc4_sft_chapter.v(n)) > 5:
+        break
+    elif otype == 'verse': cur_verse = F.label.v(n)
+    elif otype == "clause_atom":
+        root_verse[n] = cur_verse
+        cur_clause_atom = F.etcbc4_ft_number.v(n)
+    elif otype == "word":
+        root_verse[n] = cur_verse
+        root_clause_atom[n] = cur_clause_atom
+#        print(list(C.parent.v(n)))
+
+tree = Tree(API, otypes = tree_types,
+     clause_type=clause_type,
+     ccr_feature='rela',
+     pt_feature='typ',
+     pos_feature='sp',
+     mother_feature = 'mother',
+     )
+#tree.restructure_clauses(ccr_class)
+results = tree.relations()
+parent = results['eparent']
+sisters = results['sisters']
+children = results['echildren']
+elder_sister = results['elder_sister']
+print("Ready for processing") # Was msg()
+#}}}
+\end{minted}
+
+\begin{minted}{python}
+#{{{ Import the helper functions
+def give_me_your_words(n):
+        global F
+        if F.etcbc4_db_otype.v(n) == 'word':
+                return [n]
+        else:
+            list_of_word_lists = [give_me_your_words(c) for c in children[n]]
+            return [item for sublist in list_of_word_lists for item in sublist]
+
+def get_text_of_word_list(word_list):
+        global F
+        return ' '.join(map(F.etcbc4_ft_g_cons_utf8.v, word_list))
+
+def get_cons_of_word_list(word_list):
+        global F
+        return ' '.join(map(F.etcbc4_ft_g_cons.v, word_list))
+
+def give_me_your_parents_up_to(node, parent_type='clause', limit=19):
+    # This function is very dangerous. If you feed it something larger than a clause, stuff explodes.
+        global parent
+        if limit < 0:
+                return []
+        if not n in parent:
+                return ["not in parent"]
+        p = parent[node]
+        if F.etcbc4_db_otype.v(p) == parent_type:
+                return [p]
+        else:
+                return [p] + give_me_your_parents_up_to(p, parent_type, limit-1)
+
+def insert_dict_in_db(cursor, table, values):
+        columns = ', '.join(values.keys())
+        placeholders = ':'+', :'.join(values.keys())
+        query = 'INSERT INTO %s (%s) VALUES (%s)' % (table, columns, placeholders)
+#        print(query)
+        cursor.execute(query, values)
+#}}}
+\end{minted}
+
+\begin{minted}{python}
+#{{{ Create an SQLite-table with a row for every QF + DSU, and columns for useful information about these DSU's.
+import sqlite3
+db = sqlite3.connect('gcdata.sqlite')
+c = db.cursor()
+
+create_table_query = open("gcdsu.sql").read()
+
+c.execute(create_table_query)
+
+db.commit()
+#}}}
+\end{minted}
+
+\begin{multicols}{2}
+Now we want to determine which \mi{clause_atom_number}s constitute QF's, and gather \mi{user_input} about them.
+\begin{itemize}
+ \item Show 4 clauses before DSU + first 4 clauses of DSU itself, all with \mi{clause_atom_number} and \mi{g_consonant}s.
+ \item Ask for block of \mi{clause_atom}s before DSU:
+ \begin{itemize}
+    \item Which \mi{clause_atom}s (if any) are QF
+    \item What "MySp" is. Can be any name
+    \item What "QFSp" is. Can be anything, or \mi{NULL}
+    \item What "QFSptype" is. Options: \mi{Noun}, \mi{Noun_phrase}, \mi{Name}, \mi{Name_phrase}, \mi{Pers_pronoun}, \mi{Suffix}, \mi{Verb}
+    \item What "MyAd" is. Can be any name
+    \item What "QFAd" is. Can be anything, or \mi{NULL}
+    \item What "QFAdtype" is. Options: \mi{Noun}, \mi{Noun_phrase}, \mi{Name}, \mi{Name_phrase}, \mi{Pers_pronoun}, \mi{Suffix}, \mi{Verb}
+    \item What "QFAdprep" is
+    \item What "QFplus" is. Can be anything, or \mi{NULL}
+    \item What "QFplustype" is. Can be something like \mi{Time} or \mi{Space}, or \mi{NULL}
+  \end{itemize}
+\end{itemize}
+\end{multicols}
+
+\begin{minted}{python}
+#{{{ Verbs
+def verbs(QFClANrs):
+    QFverb,QFverbspeech,QFLMR = [],[],"No"
+    for x in QFClANrs:
+        for y in get_text_of_word_list(give_me_your_words(x)):
+            if F.etcbc4_ft_sp.v(y) == "verb":
+                QFverb.append(y)
+                if F.etcbc4_ft_ls.v(y) == "quot":
+                    QFverbspeech.append(y)
+                    if F.etcbc4_ft_lex.v(y) == ">MR[" and F.etcbc4_ft_vt.v(y) == "infc":
+                        QFLMR = "Yes"
+    return(','.join(str(x) for x in QFverb),','.join(str(x) for x in QFverbspeech),QFLMR)
+
+#}}}
+\end{minted}
+
+\begin{minted}{python}
+#{{{ Process_DSU
+def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
+    DSUdata = {}
+    print(place)
+    print("Potential QF:")  # Show the clause_atom_numbers of potential_QF with their text
+    for x in potential_QF:
+        print('{0:<8} {1:>35} {2} {3:<35}'.format(x, get_text_of_word_list(give_me_your_words(x))," | ", get_cons_of_word_list(give_me_your_words(x))))
+    print("Start of DSU:")  # Show the first clause_atom_numbers and text of the DSU
+    for y in ClANrs[:3]:
+        print('{0:<8} {1:>35} {2} {3:<35}'.format(y, get_text_of_word_list(give_me_your_words(y))," | ",get_cons_of_word_list(give_me_your_words(y))))
+    print("-"*20)
+    DSUdata["a"] = place
+    DSUdata["Level"] = level
+#    DSUdata["ClANrs"] = ','.join(str(x) for x in ClANrs)
+    DSUdata["ClANrs"] = repr(ClANrs)
+    DSUdata["Con1"] = prev_context
+    DSUdata["Con2"] = context
+    DSUdata["QFClANrs"] = input("Clause_atoms that are indeed QF (type comma-separated numbers): ") or ""
+    DSUdata["QFverb"],DSUdata["QFverbspeech"],DSUdata["QFLMR"] = verbs(DSUdata["QFClANrs"])
+    DSUdata["QFSp"] = input("QFSp: ") or None
+    DSUdata["QFSptype"] = input("QFSptype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb): ") or None
+    DSUdata["MySp"] = repr(input("MySp: ").split(",")) or None
+    DSUdata["QFAd"] = input("QFAd: ") or None
+    DSUdata["QFAdtype"] = input("QFAdtype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb): ") or None
+    DSUdata["QFAdprep"] = input("QFAdprep: ") or None
+    DSUdata["MyAd"] = repr(input("MyAd: ").split(",")) or None
+    DSUdata["QFplus"] = input("QFplus: ") or None
+    DSUdata["QFplustype"] = input("QFplustype: ") or None
+    DSUdata["Start_node"] = ClANrs[0]
+    DSUdata["DSUtag"] = str(DSUdata["Start_node"]) + str(DSUdata["Level"])
+    if DSUdata["QFClANrs"] != "":
+        DSUdata["QF"] = "Yes"
+    elif DSUdata["QFClANrs"] == "":
+        DSUdata["QF"] = "No"
+    insert_dict_in_db(c, "gcdsu", DSUdata)
+
+#}}}
+\end{minted}
+
+\begin{minted}{python}
+#{{{ Main function
+def main_loop():
+    ClANrs =       [[],[],[],[],[],[],[],[]]
+    potential_QF = [[],[],[],[],[],[],[],[]]
+    pot_QF = []
+    context = ""
+    prev_context = ["","","","","","","",""]
+
+    place = None
+    places =       ["","","","","","","",""]
+    level = 0
+    completed = False
+    check_node = ""
+
+    for node in NN():
+        otype = F.etcbc4_db_otype.v(node)
+
+        if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
+            break
+        elif otype == "chapter":
+            if int(F.etcbc4_sft_chapter.v(node)) < 2:    # Prevent re-doing already completed chapters
+                completed = True
+            elif int(F.etcbc4_sft_chapter.v(node)) > 3:    # Set a limit on the amount of data dealt with this time
+                break
+            else:
+                completed = False
+
+        elif otype == "verse" and completed == False:
+            place = F.etcbc4_sft_label.v(node)
+        elif otype == "clause" and completed == False:
+            prev_level = level
+            level = F.etcbc4_ft_txt.v(node).count("Q")      # Determine level by parsing text_type data
+            previous_context = context
+            context = F.etcbc4_ft_txt.v(node)
+
+        elif otype == "clause_atom" and completed == False:
+            pot_QF.append(node)     # Update pot_QF
+            if len(pot_QF) > 5:
+                del pot_QF[0]       # Keep length of pot_QF reasonable
+            if level > 0:           # At least one DSU under construction
+                for i in range(1,(level+1)):
+                    ClANrs[level].append(node)   # For all DSU's under construction, add current ClANr to list of ClANrs
+            if prev_level < level:                  # Start of new DSU
+                places[level] = place               # Store starting place of new DSU
+                potential_QF[level] = pot_QF[:-1]   # Store potential QF of new DSU
+                prev_context[level] = previous_context    # Store context (preceding text_type)
+
+            elif prev_level > level:                # End of one or more DSU's
+                for j in range((level+1),(prev_level+1)): # Process the DSU's that end here
+                    check_node = str(ClANrs[j][0])
+                    c.execute("SELECT EXISTS (SELECT * FROM gcdsu WHERE Start_node = " + check_node + ");") # Check whether DSU is not yet saved in database
+                    result = c.fetchone()
+                    if result == (0,):
+                        process_DSU(ClANrs[j], potential_QF[j],places[j],prev_context[j],context,j)
+                    ClANrs[j], potential_QF[j], places[j], prev_context[j] = [],[],"",""    # Delete all stored data
+
+#}}}
+\end{minted}
+
+\begin{minted}{python}
+#{{{ Execute main loop
+main_loop()
+#}}}
+
+#{{{ Wrap up the database connection
+db.commit()
+c.close()
+#}}}
+\end{minted}
+
+\end{document}
+
+%sagemathcloud={"latex_command":"pdflatex -synctex=1 -shell-escape -interact=nonstopmode DSU+QF_version3.1.tex"}

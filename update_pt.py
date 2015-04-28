@@ -73,6 +73,7 @@ API = fabric.load('etcbc4', '--', 'feature-doc', {
             verse
     ''',""),
     "primary": False,
+    "prepare": prepare,
 })
 exec(fabric.localnames.format(var='fabric'))
 #}}}
@@ -243,12 +244,23 @@ for Node in todo2:
     parents = give_me_your_parents_up_to(Node)
     print(F.etcbc4_db_otype.v(Node),parents)
     for x in parents:
-        print(x,F.etcbc4_db_otype.v(x))
+#        print(x,F.etcbc4_db_otype.v(x))
         if F.etcbc4_db_otype.v(x) == "phrase":
-            check=True
-    if check == False:
-        print("Strange behaviour!")
-#            c.execute("update pt set Phfunc=:Phfunc where Node=:Node", {"Phfunc":F.etcbc4_ft_function.v(x),"Node":Node})
-#        elif F.etcbc4_db_otype.v(x) == "subphrase":
-#            c.execute("update pt set SPhNr=:SPhNr where Node=:Node", {"SPhNr":Node,"Node":Node})
+#            check=True
+#    if check == False:
+#        print("Strange behaviour!")
+            c.execute("update pt set Phfunc=:Phfunc where Node=:Node", {"Phfunc":F.etcbc4_ft_function.v(x),"Node":Node})
+        if F.etcbc4_db_otype.v(x) == "subphrase" and check == False:
+            print(x,F.etcbc4_db_otype.v(x))
+            c.execute("update pt set SPhNr=:SPhNr where Node=:Node", {"SPhNr":Node,"Node":Node})
+            check = True
+#}}}
+
+#{{{ Check for sub-participants
+todo_sub = list(c.execute("select Node,a,Des,Destype from pt where Sub=''"))
+for (Node,a,Des,Destype) in todo_sub:
+    print(a,Des,Destype)
+    print(get_cons_of_word_list(give_me_your_words(give_me_your_parents_up_to(eval(Node))[-1])))
+    sub = input("Sub?")
+    c.execute("update pt set Sub=:sub where Node=:Node", {"sub":sub,"Node":Node})
 #}}}

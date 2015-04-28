@@ -72,6 +72,7 @@ API = fabric.load('etcbc4', '--', 'feature-doc', {
             verse
     ''',""),
     "primary": False,
+    "prepare": prepare,
 })
 exec(fabric.localnames.format(var='fabric'))
 

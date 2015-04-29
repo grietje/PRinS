@@ -93,6 +93,6 @@ Cltype      VARCHAR(10),             -- Type of the clause\_atom to which refere
 Phtype      VARCHAR(10),             -- Type of the phrase\_atom to which reference belongs as given by F.etcbc4\_ft\_typ.v(node)
 Phfunc      VARCHAR(10),             -- Function of the phrase to which reference belongs as given by F.etcbc4\_ft\_function.v(node)
 SPhNr       VARCHAR(10),             -- Subphrase number
-Sub         VARCHAR(5),              -- "Yes" if reference is a sub-participant, else "No"
+Sub         VARCHAR(5),              -- Specifies participant type: independent or a kind of sub-participant
 
 );

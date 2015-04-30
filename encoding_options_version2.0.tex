@@ -888,7 +888,10 @@ A special category form the nota objecti \cjRL{>T} and the nota accusativi \cjRL
 \end{itemize}
 These options can, of course, be extended by subphrases or elaborate descriptions of the object, thus creating an extensive participant reference. The reference to \bibleverse{Gen}(22:2) can serve as an example here.
 
+\\end{python}
 
+\\begin{python}
+\section{tests}
 \begin{python}
 # Find words of a text
 text = ""
@@ -900,7 +903,7 @@ for node in NN():
         chapter = F.etcbc4_sft_chapter.v(node)
     elif otype == "verse":
         verse = F.etcbc4_sft_verse.v(node)
-    elif otype == "word" and chapter == "2" and verse == "7":
+    elif otype == "word" and chapter == "9" and verse == "26":
         text += " " + F.etcbc4_ft_g_cons.v(node)
 #print(text)
 

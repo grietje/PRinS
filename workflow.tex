@@ -265,7 +265,7 @@ def give_me_your_parents_up_to(node, parent_type='clause', limit=19):
         global parent
         if limit < 0:
                 return []
-        if not n in parent:
+        if not node in parent:
                 return ["not in parent"]
         p = parent[node]
         if F.etcbc4_db_otype.v(p) == parent_type:
@@ -553,7 +553,7 @@ def types_functions(node,node_type,Clause,ClANr,Phrase,PhANr,SPhNr,WNr,Data):
 \end{python}
 
 \begin{python}
-#{{{ Find potential reference levels + ask for some user-input + feed data about reference to SQLite
+# Find potential reference levels + ask for some user-input + feed data about reference to SQLite
 def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhNr, WNr):
         Data = {}
         print("-"*20)
@@ -563,24 +563,25 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
                 lijstje = [node] + give_me_your_parents_up_to(node)
         elif node_type == "suffix":
                 lijstje = [node] + [node] + give_me_your_parents_up_to(node)
+        print(len(lijstje))
         for l in lijstje:
-                print('{0: <8} {1: <8} {2: >15} {3} {4:<15}'.format(l, F.etcbc4_db_otype.v(l), get_text_of_word_list(give_me_your_words(l))," | ",get_cons_of_word_list(give_me_your_words(l))))
+                print('{0!s: <8} {1!s: <12} {2!s: >15} {3} {4!s:<15}'.format(l, F.etcbc4_db_otype.v(l), get_text_of_word_list(give_me_your_words(l))," | ",get_cons_of_word_list(give_me_your_words(l))))
         Data["a"] = place
         Data["Node"] = node
         Data["Emb"] = F.etcbc4_ft_tab.v(ClANr)
         Data["Des"] = F.etcbc4_ft_g_cons.v(node)
         Data["Nodetype"] = input("Which node_type do you want to store? (1=Part_suffix, 2=Part_word, 3=Part_subphrase, 4=Part_phrase, 5=Part_clause, 6=Part_sentence): ")
         Data["Destype"] = input("What is the designation type? (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb): ")
-        Sub-data = ""
+        Sub_data = ""
         if F.etcbc4_ft_rela.v(Clause) == "Attr":
-            Sub-data.append("Attr")
+            Sub_data.append("Attr")
         if Data["Nodetype"] == "3" and F.etcbc4_ft_rela.v(SPhNr) == "rec":
-            Sub-data.append("rec")
+            Sub_data.append("rec")
         elif F.etcbc4_ft_rela.v(node) == "REG":
-            Sub-data.append("Sub1")
-        if Sub-data == "":
-            Sub-data = "No"
-        Data["Sub"] = input("Is this a sub-participant? Default" + Sub-data) or Sub-data
+            Sub_data.append("Sub1")
+        if Sub_data == "":
+            Sub_data = "No"
+        Data["Sub"] = input("Is this a sub-participant? Default" + Sub_data) or Sub_data
         Data["Name"] = input("What is the name of the referent? : ")
         Data["Anim"] = input("1=Animate, 2=Non-animate: ")
         if Data["Anim"] == "2":
@@ -603,17 +604,15 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
             Data["N"] = suffix_dict[F.etcbc4_ft_prs.v(node)]['nu']
             Data["G"] = suffix_dict[F.etcbc4_ft_prs.v(node)]['gn']
         Data["Tag"] = Data["a"].rjust(15,'') + "_" + str(ClANr).rjust(9,'0') + "_" + str(PhANr).rjust(9,'0') + "_" + str(WNr).rjust(9,'0') + "_" + str(Data["Nodetype"])
-
         insert_dict_in_db(c,"pt",Data)
-		Done = input("Done with this reference! If not, type 'No'") or None
-			if Done == "No":
-				ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, WNr)
-    
-#}}}
+        Done = input("Done with this reference! If not, type 'No'") or None
+        if Done == "No":
+            print("test")
+            ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, WNr)
 \end{python}
 
 \begin{python}
-#{{{ Record some statistics and filter potential participant references
+# Record some statistics and filter potential participant references
 DSU = False
 completed = False
 
@@ -647,14 +646,14 @@ for node in NN():
     elif F.etcbc4_db_otype.v(node) == "word" and DSU == True and completed == False:
         WNr = node
         check_node = str(node)
-        c.execute("SELECT count(*) FROM pt WHERE Node = " + check_node + ";") # Check whether reference is not yet saved in database
-        result = c.fetchone()
-        if result == (0,) or (result == (1,) and not (F.etcbc4_ft_prs.v(node) in ("absent","n/a")) and not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA"))):    # Apparently reference is not yet saved in database (in case of a suffix, word may be saved already)
+        if check_node != "":     # Just a hack when temporarily outcommenting lines below
+#        c.execute("SELECT count(*) FROM pt WHERE Node = " + check_node + ";") # Check whether reference is not yet saved in database
+#        result = c.fetchone()
+#        if result == (0,) or (result == (1,) and not (F.etcbc4_ft_prs.v(node) in ("absent","n/a")) and not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA"))):    # Apparently reference is not yet saved in database (in case of a suffix, word may be saved already)
             if not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA")):    # Check whether node is a potential reference by checking features person, number, gender.
                 ask_potential_ref(place, node, "word", Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
             if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
                 ask_potential_ref(place, node, "suffix", Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
-#}}}
 \end{python}
 
 \begin{python}

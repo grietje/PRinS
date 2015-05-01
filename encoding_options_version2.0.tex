@@ -897,13 +897,13 @@ These options can, of course, be extended by subphrases or elaborate description
 text = ""
 for node in NN():
     otype = F.etcbc4_db_otype.v(node)
-    if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
+    if otype == "book" and F.etcbc4_sft_book.v(node) not in ("Genesis","Exodus"):
         break
     elif otype == "chapter":
         chapter = F.etcbc4_sft_chapter.v(node)
     elif otype == "verse":
         verse = F.etcbc4_sft_verse.v(node)
-    elif otype == "word" and chapter == "9" and verse == "26":
+    elif otype == "word" and chapter == "13" and verse == "8":
         text += " " + F.etcbc4_ft_g_cons.v(node)
 #print(text)
 

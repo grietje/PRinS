@@ -497,33 +497,28 @@ db.commit()
 \begin{python}
 #{{{ Find fitting info about types and functions
 def types_functions(node,node_type,Clause,ClANr,Phrase,PhANr,SPhNr,WNr,Data):
-        if Data["Nodetype"] == "6":                # On extensive nodetypes, info on smaller items makes no sense
-            ClANr,PhANr,SPhNr,WNr) = (0,0,0,0)
-        elif Data["Nodetype"] == "5":
-            (PhANr,SPhNr,WNr) = (0,0,0)
-        elif Data["Nodetype"] in ("3","4"):
-            WNr = 0
-        Data["ClANr"] = ClANr                      # Insert data on numbers
-        Data["PhANr"] = PhANr
-        Data["SPhNr"] = SPhNr
-        Data["WNr"] = WNr
-
-        Data["Cltype"] = F.etcbc4_ft_typ.v(Clause) # Insert data on types and function
-        Data["Phtype"] = F.etcbc4_ft_typ.v(Phrase)
-        Data["Phfunc"] = F.etcbc4_ft_function.v(Phrase)
-        if Data["Nodetype"] == "6":                # On extensive nodetypes, info on smaller items makes no sense
-            Data["Cltype"] = ""
-        if Data["Nodetype"] in ("5","6"):
-            Data["Phtype"] = ""
-            Data["Phfunc"] = ""
-
-        if 1< int(Data["Nodetype"]) < 4:           # Word nodes have a Part of Speech, and sometimes a Lexical Set too
-            Data["PartSpeech"] = F.etcbc4_ft_sp.v(node)
-            Data["Lexset"] = F.etcbc4_ft_ls.v(node)
-        else:
-            Data["PartSpeech"] = input("Part of speech: ")
-            Data["Lexset"] = input("Lexical set: ")
-
+    if Data["Nodetype"] == "6":                # On extensive nodetypes, info on smaller items makes no sense
+        (ClANr,PhANr,SPhNr,WNr) = (0,0,0,0)
+    elif Data["Nodetype"] == "5":
+        (PhANr,SPhNr,WNr) = (0,0,0)
+    elif Data["Nodetype"] in ("3","4"):
+        WNr = 0
+    Data["ClANr"] = ClANr                      # Insert data on numbers
+    Data["PhANr"] = PhANr
+    Data["SPhNr"] = SPhNr
+    Data["WNr"] = WNr
+    Data["Cltype"] = F.etcbc4_ft_typ.v(Clause) # Insert data on types and function
+    Data["Phtype"] = F.etcbc4_ft_typ.v(Phrase)
+    Data["Phfunc"] = F.etcbc4_ft_function.v(Phrase)
+    if Data["Nodetype"] == "6":                # On extensive nodetypes, info on smaller items makes no sense
+        Data["Cltype"] = ""
+    if Data["Nodetype"] in ("5","6"):
+        Data["Phtype"] = ""
+        Data["Phfunc"] = ""
+        Data["Lexset"] = F.etcbc4_ft_ls.v(node)
+    else:
+        Data["PartSpeech"] = input("Part of speech: ")
+        Data["Lexset"] = input("Lexical set: ")
         # Encoding options as stored in gcdata.enc
 #        Data["Enc_opt"] = c.execute("select Enc_options from enc where Cl_type=:Cltype and Ph_func=:Phfunc", {"Cltype":Data["Cltype"],"Phfunc":Data["Phfunc"]})
 #        Data["Enc_opt_coded"] = c.execute("select Enc_options_coded from enc where Cl_type=:Cltype and Ph_func=:Phfunc", {"Cltype":Data["Cltype"],"Phfunc":Data["Phfunc"]})
@@ -541,19 +536,18 @@ def types_functions(node,node_type,Clause,ClANr,Phrase,PhANr,SPhNr,WNr,Data):
 #        elif Data["Nodetype"] in ("4","5","6"):
 #            prom1= 6
 #        Data["Prom"] = eval(Data["Enc_opt_coded"]).index(prom1)
-
-        function = F.etcbc4_ft_function.v(Phrase)
-        if Data["Nodetype"] in ("1", "2", "3", "4"):    # F.etcbc4_ft_function.v(node) only applies to phrase level (or lower)
-            if function in ("ExsS","IntS","ModS","NCoS","PrcS","PreS") and Data["Nodetype"] == "1":
-                Data["Role"] = "Subject"
-            elif function in ("PreO","PtcO") and Data["Nodetype"] == "1":
-                Data["Role"] = "Object"
-            elif Data["Nodetype"] == "1" or F.etcbc4_ft_rela.v(SPhNr) == "rec":
-                Data["Role"] = input("Grammatical role / function:" + "rec") or "rec"
-            else:
-                Data["Role"] = input("Grammatical role / function: " + function ) or function
+    function = F.etcbc4_ft_function.v(Phrase)
+    if Data["Nodetype"] in ("1", "2", "3", "4"):    # F.etcbc4_ft_function.v(node) only applies to phrase level (or lower)
+        if function in ("ExsS","IntS","ModS","NCoS","PrcS","PreS") and Data["Nodetype"] == "1":
+            Data["Role"] = "Subject"
+        elif function in ("PreO","PtcO") and Data["Nodetype"] == "1":
+            Data["Role"] = "Object"
+        elif Data["Nodetype"] == "1" or F.etcbc4_ft_rela.v(SPhNr) == "rec":
+            Data["Role"] = input("Grammatical role / function:" + "rec") or "rec"
         else:
-            Data["Role"] = input("Grammatical role / function: ")
+            Data["Role"] = input("Grammatical role / function: " + function ) or function
+    else:
+        Data["Role"] = input("Grammatical role / function: ")
 
 #}}}
 \end{python}
@@ -586,7 +580,7 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
             Sub-data.append("Sub1")
         if Sub-data == "":
             Sub-data = "No"
-        Data["Sub"] = input("Is this a sub-participant? Default" Sub-data) or Sub-data
+        Data["Sub"] = input("Is this a sub-participant? Default" + Sub-data) or Sub-data
         Data["Name"] = input("What is the name of the referent? : ")
         Data["Anim"] = input("1=Animate, 2=Non-animate: ")
         if Data["Anim"] == "2":

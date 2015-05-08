@@ -154,6 +154,7 @@ API = fabric.load("etcbc4", "--", "feature-doc", {
     "prepare": prepare,
 })
 exec(fabric.localnames.format(var='fabric'))
+
 #}}}
 \end{python}
 
@@ -635,8 +636,11 @@ for node in NN():
             break
         else:
             completed = False
-    elif otype == "verse" and completed == False:
-        place = F.etcbc4_sft_label.v(node)
+    elif otype == "verse":
+        if int(F.etcbc4_sft_verse.v(node)) < 11:
+            completed = True
+        if completed == False:
+            place = F.etcbc4_sft_label.v(node)
     elif otype == "clause" and completed == False:
         DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
         Clause = node

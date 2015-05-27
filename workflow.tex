@@ -8,7 +8,8 @@
 
 \usepackage{bibleref}
 
-\usepackage{minted}
+\usepackage{minted1}
+%\usepackage{minted}
 \usepackage{listings}
 \newcommand{\mi}[1]{\lstinline{#1}}
 
@@ -579,7 +580,7 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
             Data["Des"] = F.etcbc4_ft_g_cons.v(node)
         else:
             Data["Des"] = input("Des: ")
-        Data["Destype"] = input("What is the designation type? (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb): ")
+        Data["Destype"] = input("What is the designation type? (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective): ")
         Sub_data = ""
         if F.etcbc4_ft_rela.v(Clause) == "Attr":
             Sub_data += "Attr"
@@ -615,8 +616,8 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
         insert_dict_in_db(c,"pt",Data)
         Done = input("Done with this reference! If not, type 'No'") or None
         if Done == "No":
-            print("test")
-            ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, WNr)
+            ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
+
 \end{python}
 
 \begin{python}
@@ -635,10 +636,12 @@ for node in NN():
         elif int(F.etcbc4_sft_chapter.v(node)) > 3:    # Set a limit on the amount of data dealt with this time
             break
         else:
-            completed = False
+            completed = False 
     elif otype == "verse":
-        if int(F.etcbc4_sft_verse.v(node)) < 11:
-            completed = True
+        if int(F.etcbc4_sft_verse.v(node)) < 20:
+           completed = True
+        else:
+           completed = False
         if completed == False:
             place = F.etcbc4_sft_label.v(node)
     elif otype == "clause" and completed == False:
@@ -665,6 +668,7 @@ for node in NN():
                 ask_potential_ref(place, node, "word", Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
             if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
                 ask_potential_ref(place, node, "suffix", Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
+
 \end{python}
 
 \begin{python}

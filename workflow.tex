@@ -300,6 +300,7 @@ def insert_dict_in_db(cursor, table, values):
         query = 'INSERT INTO %s (%s) VALUES (%s)' % (table, columns, placeholders)
 #        print(query)
         cursor.execute(query, values)
+
 #}}}
 \end{python}
 
@@ -580,7 +581,10 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
             Data["Des"] = F.etcbc4_ft_g_cons.v(node)
         else:
             Data["Des"] = input("Des: ")
-        Data["Destype"] = input("What is the designation type? (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective): ")
+        if Data["Nodetype"] == "1":
+            Data["Destype"] = "7"
+        else:
+            Data["Destype"] = input("What is the designation type? (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective): ")
         Sub_data = ""
         if F.etcbc4_ft_rela.v(Clause) == "Attr":
             Sub_data += "Attr"
@@ -590,13 +594,13 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
             Sub_data += "Sub1"
         if Sub_data == "":
             Sub_data = "No"
-        Data["Sub"] = input("Is this a sub-participant? Default " + Sub_data + " ") or Sub_data
+        Data["Sub"] = input("Is this a sub-participant? Default " + Sub_data + ": ") or Sub_data
         Data["Name"] = input("What is the name of the referent? : ")
         Data["Anim"] = input("1=Animate, 2=Non-animate: ")
         if Data["Anim"] == "2":
             Data["Human"] = "None"
         elif Data["Anim"] == "1":
-            Data["Human"] = input("1=Human (or divine), 2=Non-human")
+            Data["Human"] = input("1=Human (or divine), 2=Non-human: ")
         Data["Col"] = input("Is the participant an individual (1), collective (2) or an individual in a compound design (3)?")
         if Data["Col"] == "2" or Data["Col"] == "3":
             Data["Referents"] = input("Contextually relevant referents that are part of Name: ")
@@ -638,10 +642,10 @@ for node in NN():
         else:
             completed = False 
     elif otype == "verse":
-        if int(F.etcbc4_sft_verse.v(node)) < 20:
-           completed = True
-        else:
-           completed = False
+#        if int(F.etcbc4_sft_verse.v(node)) < 22:
+#           completed = True
+#        else:
+#           completed = False
         if completed == False:
             place = F.etcbc4_sft_label.v(node)
     elif otype == "clause" and completed == False:
@@ -660,10 +664,10 @@ for node in NN():
     elif F.etcbc4_db_otype.v(node) == "word" and DSU == True and completed == False:
         WNr = node
         check_node = str(node)
-        if check_node != "":     # Just a hack when temporarily outcommenting lines below
-#        c.execute("SELECT count(*) FROM pt WHERE Node = " + check_node + ";") # Check whether reference is not yet saved in database
-#        result = c.fetchone()
-#        if result == (0,) or (result == (1,) and not (F.etcbc4_ft_prs.v(node) in ("absent","n/a")) and not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA"))):    # Apparently reference is not yet saved in database (in case of a suffix, word may be saved already)
+#        if check_node != "":     # Just a hack when temporarily outcommenting lines below
+        c.execute("SELECT count(*) FROM pt WHERE Node = " + check_node + ";") # Check whether reference is not yet saved in database
+        result = c.fetchone()
+        if result == (0,) or (result == (1,) and not (F.etcbc4_ft_prs.v(node) in ("absent","n/a")) and not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA"))):    # Apparently reference is not yet saved in database (in case of a suffix, word may be saved already)
             if not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA")):    # Check whether node is a potential reference by checking features person, number, gender.
                 ask_potential_ref(place, node, "word", Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
             if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):

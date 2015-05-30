@@ -5,6 +5,7 @@
 \usepackage{tabularx}
 \usepackage[inline]{enumitem}
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\definecolor{light-gray}{gray}{0.80}
 \usepackage{tikz}
 \usetikzlibrary{calc,shapes, positioning,arrows}
 
@@ -31,6 +32,7 @@
 \setcounter{tocdepth}{3}
 
 \usepackage{bibleref}
+\def\bv{\bibleverse}
 \usepackage{ecjhebrew}
 \newcommand{\cl}[2]{\begingroup\beginL\begingroup\color{#1}\beginR#2\endR\endgroup\endL\endgroup}
 \newcommand{\hebr}[1]{\cjRL{#1}}
@@ -84,7 +86,7 @@ In order to make our data and analyses as clear as possible, we distinguish betw
 \item Value \mi{Super} for an extensive independent participant reference that is deconstructed into sub-participants
 \item Value \mi{Sub1} for the sub-participant with the same identity as the \mi{Super} participant it is part of; in other words the core of the extensive participant (e.g. ``his \emph{father}'')
 \item Value \mi{Rec} for sub-participants with an identity different from the reference they are part of, and who either are a suffix on the \mi{Sub1} or are annotated with the \mi{Regens-rectum} relationship (e.g. ``\emph{his} father''). These are closely connected to the \mi{Sub1} participant.
-\item Value \mi{RecPro} for sub-participants who precede the \mi{Sub1} sub-participant, and having an identity different from the reference they are part of (in other words, this is a \mi{Rec}sub-participant that does not follow but precede its \mi{parent}.) The typical example here is \hebr{KL}.
+\item Value \mi{RecPre} for sub-participants who precede the \mi{Sub1} sub-participant, and having an identity different from the reference they are part of (in other words, this is a \mi{Rec}sub-participant that does not follow but precede its \mi{parent}.) The typical example here is \hebr{KL}.
 \item Value \mi{Attr} for sub-participants in clauses with the value \mi{Attr} on the feature \mi{Rela} in the ETCBC database. These usually provide extra information about a participant, without a different participant being involved in the description.
 \end{itemize}
 
@@ -119,7 +121,7 @@ In \bibleverse{Gen}(1:28) we encounter the participant reference \hebr{KL XJH H 
 \begin{itemize}
 \item \mi{Super} \hebr{KL XJH H RMFT <L H >RY}
 \begin{itemize}
-\item \mi{RecPro} \hebr{KL}
+\item \mi{RecPre} \hebr{KL}
 \item \mi{Sub1} \hebr{XJH}
 \item \mi{Attr Super} \hebr{RMFT <L H >RY}
 \begin{itemize}
@@ -132,19 +134,19 @@ In \bibleverse{Gen}(1:28) we encounter the participant reference \hebr{KL XJH H 
 \bibleverse{Gen}(1:11) has an extensive reference about fruit trees: \hebr{<Y PRJ <FH PRJ L MNJW >CR ZR<W BW} -- ``fruit trees bearing fruit after their kind, with their seeds in it''.
 \begin{tabbing}
 \mi{Super} \hspace{20ex} \= \hebr{<Y PRJ <FH PRJ L MNJW >CR ZR<W BW} \\
-\hspace{1ex} \mi{Sub1 Super} \> \hebr{<Y PRJ \cl{white}{<FH PRJ L MNJW >CR ZR<W BW}} \\
-\hspace{2ex} \mi{Sub1 Sub1} \> \hebr{<Y \cl{white}{PRJ <FH PRJ L MNJW >CR ZR<W BW}}\\
-\hspace{2ex} \mi{Sub1 Rec} \> \hebr{\cl{white}{<Y} PRJ \cl{white}{<FH PRJ L MNJW >CR ZR<W BW}}\\
-\hspace{1ex} \mi{Attr Super} \> \hebr{\cl{white}{<Y PRJ} <FH PRJ L MNJW >CR ZR<W BW} \\
-\hspace{2ex} \mi{Attr Sub1} \> \hebr{\cl{white}{<Y PRJ} <FH \cl{white}{PRJ L MNJW >CR ZR<W BW}} \\
-\hspace{2ex} \mi{Attr Rec Super} \> \hebr{\cl{white}{<Y PRJ <FH} PRJ L MNJW >CR ZR<W BW} \\
-\hspace{3ex} \mi{Attr Rec Sub1} \> \hebr{\cl{white}{<Y PRJ <FH} PRJ \cl{white}{L MNJW >CR ZR<W BW}} \\
-\hspace{3ex} \mi{Attr Rec Attr Super1} \> \hebr{\cl{white}{<Y PRJ <FH PRJ L} MNJW \cl{white}{>CR ZR<W BW}} \\
-\hspace{4ex} \mi{Attr Rec Attr Rec} \> \hebr{\cl{white}{<Y PRJ <FH PRJ L MNJ}W \cl{white}{>CR ZR<W BW}} \\
-\hspace{3ex} \mi{Attr Rec Attr Super} \> \hebr{\cl{white}{<Y PRJ <FH PRJ L MNJW} >CR ZR<W BW} \\
-\hspace{4ex} \mi{Attr Rec Attr Super1} \> \hebr{\cl{white}{<Y PRJ <FH PRJ L MNJW >CR} ZR<W \cl{white}{BW}} \\
-\hspace{5ex} \mi{Attr Rec Attr Rec} \> \hebr{\cl{white}{<Y PRJ <FH PRJ L MNJW >CR ZR<}W \cl{white}{BW} \\
-\hspace{4ex} \mi{Attr Rec Attr Rec} \> \hebr{\cl{white}{<Y PRJ <FH PRJ L MNJW >CR ZR<W B}W} \\
+\hspace{1ex} \mi{Sub1 Super} \> \hebr{<Y PRJ \cl{light-gray}{<FH PRJ L MNJW >CR ZR<W BW}} \\
+\hspace{2ex} \mi{Sub1 Sub1} \> \hebr{<Y \cl{light-gray}{PRJ <FH PRJ L MNJW >CR ZR<W BW}}\\
+\hspace{2ex} \mi{Sub1 Rec} \> \hebr{\cl{light-gray}{<Y} PRJ \cl{light-gray}{<FH PRJ L MNJW >CR ZR<W BW}}\\
+\hspace{1ex} \mi{Attr Super} \> \hebr{\cl{light-gray}{<Y PRJ} <FH PRJ L MNJW >CR ZR<W BW} \\
+\hspace{2ex} \mi{Attr Sub1} \> \hebr{\cl{light-gray}{<Y PRJ} <FH \cl{light-gray}{PRJ L MNJW >CR ZR<W BW}} \\
+\hspace{2ex} \mi{Attr Rec Super} \> \hebr{\cl{light-gray}{<Y PRJ <FH} PRJ L MNJW >CR ZR<W BW} \\
+\hspace{3ex} \mi{Attr Rec Sub1} \> \hebr{\cl{light-gray}{<Y PRJ <FH} PRJ \cl{light-gray}{L MNJW >CR ZR<W BW}} \\
+\hspace{3ex} \mi{Attr Rec Attr Super1} \> \hebr{\cl{light-gray}{<Y PRJ <FH PRJ L} MNJW \cl{light-gray}{>CR ZR<W BW}} \\
+\hspace{4ex} \mi{Attr Rec Attr Rec} \> \hebr{\cl{light-gray}{<Y PRJ <FH PRJ L MNJ}W \cl{light-gray}{>CR ZR<W BW}} \\
+\hspace{3ex} \mi{Attr Rec Attr Super} \> \hebr{\cl{light-gray}{<Y PRJ <FH PRJ L MNJW} >CR ZR<W BW} \\
+\hspace{4ex} \mi{Attr Rec Attr Super1} \> \hebr{\cl{light-gray}{<Y PRJ <FH PRJ L MNJW >CR} ZR<W \cl{light-gray}{BW}} \\
+\hspace{5ex} \mi{Attr Rec Attr Rec} \> \hebr{\cl{light-gray}{<Y PRJ <FH PRJ L MNJW >CR ZR<}W \cl{light-gray}{BW}} \\
+\hspace{4ex} \mi{Attr Rec Attr Rec} \> \hebr{\cl{light-gray}{<Y PRJ <FH PRJ L MNJW >CR ZR<W B}W} \\
 \end{tabbing}
 
 \subsubsection{Encoding options on various slots}
@@ -321,4 +323,3 @@ I annotated MJM as individual; is this correct?
 
 \end{document}
 
-%sagemathcloud={"latex_command":"pdflatex -synctex=1 -shell-escape -interact=nonstopmode 'Encoding.tex'"}

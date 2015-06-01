@@ -489,8 +489,8 @@ import sqlite3
 db = sqlite3.connect('gcdata.sqlite')
 c = db.cursor()
 
-create_table_query = open("pt.sql").read()
-c.execute(create_table_query)
+#create_table_query = open("pt.sql").read()
+#c.execute(create_table_query)
 
 db.commit()
 
@@ -563,11 +563,11 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
         print(place)
         print("Clause_atom:", get_cons_of_word_list(give_me_your_words(ClANr)))
         if node_type == "word":
-                lijstje = [node] + give_me_your_parents_up_to(node)
+                options = [node] + give_me_your_parents_up_to(node)
         elif node_type == "suffix":
-                lijstje = [node] + [node] + give_me_your_parents_up_to(node)
-        print(len(lijstje))
-        for l in lijstje:
+                options = [node] + [node] + give_me_your_parents_up_to(node)
+        print(len(options))
+        for l in options:
                 print('{0!s: <8} {1!s: <12} {2!s: >15} {3} {4!s:<15}'.format(l, F.etcbc4_db_otype.v(l), get_text_of_word_list(give_me_your_words(l))," | ",get_cons_of_word_list(give_me_your_words(l))))
         Data["a"] = place
         Data["Node"] = node
@@ -592,6 +592,8 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
             Sub_data += "rec"
         elif F.etcbc4_ft_rela.v(node) == "REG":
             Sub_data += "Sub1"
+        if Data["Nodetype"] == "1":
+            Sub_data = "Rec"
         if Sub_data == "":
             Sub_data = "No"
         Data["Sub"] = input("Is this a sub-participant? Default " + Sub_data + ": ") or Sub_data

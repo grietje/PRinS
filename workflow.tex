@@ -607,8 +607,8 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
             Data["Human"] = "None"
         elif Data["Anim"] == "1" and not Data["Name"] == ">LHJM":
             Data["Human"] = input("1=Human (or divine), 2=Non-human: ")
-        Data["Col"] = input("Is the participant an individual (1), collective (2) or an individual in a compound design (3)?")
-        if Data["Col"] == "2" or Data["Col"] == "3":
+        Data["Col"] = input("Is the participant an individual (1), collective (2) or an individual in a compound design (3)? Or plural?(4)")
+        if Data["Col"] in ("2","3","4"):
             Data["Referents"] = input("Contextually relevant referents that are part of Name: ")
             Data["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
         else:

@@ -897,13 +897,21 @@ These options can, of course, be extended by subphrases or elaborate description
 text = ""
 for node in NN():
     otype = F.etcbc4_db_otype.v(node)
-    if otype == "book" and F.etcbc4_sft_book.v(node) not in ("Genesis","Exodus"):
+    if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
         break
     elif otype == "chapter":
         chapter = F.etcbc4_sft_chapter.v(node)
     elif otype == "verse":
         verse = F.etcbc4_sft_verse.v(node)
-    elif otype == "word" and chapter == "13" and verse == "8":
+    elif otype == "subphrase" and chapter == "6" and verse == "14":
+        if F.etcbc4_ft_rela.v(node) == "rec":
+            REG = ""
+            for x in C.mother.v(node):
+                REG = x
+                print(x)
+            print("REG: ",F.etcbc4_ft_g_cons.v(REG)," rectum: ", get_cons_of_word_list(give_me_your_words(node)))
+            print(node)
+    elif otype == "word" and chapter == "10" and verse == "09":
         text += " " + F.etcbc4_ft_g_cons.v(node)
 #print(text)
 
@@ -919,15 +927,10 @@ for node in NN():
         label = F.etcbc4_sft_label.v(node)
 #    elif otype == "clause":
 #        DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
-    elif otype == "word": # and DSU == True:
-        if F.etcbc4_ft_lex.v(node) == ">T" and F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
-            check = True
-        elif F.etcbc4_ft_sp.v(node) == "prps" and check == True:
-            print(label, node)
-            check = False
-        else:
-            check = False
-        
+    elif otype in ("clause","phrase","subphrase"):
+        if ">JC >XJW" in get_cons_of_word_list(give_me_your_words(node)):
+            print(label)
+
 \end{python}
 
 \end{document}

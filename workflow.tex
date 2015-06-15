@@ -150,7 +150,9 @@ API = fabric.load("etcbc4", "--", "feature-doc", {
             chapter
             label
             verse
-    ''',""),
+    ''','''
+            mother
+    '''),
     "primary": False,
     "prepare": prepare,
 })
@@ -563,12 +565,19 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
         print(place)
         print("Clause_atom:", get_cons_of_word_list(give_me_your_words(ClANr)))
         if node_type == "word":
-                options = [node] + give_me_your_parents_up_to(node)
+            options = [node] + give_me_your_parents_up_to(node)
         elif node_type == "suffix":
-                options = [node] + [node] + give_me_your_parents_up_to(node)
+            options = [node] + [node] + give_me_your_parents_up_to(node)
         print(len(options))
         for l in options:
-                print('{0!s: <8} {1!s: <12} {2!s: >15} {3} {4!s:<15}'.format(l, F.etcbc4_db_otype.v(l), get_text_of_word_list(give_me_your_words(l))," | ",get_cons_of_word_list(give_me_your_words(l))))
+            print('{0!s: <8} {1!s: <12} {2!s: >15} {3} {4!s:<15}'.format(l, F.etcbc4_db_otype.v(l), get_text_of_word_list(give_me_your_words(l))," | ",get_cons_of_word_list(give_me_your_words(l))))
+        for l in options:
+            if F.etcbc4_db_otype.v(l) == "subphrase": # and F.etcbc4_ft_rela.v(node) == "rec":
+                print("BANG!")
+                REG = ""
+                for x in C.mother.v(node):
+                    REG = x
+                print("REG: ",F.etcbc4_ft_g_cons.v(REG)," rectum: ",get_cons_of_word_list(give_me_your_words(node)))
         Data["a"] = place
         Data["Node"] = node
         Data["Emb"] = F.etcbc4_ft_tab.v(ClANr)

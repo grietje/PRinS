@@ -572,7 +572,7 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
         for l in options:
             print('{0!s: <8} {1!s: <12} {2!s: >15} {3} {4!s:<15}'.format(l, F.etcbc4_db_otype.v(l), get_text_of_word_list(give_me_your_words(l))," | ",get_cons_of_word_list(give_me_your_words(l))))
         for l in options:
-            if F.etcbc4_db_otype.v(l) == "subphrase": # and F.etcbc4_ft_rela.v(node) == "rec":
+            if F.etcbc4_db_otype.v(l) == "subphrase" and F.etcbc4_ft_rela.v(node) == "rec":
                 print("BANG!")
                 REG = ""
                 for x in C.mother.v(node):

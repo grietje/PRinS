@@ -581,7 +581,7 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
         Data["a"] = place
         Data["Node"] = node
         Data["Emb"] = F.etcbc4_ft_tab.v(ClANr)
-        Data["Nodetype"] = input("Which node_type do you want to store? (1=Part_suffix, 2=Part_word, 3=Part_subphrase, 4=Part_phrase, 5=Part_clause, 6=Part_sentence): ")
+        Data["Nodetype"] = input("Which node_type do you want to store? (1=Part_suffix, 2=Part_word, 3=Part_(sub)phrase, 5=Part_clause, 6=Part_sentence): ")
         if Data["Nodetype"] == "X":
             return
         elif Data["Nodetype"] == "1":

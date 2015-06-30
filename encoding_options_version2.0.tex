@@ -899,24 +899,28 @@ for node in NN():
     otype = F.etcbc4_db_otype.v(node)
     if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
         break
-    elif otype == "chapter" and int(F.etcbc4_sft_chapter.v(node)) >= 12:
-        break
+    elif otype == "chapter":
+        chapter = int(F.etcbc4_sft_chapter.v(node))
     elif otype == "verse":
         verse = F.etcbc4_sft_verse.v(node)
     elif otype == "phrase":
         phrase = F.etcbc4_ft_number.v(node)
     elif otype == "subphrase":
-        if F.etcbc4_ft_rela.v(node) == "rec":
+        if chapter == 15 and verse == "2":
+            pass
+        if F.etcbc4_ft_rela.v(node) == "rec" and chapter == 15 and verse == "2":
             REG = ""
             for x in C.mother.v(node):
                 REG = x
-                same = False
-                for y in give_me_your_parents_up_to(x):
-                    if F.etcbc4_db_otype.v(y) == "phrase" and F.etcbc4_ft_number.v(y) == phrase:
-                        same = True
-            if same == False:
-                print(verse, node,same, "REG: ",F.etcbc4_ft_g_cons.v(REG)," rectum: ", get_cons_of_word_list(give_me_your_words(node)))
-#    elif otype == "word" and chapter == "10" and verse == "09":
+                print(verse, node, "REG: ",F.etcbc4_ft_g_cons.v(REG)," rectum: ", get_cons_of_word_list(give_me_your_words(node)))
+#        elif F.etcbc4_ft_rela.v(node) == "atr" and chapter == 15: # and verse == "2":
+#            ATR = ""
+#            for y in C.mother.v(node):
+#                ATR = y
+#                print(verse, node, "ATR: ",get_cons_of_word_list(give_me_your_words(ATR))," atr: ", get_cons_of_word_list(give_me_your_words(node)))
+    elif otype == "word" and chapter == 15: # and verse == "2":
+        if F.etcbc4_ft_rela.v(node) == "REG":
+            print("Found REG")
 #        text += " " + F.etcbc4_ft_g_cons.v(node)
 #print(text)
 

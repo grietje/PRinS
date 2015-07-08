@@ -578,21 +578,21 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
             options = [node] + give_me_your_parents_up_to(node)
         elif node_type == "suffix":
             options = [node] + [node] + give_me_your_parents_up_to(node)
-        print(len(options))
         for l in options:
             print('{0!s: <8} {1!s: <12} {2!s: >15} {3} {4!s:<15}'.format(l, F.etcbc4_db_otype.v(l), get_text_of_word_list(give_me_your_words(l))," | ",get_cons_of_word_list(give_me_your_words(l))))
+        print("\n")
         for k in give_me_your_subphrases(ClANr):
 #        for l in options:
             if F.etcbc4_db_otype.v(k) == "subphrase" and F.etcbc4_ft_rela.v(k) == "rec":
                 REG = ""
                 for x in C.mother.v(k):
                     REG = x
-                print("\nREG: ",F.etcbc4_ft_g_cons.v(REG)," rectum: ",get_cons_of_word_list(give_me_your_words(k)))
+                print("{0!s: <5} {1!s: < 6} {2!s: <20} {3!s: <8} {4!s: <30}".format("**** REG: ",F.etcbc4_ft_g_cons.v(REG)," rectum: ",get_cons_of_word_list(give_me_your_words(k))))
             elif F.etcbc4_db_otype.v(k) == "subphrase" and F.etcbc4_ft_rela.v(k) == "atr":
                 ATTR = ""
                 for y in C.mother.v(k):
                     ATTR = y
-                print("\nATTR: ",get_cons_of_word_list(give_me_your_words(ATTR))," attr: ", get_cons_of_word_list(give_me_your_words(k)))
+                print("**** ATTR: ",get_cons_of_word_list(give_me_your_words(ATTR))," attr: ", get_cons_of_word_list(give_me_your_words(k)))
         Data["a"] = place
         Data["Node"] = node
         Data["Emb"] = F.etcbc4_ft_tab.v(ClANr)
@@ -631,7 +631,7 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
             Data["Human"] = "None"
         elif Data["Anim"] == "1" and not Data["Name"] == ">LHJM":
             Data["Human"] = input("1=Human (or divine), 2=Non-human, 3=Humans included: ")
-        Data["Col"] = input("Is the participant an individual (1), collective (2) or an individual in a compound design (3)? Or plural?(4)")
+        Data["Col"] = input("Is the participant an individual (1), collective (2) or an individual in a compound design (3)? Or dual/plural?(4)")
         if Data["Col"] in ("2","3","4"):
             Data["Referents"] = input("Contextually relevant referents that are part of Name: ")
             Data["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None

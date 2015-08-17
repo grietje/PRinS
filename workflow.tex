@@ -582,12 +582,12 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
             print('{0!s: <8} {1!s: <12} {2!s: >15} {3} {4!s:<15}'.format(l, F.etcbc4_db_otype.v(l), get_text_of_word_list(give_me_your_words(l))," | ",get_cons_of_word_list(give_me_your_words(l))))
         print("\n")
         for k in give_me_your_subphrases(ClANr):
-#        for l in options:
             if F.etcbc4_db_otype.v(k) == "subphrase" and F.etcbc4_ft_rela.v(k) == "rec":
                 REG = ""
                 for x in C.mother.v(k):
                     REG = x
-                print("{0!s: <5} {1!s: < 6} {2!s: <20} {3!s: <8} {4!s: <30}".format("**** REG: ",F.etcbc4_ft_g_cons.v(REG)," rectum: ",get_cons_of_word_list(give_me_your_words(k))))
+#                print("{0!s: <5} {1!s: < 6} {2!s: <20} {3!s: <8} {4!s: <30}".format("**** REG: ",F.etcbc4_ft_g_cons.v(REG)," rectum: ",get_cons_of_word_list(give_me_your_words(k))))
+                print("**** REG: ",F.etcbc4_ft_g_cons.v(REG)," rectum: ",get_cons_of_word_list(give_me_your_words(k)))
             elif F.etcbc4_db_otype.v(k) == "subphrase" and F.etcbc4_ft_rela.v(k) == "atr":
                 ATTR = ""
                 for y in C.mother.v(k):
@@ -616,7 +616,7 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
             Sub_data += "rec"
         elif F.etcbc4_ft_rela.v(node) == "REG":
             Sub_data += "Sub1"
-        if Data["Nodetype"] == "1":
+        if Data["Nodetype"] == "1" and not F.etcbc4_sp.v(node) in ("prep","conj"):
             Sub_data = "Rec"
         if Sub_data == "":
             Sub_data = "No"
@@ -651,6 +651,34 @@ def ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhN
         Done = input("Done with this reference! If not, type 'No'") or None
         if Done == "No":
             ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
+
+\end{python}
+
+\begin{python}
+# Propose some data about a participant if this participant is recognized by gcdata.pt
+def recognize(Des)
+    Recognize = list(c.execute("select Name,Anim,Human,Col from pt where Des=:Des", {"Des":Des, }))
+    if Recognize == []:
+        return []
+    else:
+        return Recognize
+\end{python}
+
+\begin{python}
+# Let the computer create as much data as possible, especially with REG-rectum data, and do a proposal to the user.
+def propose_input(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhNr, WNr):
+    for k in give_me_your_subphrases(ClANr):
+        if F.etcbc4_db_otype.v(k) == "subphrase" and F.etcbc4_ft_rela.v(k) == "rec":
+            REG = ""
+            for x in C.mother.v(k):
+                REG = x
+#             print("{0!s: <5} {1!s: < 6} {2!s: <20} {3!s: <8} {4!s: <30}".format("**** REG: ",F.etcbc4_ft_g_cons.v(REG)," rectum: ",get_cons_of_word_list(give_me_your_words(k))))
+            print("**** REG: ",F.etcbc4_ft_g_cons.v(REG)," rectum: ",get_cons_of_word_list(give_me_your_words(k)))
+        elif F.etcbc4_db_otype.v(k) == "subphrase" and F.etcbc4_ft_rela.v(k) == "atr":
+            ATTR = ""
+            for y in C.mother.v(k):
+                ATTR = y
+            print("**** ATTR: ",get_cons_of_word_list(give_me_your_words(ATTR))," attr: ", get_cons_of_word_list(give_me_your_words(k)))
 
 \end{python}
 

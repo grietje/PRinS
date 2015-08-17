@@ -579,27 +579,69 @@ def types_functions(node,node_type,Clause,ClANr,Phrase,PhANr,SPhNr,WNr,Data):
 \end{python}
 
 \begin{python}
-# Find potential reference levels + ask for some user-input + feed data about reference to SQLite
-#        ask_potential_ref(candidate, clan[candidate], place, Clause, ClANr, Phrase, PhANr, SPhNr, WNr):
-#        ask_potential_ref(node, node_type, place, Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
-#        tag = place.rjust(15,' ') + "_" + str(ClANr).rjust(9,'0') + "_" + str(PhANr).rjust(9,'0') + "_" + str(WNr).rjust(9,'0') + "_" + F.etcbc4_db_otype.v(candidate) # Warning: otype not yet encoded
-#        if not recognize(clan[tag][0]) == []:
-#            data[tag] = {}
-#            data[tag]["Name"] = 
-#            data[tag]["Anim"] = 
-#            data[tag]["Human"] = 
-def ask_potential_ref(candidate, node_type, data[candidate], place, Clause, ClANr, Phrase, PhANr, SPhNr, WNr):
-        Data[candidate]= {}
-        print("-"*20)
-        print(place)
-        print("Clause_atom:", get_cons_of_word_list(give_me_your_words(ClANr)))
-        if node_type == "word":
-            options = [node] + give_me_your_parents_up_to(node)
-        elif node_type == "suffix":
-            options = [node] + [node] + give_me_your_parents_up_to(node)
-        for l in options:
-            print('{0!s: <8} {1!s: <12} {2!s: >15} {3} {4!s:<15}'.format(l, F.etcbc4_db_otype.v(l), get_text_of_word_list(give_me_your_words(l))," | ",get_cons_of_word_list(give_me_your_words(l))))
-        print("\n")
+# Propose some data about a participant if this participant is recognized by gcdata.pt
+def recognize(Des)
+    Recognize = list(c.execute("select Name,Anim,Human,Col from pt where Des=:Des", {"Des":Des, }))
+    if Recognize == []:
+        return []
+    else:
+        return Recognize
+\end{python}
+
+\begin{python}
+# Prepare references for interactive procedure by collecting some data
+def ask_potential_ref(place, candidate, node_type):
+    if node_type == "word+": 
+        data[candidate]= {}
+        data[candidate]["Des"] = get_cons_of_word_list(give_me_your_words(candidate))
+        data[candidate]["a"] = place
+        data[candidate]["Node"] = candidate
+        nodetype = F.etcbc4_db_otype.v(candidate)
+        if nodetype == "word":
+            data[candidate]["Nodetype"] = "2"
+        elif nodetype in ("subphrase", "phrase", "phrase_atom"):
+            data[candidate]["Nodetype"] = "3"
+        elif nodetype in ("clause","clause_atom"):
+            data[candidate]["Nodetype"] = "4"
+        recognize = recognize(get_cons_of_word_list(give_me_your_words(candidate)))
+        if not recognize == []:
+            data[candidate]["Name"] = recognize[0][0]
+            data[candidate]["Anim"] = recognize[0][1]
+            data[candidate]["Human"] = recognize[0][2]
+            data[candidate]["Col"] = recognize[0][3]
+    else:
+        pure_candidate = candidate
+        candidate = str(candidate)+"s"
+        data[candidate] = {}
+        data[candidate]["Des"] = F.etcbc4_ft_prs.v(pure_candidate)
+        data[candidate]["Nodetype"] = "1"
+        data[candidate]["a"] = place
+        data[candidate]["Node"] = pure_candidate
+        data[candidate]["Destype"] = "7"
+
+def add_data(data[candidate]):
+# Automatically add data to entries that are going to be fed to gcdata.pt
+    ClANr = L.u('clause',data[candidate]["Node"])
+    data[candidate]["ClANr"] = ClANr
+    data[candidate]["Emb"] = F.etcbc4_ft_tab.v(ClANr)
+    data[candidate]["PhANr"] = L.u('phrase',data[candidate]["Node"])
+    data[candidate]["SPhNr"] = L.u('subphrase',data[candidate]["Node"])
+    if data["Nodetype"] in ("1","2"):
+        data[candidate]["WNr"] = F.etcbc4_ft_number.v(data[candidate]["Node"])
+    if data[candidate]["Node_type"] == "2":
+        data[candidate]["P"] = F.etcbc4_ft_ps.v(data[candidate]["Node"])
+        data[candidate]["N"] = F.etcbc4_ft_nu.v(data[candidate]["Node"])
+        data[candidate]["G"] = F.etcbc4_ft_gn.v(data[candidate]["Node"])
+    elif data[candidate]["Node_type"] == "1":
+        data[candidate]["P"] = suffix_dict[F.etcbc4_ft_prs.v(data[candidate]["Node"])]['ps']    # Since the suffix_features are not yet available in the ETCBC database, we extract them from a dictionary based on surface consonants
+        data[candidate]["N"] = suffix_dict[F.etcbc4_ft_prs.v(data[candidate]["Node"])]['nu']
+        data[candidate]["G"] = suffix_dict[F.etcbc4_ft_prs.v(data[candidate]["Node"])]['gn']
+    data[candidate]["Tag"] = Data["a"].rjust(15,' ') + "_" + str(ClANr).rjust(9,'0') + "_" + str(data[candidate]["PhANr"]).rjust(9,'0') + "_" + str(data[candidate]["WNr"]).rjust(9,'0') + "_" + str(data[candidate]["Nodetype"])
+    return(data[candidate])
+       
+def interactive(data):
+    for candidate in data:
+        
         for k in give_me_your_subphrases(ClANr):
             if F.etcbc4_db_otype.v(k) == "subphrase" and F.etcbc4_ft_rela.v(k) == "rec":
                 REG = ""
@@ -612,22 +654,10 @@ def ask_potential_ref(candidate, node_type, data[candidate], place, Clause, ClAN
                 for y in C.mother.v(k):
                     ATTR = y
                 print("**** ATTR: ",get_cons_of_word_list(give_me_your_words(ATTR))," attr: ", get_cons_of_word_list(give_me_your_words(k)))
-        Data["a"] = place
-        Data["Node"] = node
-        Data["Emb"] = F.etcbc4_ft_tab.v(ClANr)
         Data["Nodetype"] = input("Which node_type do you want to store? (1=Part_suffix, 2=Part_word, 3=Part_(sub)phrase, 4=Part_clause, 5=Part_sentence): ")
         if Data["Nodetype"] == "X":
             return
-        elif Data["Nodetype"] == "1":
-            Data["Des"] = F.etcbc4_ft_prs.v(node)
-        elif Data["Nodetype"] == "2":
-            Data["Des"] = F.etcbc4_ft_g_cons.v(node)
-        else:
-            Data["Des"] = input("Des: ")
-        if Data["Nodetype"] == "1":
-            Data["Destype"] = "7"
-        else:
-            Data["Destype"] = input("What is the designation type? (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective): ")
+        Data["Destype"] = input("What is the designation type? (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective): ")
         Sub_data = ""
         if F.etcbc4_ft_rela.v(Clause) == "Attr":
             Sub_data += "Attr"
@@ -641,14 +671,10 @@ def ask_potential_ref(candidate, node_type, data[candidate], place, Clause, ClAN
             Sub_data = "No"
         Data["Sub"] = input("Is this a sub-participant? Default " + Sub_data + ": ") or Sub_data
         Data["Name"] = input("What is the name of the referent? : ")
-        if Data["Name"] == ">LHJM":
-            Data["Anim"] = "1"
-            Data["Human"] = "1"
-        else:
-            Data["Anim"] = input("1=Animate, 2=Non-animate: ")
+        Data["Anim"] = input("1=Animate, 2=Non-animate: ")
         if Data["Anim"] == "2":
             Data["Human"] = "None"
-        elif Data["Anim"] == "1" and not Data["Name"] == ">LHJM":
+        elif Data["Anim"] == "1":
             Data["Human"] = input("1=Human (or divine), 2=Non-human, 3=Humans included: ")
         Data["Col"] = input("Is the participant an individual (1), collective (2) or an individual in a compound design (3)? Or dual/plural?(4)")
         if Data["Col"] in ("2","3","4"):
@@ -657,15 +683,6 @@ def ask_potential_ref(candidate, node_type, data[candidate], place, Clause, ClAN
         else:
             Data["Referents"] = None
             Data["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
-        if node_type == "word":
-            Data["P"] = F.etcbc4_ft_ps.v(node)
-            Data["N"] = F.etcbc4_ft_nu.v(node)
-            Data["G"] = F.etcbc4_ft_gn.v(node)
-        elif node_type == "suffix":
-            Data["P"] = suffix_dict[F.etcbc4_ft_prs.v(node)]['ps']    # Since the suffix_features are not yet available in the ETCBC database, we extract them from a dictionary based on surface consonants
-            Data["N"] = suffix_dict[F.etcbc4_ft_prs.v(node)]['nu']
-            Data["G"] = suffix_dict[F.etcbc4_ft_prs.v(node)]['gn']
-        Data["Tag"] = Data["a"].rjust(15,' ') + "_" + str(ClANr).rjust(9,'0') + "_" + str(PhANr).rjust(9,'0') + "_" + str(WNr).rjust(9,'0') + "_" + str(Data["Nodetype"])
         insert_dict_in_db(c,"pt",Data)
         Done = input("Done with this reference! If not, type 'No'") or None
         if Done == "No":
@@ -674,18 +691,8 @@ def ask_potential_ref(candidate, node_type, data[candidate], place, Clause, ClAN
 \end{python}
 
 \begin{python}
-# Propose some data about a participant if this participant is recognized by gcdata.pt
-def recognize(Des)
-    Recognize = list(c.execute("select Name,Anim,Human,Col from pt where Des=:Des", {"Des":Des, }))
-    if Recognize == []:
-        return []
-    else:
-        return Recognize
-\end{python}
-
-\begin{python}
 # Let the computer create as much data as possible, especially with REG-rectum data, and do a proposal to the user.
-def major_flow(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhNr, WNr):
+def major_flow(place, node, node_type):
     while F.etcbc4_ft_rela.v(parent[node]) == "rec" or F.etcbc4_ft_rela.v(parent[node]) == "atr": # Regens-rectum relationship or attributive relationship
         node = list(C.mother.v(parent[node]))[0] # Deal with the clan-head instead of a (grand)child
     clan = {}
@@ -694,9 +701,10 @@ def major_flow(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
     for candidate in give_me_your_daughters(node):
         clan[candidate]= [get_cons_of_word_list(give_me_your_words(candidate))]
     for candidate in clan:
-        ask_potential_ref(candidate, "clanmember", clan[candidate], place, Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
+        data[candidate] = ask_potential_ref(place, candidate, "word+")
         if not F.etcbc4_ft_prs.v(candidate) in ("absent","n/a",None):
-            ask_potential_ref(candidate, "suffix", clan[candidate], place, Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
+            data[candidate] = ask_potential_ref(place, candidate, "suffix")
+    interactive(data)
 \end{python}
 
 \begin{python}
@@ -727,19 +735,7 @@ for node in NN():
             place = F.etcbc4_sft_label.v(node)
     elif otype == "clause" and completed == False:
         DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
-        Clause = node
-    elif otype == "clause_atom" and completed == False:
-        ClANr = node
-        PhANr = 0
-    elif otype == "phrase" and completed == False:
-        Phrase = node
-        SPhNr = None
-    elif otype == "phrase_atom" and completed == False:
-        PhANr = node
-    elif otype == "subphrase":
-        SPhNr = node
     elif F.etcbc4_db_otype.v(node) == "word" and DSU == True and completed == False:
-        WNr = node
         check_node = str(node)
 #        if check_node != "":     # Just a hack when temporarily outcommenting lines below
         c.execute("SELECT count(*) FROM pt WHERE Node = " + check_node + ";") # Check whether reference is not yet saved in database
@@ -751,9 +747,9 @@ for node in NN():
         if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
             potential_suffix = True
         if result == (0,) and potential_ref == True: # Not yet saved, to be dealt with in major flow (may have suffixes as well, these will be parsed within the major flow)
-            major_flow(place, node, "word", Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
+            major_flow(place, node, "word")
         if result == (0,) and potential_ref == False and potential_suffix == True: # Not yet saved, not to be dealt with in major flow, but suffix needs to be parsed
-            ask_potential_ref(node, "single_suffix", [], place, Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
+            ask_potential_ref(place, node, "single_suffix")
 
 \end{python}
 

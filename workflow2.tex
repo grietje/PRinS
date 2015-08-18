@@ -590,7 +590,7 @@ def recognize(Des)
 
 \begin{python}
 # Prepare references for interactive procedure by collecting some data
-def ask_potential_ref(place, candidate, node_type):
+def ask_potential_ref(place, candidate, node_type, sub):
     if node_type == "word+": 
         data[candidate]= {}
         data[candidate]["Des"] = get_cons_of_word_list(give_me_your_words(candidate))
@@ -609,6 +609,7 @@ def ask_potential_ref(place, candidate, node_type):
             data[candidate]["Anim"] = recognize[0][1]
             data[candidate]["Human"] = recognize[0][2]
             data[candidate]["Col"] = recognize[0][3]
+        data[candidate]["Sub"] = sub
     else:
         pure_candidate = candidate
         candidate = str(candidate)+"s"
@@ -618,6 +619,7 @@ def ask_potential_ref(place, candidate, node_type):
         data[candidate]["a"] = place
         data[candidate]["Node"] = pure_candidate
         data[candidate]["Destype"] = "7"
+        data[candidate]["Sub"] = sub
 
 def add_data(data[candidate]):
 # Automatically add data to entries that are going to be fed to gcdata.pt
@@ -639,55 +641,56 @@ def add_data(data[candidate]):
     data[candidate]["Tag"] = Data["a"].rjust(15,' ') + "_" + str(ClANr).rjust(9,'0') + "_" + str(data[candidate]["PhANr"]).rjust(9,'0') + "_" + str(data[candidate]["WNr"]).rjust(9,'0') + "_" + str(data[candidate]["Nodetype"])
     return(data[candidate])
        
-def interactive(data):
-    for candidate in data:
-        
-        for k in give_me_your_subphrases(ClANr):
-            if F.etcbc4_db_otype.v(k) == "subphrase" and F.etcbc4_ft_rela.v(k) == "rec":
-                REG = ""
-                for x in C.mother.v(k):
-                    REG = x
-#                print("{0!s: <5} {1!s: < 6} {2!s: <20} {3!s: <8} {4!s: <30}".format("**** REG: ",F.etcbc4_ft_g_cons.v(REG)," rectum: ",get_cons_of_word_list(give_me_your_words(k))))
-                print("**** REG: ",F.etcbc4_ft_g_cons.v(REG)," rectum: ",get_cons_of_word_list(give_me_your_words(k)))
-            elif F.etcbc4_db_otype.v(k) == "subphrase" and F.etcbc4_ft_rela.v(k) == "atr":
-                ATTR = ""
-                for y in C.mother.v(k):
-                    ATTR = y
-                print("**** ATTR: ",get_cons_of_word_list(give_me_your_words(ATTR))," attr: ", get_cons_of_word_list(give_me_your_words(k)))
-        Data["Nodetype"] = input("Which node_type do you want to store? (1=Part_suffix, 2=Part_word, 3=Part_(sub)phrase, 4=Part_clause, 5=Part_sentence): ")
-        if Data["Nodetype"] == "X":
-            return
-        Data["Destype"] = input("What is the designation type? (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective): ")
-        Sub_data = ""
-        if F.etcbc4_ft_rela.v(Clause) == "Attr":
-            Sub_data += "Attr"
-        if Data["Nodetype"] == "3" and F.etcbc4_ft_rela.v(SPhNr) == "rec":
-            Sub_data += "rec"
-        elif F.etcbc4_ft_rela.v(node) == "REG":
-            Sub_data += "Sub1"
-        if Data["Nodetype"] == "1" and not F.etcbc4_sp.v(node) in ("prep","conj"):
-            Sub_data = "Rec"
-        if Sub_data == "":
-            Sub_data = "No"
-        Data["Sub"] = input("Is this a sub-participant? Default " + Sub_data + ": ") or Sub_data
-        Data["Name"] = input("What is the name of the referent? : ")
-        Data["Anim"] = input("1=Animate, 2=Non-animate: ")
-        if Data["Anim"] == "2":
-            Data["Human"] = "None"
-        elif Data["Anim"] == "1":
-            Data["Human"] = input("1=Human (or divine), 2=Non-human, 3=Humans included: ")
-        Data["Col"] = input("Is the participant an individual (1), collective (2) or an individual in a compound design (3)? Or dual/plural?(4)")
-        if Data["Col"] in ("2","3","4"):
-            Data["Referents"] = input("Contextually relevant referents that are part of Name: ")
-            Data["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
-        else:
-            Data["Referents"] = None
-            Data["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
-        insert_dict_in_db(c,"pt",Data)
-        Done = input("Done with this reference! If not, type 'No'") or None
-        if Done == "No":
-            ask_potential_ref(place, node, node_type, Clause, ClANr, Phrase, PhANr, SPhNr, WNr)
+def interactive_single(data[candidate]):
+    print(data[candidate]["a"])
+    print("clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',data[candidate]["Node"]))))   print("suffix:", data[candidate]["Des"])
+    data[candidate]["Sub"] = input("Is this a sub-participant? Default 'Prep' ") or "Prep" 
+    data[candidate]["Name"] = input("What is the name of the referent? : ")
+    data[candidate]["Anim"] = input("1=Animate, 2=Non-animate: ")
+    if data[candidate]["Anim"] == "2":
+        data[candidate]["Human"] = "None"
+    else:
+        data[candidate]["Human"] = input("1=Human (or divine), 2=Non-human, 3=Humans included: ")
+    data[candidate]["Col"] = input("Is the participant an individual (1), collective (2) or an individual in a compound design (3)? Or dual/plural?(4)")
+    if data[candidate]["Col"] in ("2","3","4"):
+        data[candidate]["Referents"] = input("Contextually relevant referents that are part of Name: ")
+        data[candidate]["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
+    else:
+        data[candidate]["Referents"] = None
+        data[candidate]["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
+    insert_dict_in_db(c,"pt",data[candidate])
 
+def interactive_clan(data,clan_list):
+    print("Clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',clan_list[-1]))))
+    print("Nodetypes: 1=Part_suffix, 2=Part_word, 3=Part_(sub)phrase, 4=Part_clause, 5=Part_sentence")
+    print("Destypes: 1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective")
+    print("Anim: 1=Animate, 2-Non-animate; Human: 1=Human, 2=Non-human, 3=Humans included")
+    print("Col: 1=Individual, 2=Collective, 3=Individual in compound design, 4=Plural")
+    for candidate in clan_list:
+        print("{0!s: <9} {2!s: <15} {3!s: <40} {4!s: <30}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))
+        print("{0!s: <1} {2!s: <1} {3!s: <10} {4!s: <1} {5!s: <1} {6!s: <1}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
+    for candidate in clan_list:
+        for x in ("Nodetype","Destype","Name","Anim","Human","Col"):
+            if data[candidate][x] == None:
+                data[candidate][x] = input(x + "of node" + candidate + ": ")
+                if data[candidate]["Destype"] == "X":
+                    return
+
+    for candidate in clan_list:
+        print("{0!s: <9} {2!s: <15} {3!s: <40} {4!s: <30}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))
+        print("{0!s: <1} {2!s: <1} {3!s: <10} {4!s: <1} {5!s: <1} {6!s: <1}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
+    for candidate in clan_list:
+        check = input("Is the data correct? Default 'Y'") or "Y"
+        while check != "Y":
+            for x in ("Sub","Nodetype","Destype","Name","Anim","Human","Col"):
+                data[candidate][x] = input(x + "of node" + candidate + ", default = "data[candidate][x]) or data[candidate][x] 
+                if data[candidate]["Destype"] == "X":
+                    return
+            check = input("Is the data correct? Default 'Y'") or "Y"
+        data[candidate]["Referents"] = input("Contextually relevant referents that are part of Name: ") or None
+        data[candidate]["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
+        if check == "Y":
+            insert_dict_in_db(c,"pt",data[candidate])
 \end{python}
 
 \begin{python}
@@ -696,15 +699,23 @@ def major_flow(place, node, node_type):
     while F.etcbc4_ft_rela.v(parent[node]) == "rec" or F.etcbc4_ft_rela.v(parent[node]) == "atr": # Regens-rectum relationship or attributive relationship
         node = list(C.mother.v(parent[node]))[0] # Deal with the clan-head instead of a (grand)child
     clan = {}
+    clan_list = []
     data = {}
-    clan[node] = [get_cons_of_word_list(give_me_your_words(node))]
+    clan[node] = "Super "
     for candidate in give_me_your_daughters(node):
-        clan[candidate]= [get_cons_of_word_list(give_me_your_words(candidate))]
+        if F.etcbc4_db_otype.v(candidate) == "subphrase" and F.etcbc4_ft_rela.v(candidate) == "rec":
+            clan[candidate] = "Rec "
+        elif F.etcbc4_db_otype.v(candidate) == "subphrase" and F.etcbc4_ft_rela.v(candidate) == "atr":
+            clan[candidate] = "Attr "
+        for x in C.mother.v(candidate):
+            clan[x] += "Super "
     for candidate in clan:
-        data[candidate] = ask_potential_ref(place, candidate, "word+")
+        clan_list.append(candidate)
+        data[candidate] = ask_potential_ref(place, candidate, "word+", clan[candidate])
         if not F.etcbc4_ft_prs.v(candidate) in ("absent","n/a",None):
-            data[candidate] = ask_potential_ref(place, candidate, "suffix")
-    interactive(data)
+            clan_list.append(str(candidate)+"s")
+            data[candidate] = ask_potential_ref(place, candidate, "suffix", clan[candidate])
+    interactive_clan(data,clan_list)
 \end{python}
 
 \begin{python}
@@ -713,6 +724,7 @@ DSU = False
 completed = False
 potential_ref = False
 potential_suffix = False
+data = {}
 
 limit = 0
 for node in NN():
@@ -749,7 +761,7 @@ for node in NN():
         if result == (0,) and potential_ref == True: # Not yet saved, to be dealt with in major flow (may have suffixes as well, these will be parsed within the major flow)
             major_flow(place, node, "word")
         if result == (0,) and potential_ref == False and potential_suffix == True: # Not yet saved, not to be dealt with in major flow, but suffix needs to be parsed
-            ask_potential_ref(place, node, "single_suffix")
+            data[node] == ask_potential_ref(place, node, "single_suffix")
 
 \end{python}
 

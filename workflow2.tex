@@ -505,7 +505,7 @@ c.close()
 \chapter{encoding\_options.py}
 \chapter{Part-1.py}
 \begin{python}
-#{{{ Setup the database stuff
+# Setup the database stuff
 import sqlite3
 
 db = sqlite3.connect('gcdata.sqlite')
@@ -516,52 +516,15 @@ c = db.cursor()
 
 db.commit()
 
-#}}}
 \end{python}
 
 \begin{python}
 #{{{ Find fitting info about types and functions
-#(1=Part_suffix, 2=Part_word, 3=Part_(sub)phrase, 4=Part_clause, 5=Part_sentence): ")
 def types_functions(node,node_type,Clause,ClANr,Phrase,PhANr,SPhNr,WNr,Data):
-    if Data["Nodetype"] == "5":                # On extensive nodetypes, info on smaller items makes no sense
-        (ClANr,PhANr,SPhNr,WNr) = (0,0,0,0)
-    elif Data["Nodetype"] == "4":
-        (PhANr,SPhNr,WNr) = (0,0,0)
-    elif Data["Nodetype"] == "3":
-        WNr = 0
-    Data["ClANr"] = ClANr                      # Insert data on numbers
-    Data["PhANr"] = PhANr
-    Data["SPhNr"] = SPhNr
-    Data["WNr"] = WNr
-    Data["Cltype"] = F.etcbc4_ft_typ.v(Clause) # Insert data on types and function
-    Data["Phtype"] = F.etcbc4_ft_typ.v(Phrase)
-    Data["Phfunc"] = F.etcbc4_ft_function.v(Phrase)
-    if Data["Nodetype"] == "5":                # On extensive nodetypes, info on smaller items makes no sense
-        Data["Cltype"] = ""
-    if Data["Nodetype"] in ("4","5"):
-        Data["Phtype"] = ""
-        Data["Phfunc"] = ""
         Data["Lexset"] = F.etcbc4_ft_ls.v(node)
     else:
         Data["PartSpeech"] = input("Part of speech: ")
         Data["Lexset"] = input("Lexical set: ")
-        # Encoding options as stored in gcdata.enc
-#        Data["Enc_opt"] = c.execute("select Enc_options from enc where Cl_type=:Cltype and Ph_func=:Phfunc", {"Cltype":Data["Cltype"],"Phfunc":Data["Phfunc"]})
-#        Data["Enc_opt_coded"] = c.execute("select Enc_options_coded from enc where Cl_type=:Cltype and Ph_func=:Phfunc", {"Cltype":Data["Cltype"],"Phfunc":Data["Phfunc"]})
-#        coding = Data["PartSpeech"]
-#        if coding == "verb":
-#            prom1 = 1
-#        elif coding == "suffix":
-#            prom1 = 2
-#        elif z == "prps":
-#            prom1 = 3
-#        elif z == "prde":
-#            prom1 = 4
-#        elif z in ("subs","nmpr","adjv"):
-#            prom1 = 5
-#        elif Data["Nodetype"] in ("4","5"):
-#            prom1= 6
-#        Data["Prom"] = eval(Data["Enc_opt_coded"]).index(prom1)
     function = F.etcbc4_ft_function.v(Phrase)
     if Data["Nodetype"] in ("1", "2", "3"):    # F.etcbc4_ft_function.v(node) only applies to phrase level (or lower)
         if function in ("ExsS","IntS","ModS","NCoS","PrcS","PreS") and Data["Nodetype"] == "1":
@@ -580,12 +543,13 @@ def types_functions(node,node_type,Clause,ClANr,Phrase,PhANr,SPhNr,WNr,Data):
 
 \begin{python}
 # Propose some data about a participant if this participant is recognized by gcdata.pt
-def recognize(Des)
+def recognize(Des):
     Recognize = list(c.execute("select Name,Anim,Human,Col from pt where Des=:Des", {"Des":Des, }))
     if Recognize == []:
         return []
     else:
         return Recognize
+
 \end{python}
 
 \begin{python}
@@ -611,18 +575,19 @@ def ask_potential_ref(place, candidate, node_type, sub):
             data[candidate]["Col"] = recognize[0][3]
         data[candidate]["Sub"] = sub
     else:
-        pure_candidate = candidate
-        candidate = str(candidate)+"s"
         data[candidate] = {}
-        data[candidate]["Des"] = F.etcbc4_ft_prs.v(pure_candidate)
+        data[candidate]["Des"] = F.etcbc4_ft_prs.v(candidate[:-1])
         data[candidate]["Nodetype"] = "1"
         data[candidate]["a"] = place
-        data[candidate]["Node"] = pure_candidate
+        data[candidate]["Node"] = candidate[:-1]
         data[candidate]["Destype"] = "7"
         data[candidate]["Sub"] = sub
 
-def add_data(data[candidate]):
+\end{python}
+
+\begin{python}
 # Automatically add data to entries that are going to be fed to gcdata.pt
+def add_data(data,candidate):
     ClANr = L.u('clause',data[candidate]["Node"])
     data[candidate]["ClANr"] = ClANr
     data[candidate]["Emb"] = F.etcbc4_ft_tab.v(ClANr)
@@ -634,16 +599,26 @@ def add_data(data[candidate]):
         data[candidate]["P"] = F.etcbc4_ft_ps.v(data[candidate]["Node"])
         data[candidate]["N"] = F.etcbc4_ft_nu.v(data[candidate]["Node"])
         data[candidate]["G"] = F.etcbc4_ft_gn.v(data[candidate]["Node"])
+        data[candidate]["Lexset"] = F.etcbc4_ft_ls.v(data[candidate]["Node"])
+        data[candidate]["PartSpeech"] = F.etcbc4_ft_sp.v(data[candidate]["Node"])
     elif data[candidate]["Node_type"] == "1":
         data[candidate]["P"] = suffix_dict[F.etcbc4_ft_prs.v(data[candidate]["Node"])]['ps']    # Since the suffix_features are not yet available in the ETCBC database, we extract them from a dictionary based on surface consonants
         data[candidate]["N"] = suffix_dict[F.etcbc4_ft_prs.v(data[candidate]["Node"])]['nu']
         data[candidate]["G"] = suffix_dict[F.etcbc4_ft_prs.v(data[candidate]["Node"])]['gn']
+        data[candidate]["Lexset"] = "suffix"
+        if F.etcbc4_ft_function.v(L.u('phrase',data[candidate]["Node"])) in ("ExsS","IntS","ModS","NCoS","PrcS","PreS"):
+            data[candidate]["Role"] = "Subject"
+        elif F.etcbc4_ft_function.v(L.u('phrase',data[candidate]["Node"])) in ("PreO","PtcO"):
+            data[candidate]["Role"] = "Object"
     data[candidate]["Tag"] = Data["a"].rjust(15,' ') + "_" + str(ClANr).rjust(9,'0') + "_" + str(data[candidate]["PhANr"]).rjust(9,'0') + "_" + str(data[candidate]["WNr"]).rjust(9,'0') + "_" + str(data[candidate]["Nodetype"])
-    return(data[candidate])
-       
-def interactive_single(data[candidate]):
+
+\end{python}
+
+\begin{python}
+def interactive_single(data,candidate):
     print(data[candidate]["a"])
-    print("clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',data[candidate]["Node"]))))   print("suffix:", data[candidate]["Des"])
+    print("clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',data[candidate]["Node"])))) 
+    print("suffix:", data[candidate]["Des"])
     data[candidate]["Sub"] = input("Is this a sub-participant? Default 'Prep' ") or "Prep" 
     data[candidate]["Name"] = input("What is the name of the referent? : ")
     data[candidate]["Anim"] = input("1=Animate, 2=Non-animate: ")
@@ -660,6 +635,9 @@ def interactive_single(data[candidate]):
         data[candidate]["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
     insert_dict_in_db(c,"pt",data[candidate])
 
+\end{python}
+
+\begin{python}
 def interactive_clan(data,clan_list):
     print("Clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',clan_list[-1]))))
     print("Nodetypes: 1=Part_suffix, 2=Part_word, 3=Part_(sub)phrase, 4=Part_clause, 5=Part_sentence")
@@ -667,23 +645,22 @@ def interactive_clan(data,clan_list):
     print("Anim: 1=Animate, 2-Non-animate; Human: 1=Human, 2=Non-human, 3=Humans included")
     print("Col: 1=Individual, 2=Collective, 3=Individual in compound design, 4=Plural")
     for candidate in clan_list:
-        print("{0!s: <9} {2!s: <15} {3!s: <40} {4!s: <30}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))
-        print("{0!s: <1} {2!s: <1} {3!s: <10} {4!s: <1} {5!s: <1} {6!s: <1}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
+        print("{0!s: <9} {2!s: <15} {3!s: <40} {4!s: <30}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))))
+        print("{0!s: <2} {2!s: <2} {3!s: <10} {4!s: <2} {5!s: <2} {6!s: <2}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
     for candidate in clan_list:
         for x in ("Nodetype","Destype","Name","Anim","Human","Col"):
             if data[candidate][x] == None:
                 data[candidate][x] = input(x + "of node" + candidate + ": ")
                 if data[candidate]["Destype"] == "X":
                     return
-
     for candidate in clan_list:
-        print("{0!s: <9} {2!s: <15} {3!s: <40} {4!s: <30}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))
+        print("{0!s: <9} {2!s: <15} {3!s: <40} {4!s: <30}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))))
         print("{0!s: <1} {2!s: <1} {3!s: <10} {4!s: <1} {5!s: <1} {6!s: <1}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
     for candidate in clan_list:
         check = input("Is the data correct? Default 'Y'") or "Y"
         while check != "Y":
             for x in ("Sub","Nodetype","Destype","Name","Anim","Human","Col"):
-                data[candidate][x] = input(x + "of node" + candidate + ", default = "data[candidate][x]) or data[candidate][x] 
+                data[candidate][x] = input(x + "of node" + candidate + ", default = " + data[candidate][x]) or data[candidate][x] 
                 if data[candidate]["Destype"] == "X":
                     return
             check = input("Is the data correct? Default 'Y'") or "Y"
@@ -691,6 +668,7 @@ def interactive_clan(data,clan_list):
         data[candidate]["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
         if check == "Y":
             insert_dict_in_db(c,"pt",data[candidate])
+
 \end{python}
 
 \begin{python}
@@ -713,9 +691,11 @@ def major_flow(place, node, node_type):
         clan_list.append(candidate)
         data[candidate] = ask_potential_ref(place, candidate, "word+", clan[candidate])
         if not F.etcbc4_ft_prs.v(candidate) in ("absent","n/a",None):
-            clan_list.append(str(candidate)+"s")
+            candidate = str(candidate)+"s"
+            clan_list.append(candidate)
             data[candidate] = ask_potential_ref(place, candidate, "suffix", clan[candidate])
     interactive_clan(data,clan_list)
+
 \end{python}
 
 \begin{python}
@@ -750,7 +730,7 @@ for node in NN():
     elif F.etcbc4_db_otype.v(node) == "word" and DSU == True and completed == False:
         check_node = str(node)
 #        if check_node != "":     # Just a hack when temporarily outcommenting lines below
-        c.execute("SELECT count(*) FROM pt WHERE Node = " + check_node + ";") # Check whether reference is not yet saved in database
+        c.execute("SELECT EXISTS (SELECT * FROM pt WHERE Node = " + check_node + ");") # Check whether reference is not yet saved in database
         result = c.fetchone()
         potential_ref = False
         potential_suffix = False
@@ -761,7 +741,8 @@ for node in NN():
         if result == (0,) and potential_ref == True: # Not yet saved, to be dealt with in major flow (may have suffixes as well, these will be parsed within the major flow)
             major_flow(place, node, "word")
         if result == (0,) and potential_ref == False and potential_suffix == True: # Not yet saved, not to be dealt with in major flow, but suffix needs to be parsed
-            data[node] == ask_potential_ref(place, node, "single_suffix")
+            candidate = str(node)+"s"
+            data[candidate] == ask_potential_ref(place, node, "single_suffix", "Prep")
 
 \end{python}
 

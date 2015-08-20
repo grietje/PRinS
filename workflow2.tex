@@ -344,11 +344,11 @@ At the moment these cases will not be detected by this script!
 #{{{ Create an SQLite-table with a row for every QF + DSU, and columns for useful information about these DSU's.
 import sqlite3
 db = sqlite3.connect('gcdata.sqlite')
-c = db.cursor()
+cursor = db.cursor()
 
 create_table_query = open('gcdsu.sql').read()
 
-c.execute(create_table_query)
+cursor.execute(create_table_query)
 
 db.commit()
 #}}}
@@ -482,8 +482,8 @@ def main_loop():
             elif prev_level > level:                # End of one or more DSU's
                 for j in range((level+1),(prev_level+1)): # Process the DSU's that end here
                     check_node = str(ClANrs[j][0])
-                    c.execute("SELECT EXISTS (SELECT * FROM gcdsu WHERE Start_node = " + check_node + ");") # Check whether DSU is not yet saved in database
-                    result = c.fetchone()
+                    cursor.execute("SELECT EXISTS (SELECT * FROM gcdsu WHERE Start_node = " + check_node + ");") # Check whether DSU is not yet saved in database
+                    result = cursor.fetchone()
                     if result == (0,):
                         process_DSU(ClANrs[j], potential_QF[j],places[j],prev_context[j],context,j)
                     ClANrs[j], potential_QF[j], places[j], prev_context[j] = [],[],"",""    # Delete all stored data
@@ -509,10 +509,10 @@ c.close()
 import sqlite3
 
 db = sqlite3.connect('gcdata.sqlite')
-c = db.cursor()
+cursor = db.cursor()
 
 #create_table_query = open("pt.sql").read()
-#c.execute(create_table_query)
+#cursor.execute(create_table_query)
 
 db.commit()
 
@@ -520,11 +520,6 @@ db.commit()
 
 \begin{python}
 #{{{ Find fitting info about types and functions
-def types_functions(node,node_type,Clause,ClANr,Phrase,PhANr,SPhNr,WNr,Data):
-        Data["Lexset"] = F.etcbc4_ft_ls.v(node)
-    else:
-        Data["PartSpeech"] = input("Part of speech: ")
-        Data["Lexset"] = input("Lexical set: ")
     function = F.etcbc4_ft_function.v(Phrase)
     if Data["Nodetype"] in ("1", "2", "3"):    # F.etcbc4_ft_function.v(node) only applies to phrase level (or lower)
         if function in ("ExsS","IntS","ModS","NCoS","PrcS","PreS") and Data["Nodetype"] == "1":
@@ -544,7 +539,7 @@ def types_functions(node,node_type,Clause,ClANr,Phrase,PhANr,SPhNr,WNr,Data):
 \begin{python}
 # Propose some data about a participant if this participant is recognized by gcdata.pt
 def recognize(Des):
-    Recognize = list(c.execute("select Name,Anim,Human,Col from pt where Des=:Des", {"Des":Des, }))
+    Recognize = list(cursor.execute("select Name,Anim,Human,Col from pt where Des=:Des", {"Des":Des, }))
     if Recognize == []:
         return []
     else:
@@ -555,33 +550,38 @@ def recognize(Des):
 \begin{python}
 # Prepare references for interactive procedure by collecting some data
 def ask_potential_ref(place, candidate, node_type, sub):
+    cand = candidate
+    if str(candidate).endswith("s"):
+        cand = candidate[:-1]
+    Recognize = []
     if node_type == "word+": 
         data[candidate]= {}
-        data[candidate]["Des"] = get_cons_of_word_list(give_me_your_words(candidate))
+        data[candidate]["Des"] = get_cons_of_word_list(give_me_your_words(cand))
         data[candidate]["a"] = place
         data[candidate]["Node"] = candidate
-        nodetype = F.etcbc4_db_otype.v(candidate)
+        nodetype = F.etcbc4_db_otype.v(cand)
         if nodetype == "word":
             data[candidate]["Nodetype"] = "2"
         elif nodetype in ("subphrase", "phrase", "phrase_atom"):
             data[candidate]["Nodetype"] = "3"
         elif nodetype in ("clause","clause_atom"):
             data[candidate]["Nodetype"] = "4"
-        recognize = recognize(get_cons_of_word_list(give_me_your_words(candidate)))
-        if not recognize == []:
-            data[candidate]["Name"] = recognize[0][0]
-            data[candidate]["Anim"] = recognize[0][1]
-            data[candidate]["Human"] = recognize[0][2]
-            data[candidate]["Col"] = recognize[0][3]
+        Recognize = recognize(get_cons_of_word_list(give_me_your_words(cand)))
+        if not Recognize == []:
+            data[candidate]["Name"] = Recognize[0][0]
+            data[candidate]["Anim"] = Recognize[0][1]
+            data[candidate]["Human"] = Recognize[0][2]
+            data[candidate]["Col"] = Recognize[0][3]
         data[candidate]["Sub"] = sub
     else:
         data[candidate] = {}
-        data[candidate]["Des"] = F.etcbc4_ft_prs.v(candidate[:-1])
+        data[candidate]["Des"] = F.etcbc4_ft_prs.v(cand)
         data[candidate]["Nodetype"] = "1"
         data[candidate]["a"] = place
-        data[candidate]["Node"] = candidate[:-1]
+        data[candidate]["Node"] = cand
         data[candidate]["Destype"] = "7"
         data[candidate]["Sub"] = sub
+    return(data[candidate])
 
 \end{python}
 
@@ -611,6 +611,7 @@ def add_data(data,candidate):
         elif F.etcbc4_ft_function.v(L.u('phrase',data[candidate]["Node"])) in ("PreO","PtcO"):
             data[candidate]["Role"] = "Object"
     data[candidate]["Tag"] = Data["a"].rjust(15,' ') + "_" + str(ClANr).rjust(9,'0') + "_" + str(data[candidate]["PhANr"]).rjust(9,'0') + "_" + str(data[candidate]["WNr"]).rjust(9,'0') + "_" + str(data[candidate]["Nodetype"])
+    return(data[candidate])
 
 \end{python}
 
@@ -638,25 +639,25 @@ def interactive_single(data,candidate):
 \end{python}
 
 \begin{python}
-def interactive_clan(data,clan_list):
-    print("Clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',clan_list[-1]))))
+def interactive_clan(data,clan_members):
+    print("Clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',clan_members[-1]))))
     print("Nodetypes: 1=Part_suffix, 2=Part_word, 3=Part_(sub)phrase, 4=Part_clause, 5=Part_sentence")
     print("Destypes: 1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective")
     print("Anim: 1=Animate, 2-Non-animate; Human: 1=Human, 2=Non-human, 3=Humans included")
     print("Col: 1=Individual, 2=Collective, 3=Individual in compound design, 4=Plural")
-    for candidate in clan_list:
+    for candidate in clan_members:
         print("{0!s: <9} {2!s: <15} {3!s: <40} {4!s: <30}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))))
         print("{0!s: <2} {2!s: <2} {3!s: <10} {4!s: <2} {5!s: <2} {6!s: <2}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
-    for candidate in clan_list:
+    for candidate in clan_members:
         for x in ("Nodetype","Destype","Name","Anim","Human","Col"):
             if data[candidate][x] == None:
                 data[candidate][x] = input(x + "of node" + candidate + ": ")
                 if data[candidate]["Destype"] == "X":
                     return
-    for candidate in clan_list:
+    for candidate in clan_members:
         print("{0!s: <9} {2!s: <15} {3!s: <40} {4!s: <30}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))))
         print("{0!s: <1} {2!s: <1} {3!s: <10} {4!s: <1} {5!s: <1} {6!s: <1}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
-    for candidate in clan_list:
+    for candidate in clan_members:
         check = input("Is the data correct? Default 'Y'") or "Y"
         while check != "Y":
             for x in ("Sub","Nodetype","Destype","Name","Anim","Human","Col"):
@@ -667,6 +668,7 @@ def interactive_clan(data,clan_list):
         data[candidate]["Referents"] = input("Contextually relevant referents that are part of Name: ") or None
         data[candidate]["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
         if check == "Y":
+            add_data(data,candidate)
             insert_dict_in_db(c,"pt",data[candidate])
 
 \end{python}
@@ -675,9 +677,10 @@ def interactive_clan(data,clan_list):
 # Let the computer create as much data as possible, especially with REG-rectum data, and do a proposal to the user.
 def major_flow(place, node, node_type):
     while F.etcbc4_ft_rela.v(parent[node]) == "rec" or F.etcbc4_ft_rela.v(parent[node]) == "atr": # Regens-rectum relationship or attributive relationship
-        node = list(C.mother.v(parent[node]))[0] # Deal with the clan-head instead of a (grand)child
+        if list(C.mohter.v(parent[node])) not in ([],None):
+            node = list(C.mother.v(parent[node]))[0] # Deal with the clan-head instead of a (grand)child
     clan = {}
-    clan_list = []
+    clan_members = []
     data = {}
     clan[node] = "Super "
     for candidate in give_me_your_daughters(node):
@@ -688,13 +691,16 @@ def major_flow(place, node, node_type):
         for x in C.mother.v(candidate):
             clan[x] += "Super "
     for candidate in clan:
-        clan_list.append(candidate)
-        data[candidate] = ask_potential_ref(place, candidate, "word+", clan[candidate])
+        clan_members.append(candidate)
+        subdata = clan[candidate]
+        data[candidate] = ask_potential_ref(place, candidate, "word+", subdata)
+        print("clan_member",data[candidate])
         if not F.etcbc4_ft_prs.v(candidate) in ("absent","n/a",None):
-            candidate = str(candidate)+"s"
-            clan_list.append(candidate)
-            data[candidate] = ask_potential_ref(place, candidate, "suffix", clan[candidate])
-    interactive_clan(data,clan_list)
+            candidate2 = str(candidate)+"s"
+            clan_members.append(candidate2)
+            data[candidate2] = ask_potential_ref(place, candidate2, "suffix", subdata)
+            print("clan_suffix",data[candidate2])
+    interactive_clan(data,clan_members)
 
 \end{python}
 
@@ -730,8 +736,10 @@ for node in NN():
     elif F.etcbc4_db_otype.v(node) == "word" and DSU == True and completed == False:
         check_node = str(node)
 #        if check_node != "":     # Just a hack when temporarily outcommenting lines below
-        c.execute("SELECT EXISTS (SELECT * FROM pt WHERE Node = " + check_node + ");") # Check whether reference is not yet saved in database
-        result = c.fetchone()
+        cursor.execute("SELECT EXISTS (SELECT * FROM pt WHERE Node = " + check_node + ");") # Check whether reference is not yet saved in database
+        result = cursor.fetchone()
+        if result == "(0,)":
+            print("catch!")
         potential_ref = False
         potential_suffix = False
         if not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA")):
@@ -739,10 +747,14 @@ for node in NN():
         if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
             potential_suffix = True
         if result == (0,) and potential_ref == True: # Not yet saved, to be dealt with in major flow (may have suffixes as well, these will be parsed within the major flow)
+            print("clan-catch")
             major_flow(place, node, "word")
         if result == (0,) and potential_ref == False and potential_suffix == True: # Not yet saved, not to be dealt with in major flow, but suffix needs to be parsed
+            print("single-catch")
             candidate = str(node)+"s"
-            data[candidate] == ask_potential_ref(place, node, "single_suffix", "Prep")
+            data[candidate] = ask_potential_ref(place, node, "single_suffix", "Prep")
+            data[candidate] = add_data(data,candidate)
+            insert_dict_in_db(c,"pt",data[candidate])
 
 \end{python}
 
@@ -771,15 +783,15 @@ reference is part, and store its \mi{Tag} in the column \mi{DSU}.
 
 \begin{python}
 #{{{ Assign DSU and Level
-DSU_Tags = list(c.execute("select DSUtag,Level,ClANrs from gcdsu"))
-pts = list(c.execute("select Tag,a,ClANr from pt where DSU is null or DSU = ''"))
+DSU_Tags = list(cursor.execute("select DSUtag,Level,ClANrs from gcdsu"))
+pts = list(cursor.execute("select Tag,a,ClANr from pt where DSU is null or DSU = ''"))
 
 DSU = {}
 
 for (Tag,a,ClANr) in pts:
     for (DSUtag,Level,ClANrs) in DSU_Tags:
         if str(ClANr) in ClANrs.split(","):
-            c.execute("update pt set DSU=:DSUtag,Level=:Level where a=:a and ClANr=:ClANr", {"DSUtag":DSUtag,"Level":Level,"a":a,"ClANr":str(ClANr)})
+            cursor.execute("update pt set DSU=:DSUtag,Level=:Level where a=:a and ClANr=:ClANr", {"DSUtag":DSUtag,"Level":Level,"a":a,"ClANr":str(ClANr)})
             DSU[Tag] = DSUtag
 
 #}}}
@@ -790,28 +802,28 @@ for (Tag,a,ClANr) in pts:
 parts = {}
 
 for (DSUtag,Level,ClANrs) in DSU_Tags:
-    parts[DSUtag] = list(c.execute("select Part from gcdsu where DSUtag=:DSUtag", {"DSUtag":DSUtag, }))[0][0]
+    parts[DSUtag] = list(cursor.execute("select Part from gcdsu where DSUtag=:DSUtag", {"DSUtag":DSUtag, }))[0][0]
 
 for (Tag,a,ClANr) in pts:
     probable_parts = []
-    ColPart = list(c.execute("select ColPart from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
+    ColPart = list(cursor.execute("select ColPart from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
     if ColPart == None:
         ColPart = []
     else:
         ColPart = eval(ColPart)
-    Referents = list(c.execute("select Referents from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
+    Referents = list(cursor.execute("select Referents from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
     if Referents == None:
         Referents = []
     else:
         Referents = eval(Referents)
-    Name = list(c.execute("select Name from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
+    Name = list(cursor.execute("select Name from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
     probable_parts = ColPart + Referents
     probable_parts.append(Name)
     if parts[DSU[Tag]] != None:
         probable_parts += eval(parts[DSU[Tag]])
     all_parts = list(set(probable_parts))
     parts[DSU[Tag]] = str(all_parts)
-    c.execute("update gcdsu set Part=:all_parts where DSUtag=:DSUtag", {"all_parts":str(all_parts), "DSUtag":DSU[Tag]})
+    cursor.execute("update gcdsu set Part=:all_parts where DSUtag=:DSUtag", {"all_parts":str(all_parts), "DSUtag":DSU[Tag]})
 
 #}}}
 \end{python}
@@ -835,7 +847,7 @@ I do not count them in the column \mi{Nr}, but their name is stored in the colum
 
 \begin{python}
 #{{{ Assign Nr - new try
-nrs_todo = list(c.execute("select Sub, Name, Tag, Nr from pt where Nr is null or Nr = ''"))  # Select all rows that need a Nr
+nrs_todo = list(cursor.execute("select Sub, Name, Tag, Nr from pt where Nr is null or Nr = ''"))  # Select all rows that need a Nr
 nrs = {}    # Create dict for all relevant Names + their Nrs
 
 for (Sub, Name, Tag, Nr) in nrs_todo:
@@ -843,13 +855,13 @@ for (Sub, Name, Tag, Nr) in nrs_todo:
         if Name in nrs:
             newnr = nrs[Name] + 1
         elif Name not in nrs:
-            oldnr = list(c.execute("select Nr from pt where Name=:Name ORDER BY Tag DESC LIMIT 1", {"Name":Name,}))
+            oldnr = list(cursor.execute("select Nr from pt where Name=:Name ORDER BY Tag DESC LIMIT 1", {"Name":Name,}))
             if oldnr == [] or oldnr[0][0] == '':
                 newnr = 1
             else:
                 newnr = int(oldnr[0][0]) + 1
         nrs[Name] = newnr
-        c.execute("update pt set Nr=:newnr where Tag=:Tag", {"newnr":newnr, "Tag":Tag})
+        cursor.execute("update pt set Nr=:newnr where Tag=:Tag", {"newnr":newnr, "Tag":Tag})
 #}}}
 \end{python}
 
@@ -863,33 +875,33 @@ for-loop would overload them and make the code unclear.
 
 \begin{python}
 #{{{ Update Ref, Prev and *1-data
-all_tags = list(c.execute("select Tag from pt ORDER BY Tag"))
-todo = list(c.execute("select Tag,Name,Nr from pt where RefNode is null or RefNode = ''"))
+all_tags = list(cursor.execute("select Tag from pt ORDER BY Tag"))
+todo = list(cursor.execute("select Tag,Name,Nr from pt where RefNode is null or RefNode = ''"))
 
 for (Tag,Name,Nr) in todo:
-    Refdata = list(c.execute("select DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Name=:Name ORDER BY Tag DESC LIMIT 1", {"Name":Name, })) # Ref-data
-    c.execute("update pt set RefDSU=:DSU, Refa=:a, RefClANr=:ClANr, RefPhANr=:PhANr, RefNode=:Node, RefNodetype=:Nodetype, RefWNr =:WNr where Name=:Name and Nr=:Nr",{"DSU":Refdata[0][0],"a":Refdata[0][1],"ClANr":Refdata[0][2],"PhANr":Refdata[0][3],"Node":Refdata[0][4],"Nodetype":Refdata[0][5],"WNr":Refdata[0][6],"Name":Name,"Nr":Nr}) 
-    Onedata = list(c.execute("select DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Name=:Name ORDER BY Tag LIMIT 1", {"Name":Name, })) # *1-data
-    c.execute("update pt set DSU1=:DSU, a1=:a, ClANr1=:ClANr, PhANr1=:PhANr, Node1=:Node, Nodetype1=:Nodetype, WNr1=:WNr where Name=:Name and Nr=:Nr",{"DSU":Onedata[0][0],"a":Onedata[0][1],"ClANr":Onedata[0][2],"PhANr":Onedata[0][3],"Node":Onedata[0][4],"Nodetype":Onedata[0][5],"WNr":Onedata[0][6],"Name":Name,"Nr":Nr}) 
+    Refdata = list(cursor.execute("select DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Name=:Name ORDER BY Tag DESC LIMIT 1", {"Name":Name, })) # Ref-data
+    cursor.execute("update pt set RefDSU=:DSU, Refa=:a, RefClANr=:ClANr, RefPhANr=:PhANr, RefNode=:Node, RefNodetype=:Nodetype, RefWNr =:WNr where Name=:Name and Nr=:Nr",{"DSU":Refdata[0][0],"a":Refdata[0][1],"ClANr":Refdata[0][2],"PhANr":Refdata[0][3],"Node":Refdata[0][4],"Nodetype":Refdata[0][5],"WNr":Refdata[0][6],"Name":Name,"Nr":Nr}) 
+    Onedata = list(cursor.execute("select DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Name=:Name ORDER BY Tag LIMIT 1", {"Name":Name, })) # *1-data
+    cursor.execute("update pt set DSU1=:DSU, a1=:a, ClANr1=:ClANr, PhANr1=:PhANr, Node1=:Node, Nodetype1=:Nodetype, WNr1=:WNr where Name=:Name and Nr=:Nr",{"DSU":Onedata[0][0],"a":Onedata[0][1],"ClANr":Onedata[0][2],"PhANr":Onedata[0][3],"Node":Onedata[0][4],"Nodetype":Onedata[0][5],"WNr":Onedata[0][6],"Name":Name,"Nr":Nr}) 
 
     index = [y[0] for y in all_tags].index(Tag)  # Check the index of this row in the ordered list all_tags, in order to find the previous row = Prev_data 
     if index == 0:  # Apparently this is the first row of the table
-        Prevdata = list(c.execute("select Name, DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Tag=:Tag",{"Tag":Tag, })) # Prev-data for first entry
+        Prevdata = list(cursor.execute("select Name, DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Tag=:Tag",{"Tag":Tag, })) # Prev-data for first entry
     else:
         prev_Tag = all_tags[(index-1)][0]
-        Prevdata = list(c.execute("select Name, DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Tag=:prev_Tag",{"prev_Tag":prev_Tag, })) # Prev-data
-    c.execute("update pt set PrevName =:PrevName, PrevDSU=:DSU, Preva=:a, PrevClANr=:ClANr, PrevPhANr=:PhANr, PrevNode=:Node, PrevNodetype=:Nodetype, PrevWNr =:WNr where Name=:Name and Nr=:Nr",{"PrevName":Name,"DSU":Prevdata[0][0],"a":Prevdata[0][1],"ClANr":Prevdata[0][2],"PhANr":Prevdata[0][3],"Node":Prevdata[0][4],"Nodetype":Prevdata[0][5],"WNr":Prevdata[0][6],"Name":Name,"Nr":Nr}) 
+        Prevdata = list(cursor.execute("select Name, DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Tag=:prev_Tag",{"prev_Tag":prev_Tag, })) # Prev-data
+    cursor.execute("update pt set PrevName =:PrevName, PrevDSU=:DSU, Preva=:a, PrevClANr=:ClANr, PrevPhANr=:PhANr, PrevNode=:Node, PrevNodetype=:Nodetype, PrevWNr =:WNr where Name=:Name and Nr=:Nr",{"PrevName":Name,"DSU":Prevdata[0][0],"a":Prevdata[0][1],"ClANr":Prevdata[0][2],"PhANr":Prevdata[0][3],"Node":Prevdata[0][4],"Nodetype":Prevdata[0][5],"WNr":Prevdata[0][6],"Name":Name,"Nr":Nr}) 
 
 for (Tag,Name,Nr) in todo:
-    Refdata = list(c.execute("select Con, Level, Emb, Des, Destype, Role, P, N, G, Lexset, PartSpeech from pt where Name=:Name ORDER BY Tag DESC LIMIT 1", {"Name":Name, })) # Ref-data
-    c.execute("update pt set RefCon=:Con, RefLevel=:Level, RefEmb=:Emb, RefDes=:Des, RefDestype=:Destype, RefRole=:Role, RefP=:P, RefN=:N, RefG=:G, RefLexset=:Lexset, RefPartSpeech=:PartSpeech where Name=:Name", {"Con":Refdata[0][0],"Level":Refdata[0][1],"Emb":Refdata[0][2],"Des":Refdata[0][3],"Destype":Refdata[0][4],"Role":Refdata[0][5],"P":Refdata[0][6],"N":Refdata[0][7],"G":Refdata[0][8],"Lexset":Refdata[0][9],"PartSpeech":Refdata[0][10],"Name":Name})
+    Refdata = list(cursor.execute("select Con, Level, Emb, Des, Destype, Role, P, N, G, Lexset, PartSpeech from pt where Name=:Name ORDER BY Tag DESC LIMIT 1", {"Name":Name, })) # Ref-data
+    cursor.execute("update pt set RefCon=:Con, RefLevel=:Level, RefEmb=:Emb, RefDes=:Des, RefDestype=:Destype, RefRole=:Role, RefP=:P, RefN=:N, RefG=:G, RefLexset=:Lexset, RefPartSpeech=:PartSpeech where Name=:Name", {"Con":Refdata[0][0],"Level":Refdata[0][1],"Emb":Refdata[0][2],"Des":Refdata[0][3],"Destype":Refdata[0][4],"Role":Refdata[0][5],"P":Refdata[0][6],"N":Refdata[0][7],"G":Refdata[0][8],"Lexset":Refdata[0][9],"PartSpeech":Refdata[0][10],"Name":Name})
     index = [y[0] for y in all_tags].index(Tag)  # Check the index of this row in the ordered list all_tags, in order to find the previous row = Prev_data 
     if index == 0:  # Apparently this is the first row of the table
-        Prevdata = list(c.execute("select Con, Level, Emb, Des, Destype, Role, P, N, G, Lexset, PartSpeech from pt where Tag=:Tag",{"Tag":Tag, })) # Prev-data for first entry
+        Prevdata = list(cursor.execute("select Con, Level, Emb, Des, Destype, Role, P, N, G, Lexset, PartSpeech from pt where Tag=:Tag",{"Tag":Tag, })) # Prev-data for first entry
     else:
         prev_Tag = all_tags[(index-1)][0]
-        Prevdata = list(c.execute("select Con, Level, Emb, Des, Destype, Role, P, N, G, Lexset, PartSpeech from pt where Tag=:prev_Tag",{"prev_Tag":prev_Tag, })) # Prev-data
-    c.execute("update pt set PrevCon=:Con, PrevLevel=:Level, PrevEmb=:Emb, PrevDes=:Des, PrevDestype=:Destype, PrevRole=:Role, PrevP=:P, PrevN=:N, PrevG=:G, PrevLexset=:Lexset, PrevPartSpeech=:PartSpeech where Tag=:Tag", {"Con":Prevdata[0][0],"Level":Prevdata[0][1],"Emb":Prevdata[0][2],"Des":Prevdata[0][3],"Destype":Prevdata[0][4],"Role":Prevdata[0][5],"P":Prevdata[0][6],"N":Prevdata[0][7],"G":Prevdata[0][8],"Lexset":Prevdata[0][9],"PartSpeech":Prevdata[0][10],"Tag":Tag})
+        Prevdata = list(cursor.execute("select Con, Level, Emb, Des, Destype, Role, P, N, G, Lexset, PartSpeech from pt where Tag=:prev_Tag",{"prev_Tag":prev_Tag, })) # Prev-data
+    cursor.execute("update pt set PrevCon=:Con, PrevLevel=:Level, PrevEmb=:Emb, PrevDes=:Des, PrevDestype=:Destype, PrevRole=:Role, PrevP=:P, PrevN=:N, PrevG=:G, PrevLexset=:Lexset, PrevPartSpeech=:PartSpeech where Tag=:Tag", {"Con":Prevdata[0][0],"Level":Prevdata[0][1],"Emb":Prevdata[0][2],"Des":Prevdata[0][3],"Destype":Prevdata[0][4],"Role":Prevdata[0][5],"P":Prevdata[0][6],"N":Prevdata[0][7],"G":Prevdata[0][8],"Lexset":Prevdata[0][9],"PartSpeech":Prevdata[0][10],"Tag":Tag})
 #}}}
 \end{python}
 

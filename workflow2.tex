@@ -640,24 +640,40 @@ def interactive_single(data,candidate):
 
 \begin{python}
 def interactive_clan(data,clan_members):
-    print("Clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',clan_members[-1]))))
-    print("Nodetypes: 1=Part_suffix, 2=Part_word, 3=Part_(sub)phrase, 4=Part_clause, 5=Part_sentence")
-    print("Destypes: 1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective")
-    print("Anim: 1=Animate, 2-Non-animate; Human: 1=Human, 2=Non-human, 3=Humans included")
-    print("Col: 1=Individual, 2=Collective, 3=Individual in compound design, 4=Plural")
+#    print("Start of interactive_clan. Input of clan_members was: ",clan_members)
+    print(data[clan_members[-1]]["a"], " Clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',clan_members[-1]))))
+#    print("clan_members now is: ",clan_members)
+#    print("Nodetypes: 1=Part_suffix, 2=Part_word, 3=Part_(sub)phrase, 4=Part_clause, 5=Part_sentence")
+#    print("Destypes: 1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective")
+#    print("Anim: 1=Animate, 2-Non-animate; Human: 1=Human, 2=Non-human, 3=Humans included")
+#    print("Col: 1=Individual, 2=Collective, 3=Individual in compound design, 4=Plural")
     for candidate in clan_members:
-        print("{0!s: <9} {2!s: <15} {3!s: <40} {4!s: <30}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))))
-        print("{0!s: <2} {2!s: <2} {3!s: <10} {4!s: <2} {5!s: <2} {6!s: <2}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
-    for candidate in clan_members:
+#        print("clan_member under attention is: ",candidate)
+        cdata = data[candidate]
         for x in ("Nodetype","Destype","Name","Anim","Human","Col"):
-            if data[candidate][x] == None:
-                data[candidate][x] = input(x + "of node" + candidate + ": ")
-                if data[candidate]["Destype"] == "X":
+            if not x in cdata:
+                cdata[x] = None
+        print("{0!s: <9} {1!s: <15} {2!s: <40}".format(cdata["Node"], cdata["Sub"], get_cons_of_word_list(give_me_your_words(candidate))))
+        print("***** Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}".format(cdata["Nodetype"], cdata["Destype"], cdata["Name"], cdata["Anim"], cdata["Human"], cdata["Col"]))
+    clan_members2 = clan_members
+    for candidate in clan_members:
+        copy = input("Do you need a copy of reference " + str(candidate) + "? Default 'N'") or "N"
+        if copy == "Y":
+            copy_ref = str(candidate)+"c"
+            clan_members2.append(copy_ref)
+            data[copy_ref] = data[candidate]
+#    print("Start of second for-loop")
+    for candidate in clan_members2:
+        cdata = data[candidate]
+        for x in ("Nodetype","Destype","Name","Anim","Human","Col"):
+            if cdata[x] == None:
+                cdata[x] = input(str(x) + " of node " + str(candidate) + ": ")
+                if cdata["Destype"] == "X":
                     return
-    for candidate in clan_members:
-        print("{0!s: <9} {2!s: <15} {3!s: <40} {4!s: <30}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))))
-        print("{0!s: <1} {2!s: <1} {3!s: <10} {4!s: <1} {5!s: <1} {6!s: <1}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
-    for candidate in clan_members:
+    for candidate in clan_members2:
+        print("{0!s: <9} {1!s: <15} {2!s: <40} {3!s: <30}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))))
+        print("{0!s: <1} {1!s: <1} {2!s: <10} {3!s: <1} {4!s: <1} {5!s: <1}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
+    for candidate in clan_members2:
         check = input("Is the data correct? Default 'Y'") or "Y"
         while check != "Y":
             for x in ("Sub","Nodetype","Destype","Name","Anim","Human","Col"):
@@ -677,29 +693,44 @@ def interactive_clan(data,clan_members):
 # Let the computer create as much data as possible, especially with REG-rectum data, and do a proposal to the user.
 def major_flow(place, node, node_type):
     while F.etcbc4_ft_rela.v(parent[node]) == "rec" or F.etcbc4_ft_rela.v(parent[node]) == "atr": # Regens-rectum relationship or attributive relationship
-        if list(C.mohter.v(parent[node])) not in ([],None):
+        if list(C.mother.v(parent[node])) not in ([],None):
             node = list(C.mother.v(parent[node]))[0] # Deal with the clan-head instead of a (grand)child
     clan = {}
     clan_members = []
     data = {}
-    clan[node] = "Super "
+    clan[node] = "Sub1 "
+    clan[parent[node]] = "Super "
     for candidate in give_me_your_daughters(node):
+#        print("found daughter: ",candidate)
         if F.etcbc4_db_otype.v(candidate) == "subphrase" and F.etcbc4_ft_rela.v(candidate) == "rec":
             clan[candidate] = "Rec "
+#            print("candidate is Rec")
+#            print("clan now is: ", clan)
         elif F.etcbc4_db_otype.v(candidate) == "subphrase" and F.etcbc4_ft_rela.v(candidate) == "atr":
             clan[candidate] = "Attr "
+#            print("candidate is Attr")
+#            print("clan now is: ",clan)
         for x in C.mother.v(candidate):
             clan[x] += "Super "
+            if not parent[x] in clan:
+                clan[parent[x]] = "Super "
+#            print("found a mother; clan now is: ", clan)
     for candidate in clan:
         clan_members.append(candidate)
+#        print("clan_members now is: ",clan_members)
         subdata = clan[candidate]
         data[candidate] = ask_potential_ref(place, candidate, "word+", subdata)
-        print("clan_member",data[candidate])
+#        print("clan_member",candidate,data[candidate])
         if not F.etcbc4_ft_prs.v(candidate) in ("absent","n/a",None):
+#            print("found a suffix")
             candidate2 = str(candidate)+"s"
+#            print("candidate2 is: ", candidate2)
             clan_members.append(candidate2)
             data[candidate2] = ask_potential_ref(place, candidate2, "suffix", subdata)
-            print("clan_suffix",data[candidate2])
+#            print("clan_suffix",data[candidate2])
+        else:
+            print("no suffix found")
+#    print("Ready for interactive_clan. We're going to input data:",data,"and clan_members: ",clan_members)
     interactive_clan(data,clan_members)
 
 \end{python}
@@ -747,7 +778,6 @@ for node in NN():
         if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
             potential_suffix = True
         if result == (0,) and potential_ref == True: # Not yet saved, to be dealt with in major flow (may have suffixes as well, these will be parsed within the major flow)
-            print("clan-catch")
             major_flow(place, node, "word")
         if result == (0,) and potential_ref == False and potential_suffix == True: # Not yet saved, not to be dealt with in major flow, but suffix needs to be parsed
             print("single-catch")

@@ -591,17 +591,25 @@ def add_data(data,candidate):
     ClANr = L.u('clause',data[candidate]["Node"])
     data[candidate]["ClANr"] = ClANr
     data[candidate]["Emb"] = F.etcbc4_ft_tab.v(ClANr)
-    data[candidate]["PhANr"] = L.u('phrase',data[candidate]["Node"])
-    data[candidate]["SPhNr"] = L.u('subphrase',data[candidate]["Node"])
-    if data["Nodetype"] in ("1","2"):
+    if data[candidate]["Nodetype"] in ("4","5"):
+        data[candidate]["PhANr"] = 00
+    else:
+        data[candidate]["PhANr"] = L.u('phrase',data[candidate]["Node"])
+    if data[candidate]["Nodetype"] in ("3","4","5"):
+        data[candidate]["SPhNr"] = 00
+    else:
+        data[candidate]["SPhNr"] = L.u('subphrase',data[candidate]["Node"])
+    if data[candidate]["Nodetype"] in ("1","2"):
         data[candidate]["WNr"] = F.etcbc4_ft_number.v(data[candidate]["Node"])
-    if data[candidate]["Node_type"] == "2":
+    else:
+        data[candidate]["WNr"] = 00
+    if data[candidate]["Nodetype"] == "2":
         data[candidate]["P"] = F.etcbc4_ft_ps.v(data[candidate]["Node"])
         data[candidate]["N"] = F.etcbc4_ft_nu.v(data[candidate]["Node"])
         data[candidate]["G"] = F.etcbc4_ft_gn.v(data[candidate]["Node"])
         data[candidate]["Lexset"] = F.etcbc4_ft_ls.v(data[candidate]["Node"])
         data[candidate]["PartSpeech"] = F.etcbc4_ft_sp.v(data[candidate]["Node"])
-    elif data[candidate]["Node_type"] == "1":
+    elif data[candidate]["Nodetype"] == "1":
         data[candidate]["P"] = suffix_dict[F.etcbc4_ft_prs.v(data[candidate]["Node"])]['ps']    # Since the suffix_features are not yet available in the ETCBC database, we extract them from a dictionary based on surface consonants
         data[candidate]["N"] = suffix_dict[F.etcbc4_ft_prs.v(data[candidate]["Node"])]['nu']
         data[candidate]["G"] = suffix_dict[F.etcbc4_ft_prs.v(data[candidate]["Node"])]['gn']
@@ -610,7 +618,7 @@ def add_data(data,candidate):
             data[candidate]["Role"] = "Subject"
         elif F.etcbc4_ft_function.v(L.u('phrase',data[candidate]["Node"])) in ("PreO","PtcO"):
             data[candidate]["Role"] = "Object"
-    data[candidate]["Tag"] = Data["a"].rjust(15,' ') + "_" + str(ClANr).rjust(9,'0') + "_" + str(data[candidate]["PhANr"]).rjust(9,'0') + "_" + str(data[candidate]["WNr"]).rjust(9,'0') + "_" + str(data[candidate]["Nodetype"])
+    data[candidate]["Tag"] = data[candidate]["a"].rjust(15,' ') + "_" + str(data[candidate]["ClANr"]).rjust(9,'0') + "_" + str(data[candidate]["PhANr"]).rjust(9,'0') + "_" + str(data[candidate]["WNr"]).rjust(9,'0') + "_" + str(data[candidate]["Nodetype"])
     return(data[candidate])
 
 \end{python}
@@ -649,12 +657,11 @@ def interactive_clan(data,clan_members):
 #    print("Col: 1=Individual, 2=Collective, 3=Individual in compound design, 4=Plural")
     for candidate in clan_members:
 #        print("clan_member under attention is: ",candidate)
-        cdata = data[candidate]
-        for x in ("Nodetype","Destype","Name","Anim","Human","Col"):
-            if not x in cdata:
-                cdata[x] = None
-        print("{0!s: <9} {1!s: <15} {2!s: <40}".format(cdata["Node"], cdata["Sub"], get_cons_of_word_list(give_me_your_words(candidate))))
-        print("***** Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}".format(cdata["Nodetype"], cdata["Destype"], cdata["Name"], cdata["Anim"], cdata["Human"], cdata["Col"]))
+        for x in ["Nodetype","Destype","Name","Anim","Human","Col"]:
+            if not x in data[candidate]:
+                data[candidate][x] = None
+        print("{0!s: <9} {1!s: <15} {2!s: <40}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))))
+        print("***** Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
     clan_members2 = clan_members
     for candidate in clan_members:
         copy = input("Do you need a copy of reference " + str(candidate) + "? Default 'N'") or "N"
@@ -664,28 +671,35 @@ def interactive_clan(data,clan_members):
             data[copy_ref] = data[candidate]
 #    print("Start of second for-loop")
     for candidate in clan_members2:
-        cdata = data[candidate]
-        for x in ("Nodetype","Destype","Name","Anim","Human","Col"):
-            if cdata[x] == None:
-                cdata[x] = input(str(x) + " of node " + str(candidate) + ": ")
-                if cdata["Destype"] == "X":
-                    return
+        print("clan_members is: ", clan_members, "clan_members2 is: ", clan_members2)
+        for x in ["Nodetype","Destype","Name","Anim","Human","Col"]:
+            if data[candidate][x] in (None,"None"):
+                data[candidate][x] = input(str(x) + " of node " + str(candidate) + ": ")
+                if data[candidate]["Destype"] == "X":
+                    data.pop(candidate, None)
+                    clan_members.remove(candidate)
     for candidate in clan_members2:
-        print("{0!s: <9} {1!s: <15} {2!s: <40} {3!s: <30}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))))
-        print("{0!s: <1} {1!s: <1} {2!s: <10} {3!s: <1} {4!s: <1} {5!s: <1}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
+        print(candidate,data[candidate])
     for candidate in clan_members2:
-        check = input("Is the data correct? Default 'Y'") or "Y"
+        print("{0!s: <9} {1!s: <15} {2!s: <40}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))))
+        print("***** Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
+    for candidate in clan_members2:
+        check = input("Is the data of " + str(candidate) + " correct? Default 'Y'") or "Y"
         while check != "Y":
             for x in ("Sub","Nodetype","Destype","Name","Anim","Human","Col"):
-                data[candidate][x] = input(x + "of node" + candidate + ", default = " + data[candidate][x]) or data[candidate][x] 
+                data[candidate][x] = input(x + " of node " + str(candidate) + ", default = " + str(data[candidate][x])) or data[candidate][x] 
                 if data[candidate]["Destype"] == "X":
-                    return
+                    data.pop(candidate, None)
+                    clan_members.remove(candidate)
+            print("{0!s: <9} {1!s: <15} {2!s: <40}".format(data[candidate]["Node"], data[candidate]["Sub"], get_cons_of_word_list(give_me_your_words(candidate))))
+            print("***** Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
             check = input("Is the data correct? Default 'Y'") or "Y"
         data[candidate]["Referents"] = input("Contextually relevant referents that are part of Name: ") or None
         data[candidate]["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
         if check == "Y":
             add_data(data,candidate)
-            insert_dict_in_db(c,"pt",data[candidate])
+            insert_dict_in_db(cursor,"pt",data[candidate])
+            db.commit()
 
 \end{python}
 

@@ -553,7 +553,8 @@ def recognize(Des):
 def ask_potential_ref(place, candidate, node_type, sub):
     cand = candidate
     if str(candidate).endswith("s") or str(candidate).endswith("c") or str(candidate).endswith("d"):
-        cand = candidate[:-1]
+        cand = int(candidate[:-1])
+        print("This was a suffix called ",candidate, "cand is ",cand)
     Recognize = []
     if node_type == "word+": 
         data[candidate]= {}
@@ -576,6 +577,7 @@ def ask_potential_ref(place, candidate, node_type, sub):
             data[candidate]["Col"] = Recognize[0][3]
         data[candidate]["Sub"] = sub
     else:
+        print("Treated as a suffix")
         data[candidate] = {}
         data[candidate]["Des"] = F.etcbc4_ft_prs.v(cand)
         data[candidate]["Nodetype"] = "1"
@@ -666,6 +668,8 @@ def interactive_clan(data,clan_members):
             data[candidate]["Nodetype"] = "2"
         if data[candidate]["Destype"] == "1":
             data[candidate]["Nodetype"] = "2"
+        if data[candidate]["Anim"] == "2":
+            data[candidate]["Human"] = "2"
         print("{0!s: <9} {1!s: <15} {2!s: <40}".format(data[candidate]["Node"], data[candidate]["Sub"], data[candidate]["Des"]))
         print("********* Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
     clan_members2 = list(clan_members)
@@ -737,7 +741,7 @@ def major_flow(place, node, node_type):
         elif F.etcbc4_db_otype.v(candidate) == "subphrase" and F.etcbc4_ft_rela.v(candidate) == "atr":
             clan[candidate] = "Attr "
         if len(L.d('word',candidate)) == 1 and get_cons_of_word_list(give_me_your_words(candidate)) == F.etcbc4_ft_g_cons.v(L.d('word',candidate)[0]):
-            clan[L.d('word',candidate)[0]] = clan[candidate]
+            clan[L.d('word',candidate)[0]] = copy.deepcopy(clan[candidate])
             del clan[candidate]
             candidate = L.d('word',candidate)[0] 
         for x in C.mother.v(candidate):

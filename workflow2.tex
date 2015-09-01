@@ -84,6 +84,7 @@ if not '/projects/1fdd6b0b-5199-4b0e-9f7f-7759af4a5e7a/.local/lib/python3.4/site
 import collections
 import random
 import laf
+import copy
 from laf.fabric import LafFabric
 import etcbc
 from etcbc.preprocess import prepare
@@ -646,7 +647,7 @@ def interactive_single(data,candidate):
     else:
         data[candidate]["Referents"] = None
         data[candidate]["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
-    insert_dict_in_db(c,"pt",data[candidate])
+    insert_dict_in_db(cursor,"pt",data[candidate])
 
 \end{python}
 
@@ -663,26 +664,28 @@ def interactive_clan(data,clan_members):
                 data[candidate][x] = None
         if F.etcbc4_db_otype.v(candidate) == "word" and not data[candidate]["Nodetype"] == "1":
             data[candidate]["Nodetype"] = "2"
+        if data[candidate]["Destype"] == "1":
+            data[candidate]["Nodetype"] = "2"
         print("{0!s: <9} {1!s: <15} {2!s: <40}".format(data[candidate]["Node"], data[candidate]["Sub"], data[candidate]["Des"]))
         print("********* Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
-    clan_members2 = clan_members
+    clan_members2 = list(clan_members)
     for candidate in clan_members:
         copy = input("Do you need a copy of reference " + str(candidate) + "? Default 'N' ") or "N"
         if copy == "Y":
             copy_ref = str(candidate)+"c"
             clan_members2.append(copy_ref)
-            data[copy_ref] = data[candidate]
+            data[copy_ref] = copy.deepcopy(data[candidate])
             copy2 = input("Do you need another copy of reference " + str(candidate) + "? Default 'N' ") or "N"
             if copy2 == "Y":
                 copy2_ref = str(candidate)+"d"
                 clan_members2.append(copy2_ref)
-                data[copy2_ref] = data[candidate]
+                data[copy2_ref] = copy.deepcopy(data[candidate])
         elif copy == "X":
             data.pop(candidate, None)
             clan_members2.remove(candidate)
             if clan_members2 == []:
                 return
-    clan_members3 = clan_members2
+    clan_members3 = list(clan_members2)
     for candidate in clan_members2:
         for x in ["Nodetype","Destype","Name","Anim","Human","Col"]:
             if data[candidate][x] in (None,"None"):
@@ -693,7 +696,7 @@ def interactive_clan(data,clan_members):
                     if clan_members3 == []:
                         return
     for candidate in clan_members3:
-        print("{0!s: <9} {1!s: <15} {2!s: <40}".format(candidate, data[candidate]["Sub"], data[candidate["Des"]))
+        print("{0!s: <9} {1!s: <15} {2!s: <40}".format(candidate, data[candidate]["Sub"], data[candidate]["Des"]))
         print("********* Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
     for candidate in clan_members3:
         check = input("Is the data of " + str(candidate) + " correct? Default 'Y' ") or "Y"
@@ -733,16 +736,17 @@ def major_flow(place, node, node_type):
             clan[candidate] = "Rec "
         elif F.etcbc4_db_otype.v(candidate) == "subphrase" and F.etcbc4_ft_rela.v(candidate) == "atr":
             clan[candidate] = "Attr "
-        if F.etcbc4_ft_g_cons.v(candidate) == F.etcbc4_ft_g_cons.v(list(C.mother.v(candidate))[0]):
-            clan[list(C.mother.v(candidate))[0]] = clan[candidate]
-            candidate = list(C.mother.v(candidate))[0] 
+        if len(L.d('word',candidate)) == 1 and get_cons_of_word_list(give_me_your_words(candidate)) == F.etcbc4_ft_g_cons.v(L.d('word',candidate)[0]):
+            clan[L.d('word',candidate)[0]] = clan[candidate]
+            del clan[candidate]
+            candidate = L.d('word',candidate)[0] 
         for x in C.mother.v(candidate):
 #            clan[x] += "Super "
             if not parent[x] in clan:
                 clan[parent[x]] = "Super "
     for candidate in clan:
         clan_members.append(candidate)
-        subdata = clan[candidate]
+        subdata = copy.deepcopy(clan[candidate])
         data[candidate] = ask_potential_ref(place, candidate, "word+", subdata)
         if not F.etcbc4_ft_prs.v(candidate) in ("absent","n/a",None):
             candidate2 = str(candidate)+"s"
@@ -750,6 +754,8 @@ def major_flow(place, node, node_type):
             data[candidate2] = ask_potential_ref(place, candidate2, "suffix", subdata)
         else:
             print("no suffix found")
+#    insert_dict_in_db(cursor,"pt",data[candidate])
+#    return
     interactive_clan(data,clan_members)
 
 \end{python}

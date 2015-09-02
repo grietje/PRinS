@@ -84,7 +84,7 @@ if not '/projects/1fdd6b0b-5199-4b0e-9f7f-7759af4a5e7a/.local/lib/python3.4/site
 import collections
 import random
 import laf
-import copy
+from copy import deepcopy
 from laf.fabric import LafFabric
 import etcbc
 from etcbc.preprocess import prepare
@@ -678,12 +678,12 @@ def interactive_clan(data,clan_members):
         if copy == "Y":
             copy_ref = str(candidate)+"c"
             clan_members2.append(copy_ref)
-            data[copy_ref] = copy.deepcopy(data[candidate])
+            data[copy_ref] = deepcopy(data[candidate])
             copy2 = input("Do you need another copy of reference " + str(candidate) + "? Default 'N' ") or "N"
             if copy2 == "Y":
                 copy2_ref = str(candidate)+"d"
                 clan_members2.append(copy2_ref)
-                data[copy2_ref] = copy.deepcopy(data[candidate])
+                data[copy2_ref] = deepcopy(data[candidate])
         elif copy == "X":
             data.pop(candidate, None)
             clan_members2.remove(candidate)
@@ -730,7 +730,7 @@ def major_flow(place, node, node_type):
     clan = {}
     clan_members = []
     data = {}
-    if not F.etcbc4_ft_g_cons.v(node) == F.etcbc4_ft_g_cons.v(parent[node]):
+    if not F.etcbc4_ft_g_cons.v(node) == get_cons_of_word_list(give_me_your_words(parent[node])):
         clan[parent[node]] = "Super "
         clan[node] = "Sub1 "
     else:
@@ -741,7 +741,7 @@ def major_flow(place, node, node_type):
         elif F.etcbc4_db_otype.v(candidate) == "subphrase" and F.etcbc4_ft_rela.v(candidate) == "atr":
             clan[candidate] = "Attr "
         if len(L.d('word',candidate)) == 1 and get_cons_of_word_list(give_me_your_words(candidate)) == F.etcbc4_ft_g_cons.v(L.d('word',candidate)[0]):
-            clan[L.d('word',candidate)[0]] = copy.deepcopy(clan[candidate])
+            clan[L.d('word',candidate)[0]] = deepcopy(clan[candidate])
             del clan[candidate]
             candidate = L.d('word',candidate)[0] 
         for x in C.mother.v(candidate):
@@ -750,7 +750,7 @@ def major_flow(place, node, node_type):
                 clan[parent[x]] = "Super "
     for candidate in clan:
         clan_members.append(candidate)
-        subdata = copy.deepcopy(clan[candidate])
+        subdata = deepcopy(clan[candidate])
         data[candidate] = ask_potential_ref(place, candidate, "word+", subdata)
         if not F.etcbc4_ft_prs.v(candidate) in ("absent","n/a",None):
             candidate2 = str(candidate)+"s"
@@ -813,7 +813,8 @@ for node in NN():
             candidate = str(node)+"s"
             data[candidate] = ask_potential_ref(place, node, "single_suffix", "Prep")
             data[candidate] = add_data(data,candidate)
-            insert_dict_in_db(cursor,"pt",data[candidate])
+            interactive_single(data,candidate)
+#            insert_dict_in_db(cursor,"pt",data[candidate])
 
 \end{python}
 

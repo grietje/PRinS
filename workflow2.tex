@@ -520,7 +520,7 @@ db.commit()
 \end{python}
 
 \begin{python}
-#{{{ Find fitting info about types and functions
+#{{{ Find fitting info about types and functions # Does not yet work
     function = F.etcbc4_ft_function.v(Phrase)
     if Data["Nodetype"] in ("1", "2", "3"):    # F.etcbc4_ft_function.v(node) only applies to phrase level (or lower)
         if function in ("ExsS","IntS","ModS","NCoS","PrcS","PreS") and Data["Nodetype"] == "1":
@@ -539,6 +539,11 @@ db.commit()
 
 \begin{python}
 # Propose some data about a participant if this participant is recognized by gcdata.pt
+""" If a participant has already been treated before, it is likely that some
+    personal data has remained the same, and can therefore be re-used in the
+    participant reference currently under consideration. This procedure of 
+    re-using already entered information also helps guard consistency.
+"""
 def recognize(Des):
     Recognize = list(cursor.execute("select Name,Anim,Human,Col from pt where Des=:Des", {"Des":Des, }))
     if Recognize == []:
@@ -550,140 +555,160 @@ def recognize(Des):
 
 \begin{python}
 # Prepare references for interactive procedure by collecting some data
+""" Some basic information about a reference, that can be found automatically,
+    is gathered before the start of the interactive procedure.
+"""
 def ask_potential_ref(place, candidate, node_type, sub):
     cand = candidate
     if str(candidate).endswith("s") or str(candidate).endswith("c") or str(candidate).endswith("d"):
-        cand = int(candidate[:-1])
-        print("This was a suffix called ",candidate, "cand is ",cand)
+        cand = int(candidate[:-1]) # If the `candidate' is not a node number, we have to make it so before we are able to retrieve certain information from the database.
     Recognize = []
-    if node_type == "word+": 
-        data[candidate]= {}
-        data[candidate]["Des"] = get_cons_of_word_list(give_me_your_words(cand))
-        data[candidate]["a"] = place
-        data[candidate]["Node"] = candidate
+    current = data[candidate]
+    if node_type == "word+": # Reference is a word or higher-level reference
+        current= {}
+        current["Des"] = get_cons_of_word_list(give_me_your_words(cand))
+        current["a"] = place
+        current["Node"] = candidate
         nodetype = F.etcbc4_db_otype.v(cand)
         if nodetype == "word":
-            data[candidate]["Nodetype"] = "2"
+            current["Nodetype"] = "2"
         elif nodetype in ("subphrase", "phrase", "phrase_atom"):
-            data[candidate]["Nodetype"] = "3"
+            current["Nodetype"] = "3"
         elif nodetype in ("clause","clause_atom"):
-            data[candidate]["Nodetype"] = "4"
-        if not get_cons_of_word_list(give_me_your_words(cand)) == "KL":
+            current["Nodetype"] = "4"
+        if not get_cons_of_word_list(give_me_your_words(cand)) == "KL": # `KL' is not an independent reference, so the person it refers to is different every time. Therefore it is useless to run the function `Recognize' in this case.
             Recognize = recognize(get_cons_of_word_list(give_me_your_words(cand)))
         if not Recognize == []:
-            data[candidate]["Name"] = Recognize[0][0]
-            data[candidate]["Anim"] = Recognize[0][1]
-            data[candidate]["Human"] = Recognize[0][2]
-            data[candidate]["Col"] = Recognize[0][3]
-        data[candidate]["Sub"] = sub
-    else:
-        print("Treated as a suffix")
-        data[candidate] = {}
-        data[candidate]["Des"] = F.etcbc4_ft_prs.v(cand)
-        data[candidate]["Nodetype"] = "1"
-        data[candidate]["a"] = place
-        data[candidate]["Node"] = int(cand)
-        data[candidate]["Destype"] = "7"
-        data[candidate]["Sub"] = sub
-    return(data[candidate])
+            current["Name"] = Recognize[0][0]
+            current["Anim"] = Recognize[0][1]
+            current["Human"] = Recognize[0][2]
+            current["Col"] = Recognize[0][3]
+        current["Sub"] = sub
+    else: # Reference is a suffix
+        current = {}
+        current["Des"] = F.etcbc4_ft_prs.v(cand)
+        current["Nodetype"] = "1"
+        current["a"] = place
+        current["Node"] = int(cand)
+        current["Destype"] = "7"
+        current["Sub"] = sub
+    return(current)
 
 \end{python}
 
 \begin{python}
 # Automatically add data to entries that are going to be fed to gcdata.pt
+""" In order to avoid problems with candidates that are not a node number 
+    (but, for example, have an `s' attached to it), in this function we
+    do not use `candidate' to retrieve data from the database, but
+    `data[candidate]["Node"]'.
+"""
 def add_data(data,candidate):
 #    cand = candidate
 #    if str(candidate).endswith("s") or str(candidate).endswith("c") or str(candidate).endwith("d"):
 #        cand = candidate[:-1]
-    ClANr = L.u('clause',data[candidate]["Node"])
-    data[candidate]["ClANr"] = ClANr
-    data[candidate]["Emb"] = F.etcbc4_ft_tab.v(ClANr)
-    if data[candidate]["Nodetype"] in ("4","5"):
-        data[candidate]["PhANr"] = 00
+    current = data[candidate]
+    ClANr = L.u('clause',current["Node"])
+    current["ClANr"] = ClANr
+    current["Emb"] = F.etcbc4_ft_tab.v(ClANr)
+    if current["Nodetype"] in ("4","5"): # Larger than phrase, so no PhANr
+        current["PhANr"] = 00
     else:
-        data[candidate]["PhANr"] = L.u('phrase',data[candidate]["Node"])
-    if data[candidate]["Nodetype"] in ("3","4","5"):
-        data[candidate]["SPhNr"] = 00
+        current["PhANr"] = L.u('phrase',current["Node"])
+    if current["Nodetype"] in ("3","4","5"): # Larger than subphrase, so no SPhNr
+        current["SPhNr"] = 00
     else:
-        data[candidate]["SPhNr"] = L.u('subphrase',data[candidate]["Node"])
-    if data[candidate]["Nodetype"] in ("1","2"):
-        data[candidate]["WNr"] = F.etcbc4_ft_number.v(data[candidate]["Node"])
+        current["SPhNr"] = L.u('subphrase',current["Node"])
+    if current["Nodetype"] in ("1","2"): # Suffix or word, so WNr is applicable
+        current["WNr"] = F.etcbc4_ft_number.v(current["Node"])
     else:
-        data[candidate]["WNr"] = 00
-    if data[candidate]["Nodetype"] == "2":
-        data[candidate]["P"] = F.etcbc4_ft_ps.v(data[candidate]["Node"])
-        data[candidate]["N"] = F.etcbc4_ft_nu.v(data[candidate]["Node"])
-        data[candidate]["G"] = F.etcbc4_ft_gn.v(data[candidate]["Node"])
-        data[candidate]["Lexset"] = F.etcbc4_ft_ls.v(data[candidate]["Node"])
-        data[candidate]["PartSpeech"] = F.etcbc4_ft_sp.v(data[candidate]["Node"])
-    elif data[candidate]["Nodetype"] == "1":
-        data[candidate]["P"] = suffix_dict[F.etcbc4_ft_prs.v(data[candidate]["Node"])]['ps']    # Since the suffix_features are not yet available in the ETCBC database, we extract them from a dictionary based on surface consonants
-        data[candidate]["N"] = suffix_dict[F.etcbc4_ft_prs.v(data[candidate]["Node"])]['nu']
-        data[candidate]["G"] = suffix_dict[F.etcbc4_ft_prs.v(data[candidate]["Node"])]['gn']
-        data[candidate]["Lexset"] = "suffix"
-        if F.etcbc4_ft_function.v(L.u('phrase',data[candidate]["Node"])) in ("ExsS","IntS","ModS","NCoS","PrcS","PreS"):
-            data[candidate]["Role"] = "Subject"
-        elif F.etcbc4_ft_function.v(L.u('phrase',data[candidate]["Node"])) in ("PreO","PtcO"):
-            data[candidate]["Role"] = "Object"
-    data[candidate]["Tag"] = data[candidate]["a"].rjust(15,' ') + "_" + str(data[candidate]["ClANr"]).rjust(9,'0') + "_" + str(data[candidate]["PhANr"]).rjust(9,'0') + "_" + str(data[candidate]["WNr"]).rjust(9,'0') + "_" + str(data[candidate]["Nodetype"])
-    return(data[candidate])
+        current["WNr"] = 00
+    if current["Nodetype"] == "2": # Reference is a word
+        current["P"] = F.etcbc4_ft_ps.v(current["Node"])
+        current["N"] = F.etcbc4_ft_nu.v(current["Node"])
+        current["G"] = F.etcbc4_ft_gn.v(current["Node"])
+        current["Lexset"] = F.etcbc4_ft_ls.v(current["Node"])
+        current["PartSpeech"] = F.etcbc4_ft_sp.v(current["Node"])
+    elif current["Nodetype"] == "1": # Reference is a suffix
+        current["P"] = suffix_dict[F.etcbc4_ft_prs.v(current["Node"])]['ps']    # Since the suffix_features are not yet available in the ETCBC database, we extract them from a dictionary based on surface consonants
+        current["N"] = suffix_dict[F.etcbc4_ft_prs.v(current["Node"])]['nu']
+        current["G"] = suffix_dict[F.etcbc4_ft_prs.v(current["Node"])]['gn']
+        current["Lexset"] = "suffix"
+        if F.etcbc4_ft_function.v(L.u('phrase',current["Node"])) in ("ExsS","IntS","ModS","NCoS","PrcS","PreS"):
+            current["Role"] = "Subject"
+        elif F.etcbc4_ft_function.v(L.u('phrase',current["Node"])) in ("PreO","PtcO"):
+            current["Role"] = "Object"
+    current["Tag"] = current["a"].rjust(15,' ') + "_" + str(current["ClANr"]).rjust(9,'0') + "_" + str(current["PhANr"]).rjust(9,'0') + "_" + str(current["WNr"]).rjust(9,'0') + "_" + str(current["Nodetype"])
+    return(current)
 
 \end{python}
 
 \begin{python}
 def interactive_single(data,candidate):
-    print(data[candidate]["a"])
-    print("clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',data[candidate]["Node"])))) 
-    print("suffix:", data[candidate]["Des"])
-    data[candidate]["Sub"] = input("Is this a sub-participant? Default 'Prep' ") or "Prep" 
-    data[candidate]["Name"] = input("What is the name of the referent? : ")
-    data[candidate]["Anim"] = input("1=Animate, 2=Non-animate: ")
-    if data[candidate]["Anim"] == "2":
-        data[candidate]["Human"] = "None"
+""" This function asks interactively for input about suffixes that are not part
+    of a larger `clan' (i.e. a multi-layered reference), but occur on their own.
+"""
+    current = data[candidate]
+    print(current["a"])
+    print("clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',current["Node"])))) 
+    print("suffix:", current["Des"])
+    current["Sub"] = input("Is this a sub-participant? Default 'Prep' ") or "Prep" 
+    current["Name"] = input("What is the name of the referent? : ")
+    current["Anim"] = input("1=Animate, 2=Non-animate: ")
+    if current["Anim"] == "2":
+        current["Human"] = "None"
     else:
-        data[candidate]["Human"] = input("1=Human (or divine), 2=Non-human, 3=Humans included: ")
-    data[candidate]["Col"] = input("Is the participant an individual (1), collective (2) or an individual in a compound design (3)? Or dual/plural?(4)")
-    if data[candidate]["Col"] in ("2","3","4"):
-        data[candidate]["Referents"] = input("Contextually relevant referents that are part of Name: ")
-        data[candidate]["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
+        current["Human"] = input("1=Human (or divine), 2=Non-human, 3=Humans included: ")
+    current["Col"] = input("Is the participant an individual (1), collective (2) or an individual in a compound design (3)? Or dual/plural?(4)")
+    if current["Col"] in ("2","3","4"):
+        current["Referents"] = input("Contextually relevant referents that are part of Name: ")
+        current["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
     else:
-        data[candidate]["Referents"] = None
-        data[candidate]["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
-    insert_dict_in_db(cursor,"pt",data[candidate])
+        current["Referents"] = None
+        current["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
+    insert_dict_in_db(cursor,"pt",current)
 
 \end{python}
 
 \begin{python}
 def interactive_clan(data,clan_members):
+""" This function asks interactively for input about references that are related
+    to each other, i.e. that form a multi-layered `clan'. Several proposals are
+    shown, and can be accepted, rejected or adapted.
+"""
+    format_string_a = "{0!s: <9} {1!s: <15} {2!s: <40}"
+    format_string_b = "********* Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}"
     print(data[clan_members[-1]]["a"], " Clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',clan_members[-1]))))
 #    print("Nodetypes: 1=Part_suffix, 2=Part_word, 3=Part_(sub)phrase, 4=Part_clause, 5=Part_sentence")
 #    print("Destypes: 1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective")
 #    print("Anim: 1=Animate, 2-Non-animate; Human: 1=Human, 2=Non-human, 3=Humans included")
 #    print("Col: 1=Individual, 2=Collective, 3=Individual in compound design, 4=Plural")
     for candidate in clan_members:
+        current = data[candidate]
         for x in ["Nodetype","Destype","Name","Anim","Human","Col"]:
-            if not x in data[candidate]:
-                data[candidate][x] = None
-        if F.etcbc4_db_otype.v(candidate) == "word" and not data[candidate]["Nodetype"] == "1":
-            data[candidate]["Nodetype"] = "2"
-        if data[candidate]["Destype"] == "1":
-            data[candidate]["Nodetype"] = "2"
-        if data[candidate]["Anim"] == "2":
-            data[candidate]["Human"] = "2"
-        print("{0!s: <9} {1!s: <15} {2!s: <40}".format(data[candidate]["Node"], data[candidate]["Sub"], data[candidate]["Des"]))
-        print("********* Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
+            if not x in current:
+                current[x] = None
+        if F.etcbc4_db_otype.v(candidate) == "word" and not current["Nodetype"] == "1":
+            current["Nodetype"] = "2"
+        if current["Destype"] == "1":
+            current["Nodetype"] = "2"
+        if current["Anim"] == "2":
+            current["Human"] = "2"
+        print(format_string_a.format(candidate, current["Sub"], current["Des"]))
+        print(format_string_b.format(current["Nodetype"], current["Destype"], current["Name"], current["Anim"], current["Human"], current["Col"]))
     clan_members2 = list(clan_members)
     for candidate in clan_members:
+        current = data[candidate]
         copy = input("Do you need a copy of reference " + str(candidate) + "? Default 'N' ") or "N"
         if copy == "Y":
             copy_ref = str(candidate)+"c"
             clan_members2.append(copy_ref)
-            data[copy_ref] = deepcopy(data[candidate])
+            data[copy_ref] = deepcopy(current)
             copy2 = input("Do you need another copy of reference " + str(candidate) + "? Default 'N' ") or "N"
             if copy2 == "Y":
                 copy2_ref = str(candidate)+"d"
                 clan_members2.append(copy2_ref)
-                data[copy2_ref] = deepcopy(data[candidate])
+                data[copy2_ref] = deepcopy(current)
         elif copy == "X":
             data.pop(candidate, None)
             clan_members2.remove(candidate)
@@ -691,32 +716,35 @@ def interactive_clan(data,clan_members):
                 return
     clan_members3 = list(clan_members2)
     for candidate in clan_members2:
+        current = data[candidate]
         for x in ["Nodetype","Destype","Name","Anim","Human","Col"]:
-            if data[candidate][x] in (None,"None"):
-                data[candidate][x] = input(str(x) + " of node " + str(candidate) + ": ")
-                if data[candidate]["Destype"] == "X":
+            if current[x] in (None,"None"):
+                current[x] = input(str(x) + " of node " + str(candidate) + ": ")
+                if current["Destype"] == "X":
                     data.pop(candidate, None)
                     clan_members3.remove(candidate)
                     if clan_members3 == []:
                         return
     for candidate in clan_members3:
-        print("{0!s: <9} {1!s: <15} {2!s: <40}".format(candidate, data[candidate]["Sub"], data[candidate]["Des"]))
-        print("********* Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
+        current = data[candidate]
+        print(format_string_a.format(candidate, current["Sub"], current["Des"]))
+        print(format_string_b.format(current["Nodetype"], current["Destype"], current["Name"], current["Anim"], current["Human"], current["Col"]))
     for candidate in clan_members3:
+        current = data[candidate]
         check = input("Is the data of " + str(candidate) + " correct? Default 'Y' ") or "Y"
         while check != "Y":
             for x in ("Des","Sub","Nodetype","Destype","Name","Anim","Human","Col"):
-                data[candidate][x] = input(x + " of node " + str(candidate) + ", default = " + str(data[candidate][x]) + " ") or data[candidate][x] 
-                if data[candidate]["Destype"] == "X":
+                current[x] = input(x + " of node " + str(candidate) + ", default = " + str(current[x]) + " ") or current[x] 
+                if current["Destype"] == "X":
                     data.pop(candidate, None)
-            print("{0!s: <9} {1!s: <15} {2!s: <40}".format(candidate, data[candidate]["Sub"], data[candidate]["Des"]))
-            print("********* Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}".format(data[candidate]["Nodetype"], data[candidate]["Destype"], data[candidate]["Name"], data[candidate]["Anim"], data[candidate]["Human"], data[candidate]["Col"]))
+            print(format_string_a.format(candidate, current["Sub"], current["Des"]))
+            print(format_string_b.format(current["Nodetype"], current["Destype"], current["Name"], current["Anim"], current["Human"], current["Col"]))
             check = input("Is the data correct? Default 'Y' ") or "Y"
-        data[candidate]["Referents"] = input("Contextually relevant referents that are part of Name: ") or None
-        data[candidate]["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
+        current["Referents"] = input("Contextually relevant referents that are part of Name: ") or None
+        current["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
         if check == "Y":
             add_data(data,candidate)
-            insert_dict_in_db(cursor,"pt",data[candidate])
+            insert_dict_in_db(cursor,"pt",current)
             db.commit()
 
 \end{python}
@@ -966,4 +994,4 @@ for (Tag,Name,Nr) in todo:
 \end{python}
 
 \end{document}
-%sagemathcloud={"latex_command":"pdflatex -synctex=1 -shell-escape -interact=nonstopmode 'workflow.tex'"}
+sagemathcloud={"latex_command":"pdflatex -synctex=1 -shell-escape -interact=nonstopmode 'workflow2.tex'"}

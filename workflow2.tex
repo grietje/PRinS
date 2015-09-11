@@ -563,7 +563,7 @@ def ask_potential_ref(place, candidate, node_type, sub):
     if str(candidate).endswith("s") or str(candidate).endswith("c") or str(candidate).endswith("d"):
         cand = int(candidate[:-1]) # If the `candidate' is not a node number, we have to make it so before we are able to retrieve certain information from the database.
     Recognize = []
-    current = data[candidate]
+#    current = data[candidate]
     if node_type == "word+": # Reference is a word or higher-level reference
         current= {}
         current["Des"] = get_cons_of_word_list(give_me_your_words(cand))
@@ -644,10 +644,10 @@ def add_data(data,candidate):
 \end{python}
 
 \begin{python}
-def interactive_single(data,candidate):
 """ This function asks interactively for input about suffixes that are not part
     of a larger `clan' (i.e. a multi-layered reference), but occur on their own.
 """
+def interactive_single(data,candidate):
     current = data[candidate]
     print(current["a"])
     print("clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',current["Node"])))) 
@@ -671,11 +671,11 @@ def interactive_single(data,candidate):
 \end{python}
 
 \begin{python}
-def interactive_clan(data,clan_members):
 """ This function asks interactively for input about references that are related
     to each other, i.e. that form a multi-layered `clan'. Several proposals are
     shown, and can be accepted, rejected or adapted.
 """
+def interactive_clan(data,clan_members):
     format_string_a = "{0!s: <9} {1!s: <15} {2!s: <40}"
     format_string_b = "********* Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}"
     print(data[clan_members[-1]]["a"], " Clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',clan_members[-1]))))
@@ -994,4 +994,4 @@ for (Tag,Name,Nr) in todo:
 \end{python}
 
 \end{document}
-sagemathcloud={"latex_command":"pdflatex -synctex=1 -shell-escape -interact=nonstopmode 'workflow2.tex'"}
+#sagemathcloud={"latex_command":"pdflatex -synctex=1 -shell-escape -interact=nonstopmode 'workflow2.tex'"}

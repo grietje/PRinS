@@ -376,45 +376,52 @@ Now we want to determine which \mi{clause_atom_number}s constitute QF's, and gat
 \end{multicols}
 
 \begin{python}
-#{{{ Verbs
 def verbs(QFClANrs):
     QFverb,QFverbspeech,QFLMR = [],[],"No"
-    for x in QFClANrs:
-        for y in get_text_of_word_list(give_me_your_words(x)):
-            if F.etcbc4_ft_sp.v(y) == "verb":
-                QFverb.append(y)
-                if F.etcbc4_ft_ls.v(y) == "quot":
-                    QFverbspeech.append(y)
-                    if F.etcbc4_ft_lex.v(y) == ">MR[" and F.etcbc4_ft_vt.v(y) == "infc":
-                        QFLMR = "Yes"
+    for x in QFClANrs.split(","):
+        if not x in (""," ","  "):
+            for y in give_me_your_words(int(x)):
+                if F.etcbc4_ft_sp.v(y) == "verb":
+                    QFverb.append(y)
+                    if F.etcbc4_ft_ls.v(y) == "quot":
+                        QFverbspeech.append(y)
+                        if F.etcbc4_ft_lex.v(y) == ">MR[" and F.etcbc4_ft_vt.v(y) == "infc":
+                            QFLMR = "Yes"
     return(','.join(str(x) for x in QFverb),','.join(str(x) for x in QFverbspeech),QFLMR)
 
-#}}}
 \end{python}
 
 \begin{python}
-#{{{ Process_DSU
 def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
     DSUdata = {}
     print(place)
     print("Potential QF:")  # Show the clause_atom_numbers of potential_QF with their text
     for x in potential_QF:
-        print('{0:<8} {1:>35} {2} {3:<35}'.format(x, get_text_of_word_list(give_me_your_words(x))," | ", get_cons_of_word_list(give_me_your_words(x))))
+        print('{0:<3} {1:<8} {2:>35} {3} {4:<35}'.format(potential_QF.index(x), x, get_text_of_word_list(give_me_your_words(x))," | ", get_cons_of_word_list(give_me_your_words(x))))
     print("Start of DSU:")  # Show the first clause_atom_numbers and text of the DSU
     for y in ClANrs[:3]:
-        print('{0:<8} {1:>35} {2} {3:<35}'.format(y, get_text_of_word_list(give_me_your_words(y))," | ",get_cons_of_word_list(give_me_your_words(y))))
+        print('{0:<11} {1:>35} {2} {3:<35}'.format(y, get_text_of_word_list(give_me_your_words(y))," | ",get_cons_of_word_list(give_me_your_words(y))))
     print("-"*20)
     DSUdata["a"] = place
     DSUdata["Level"] = level
-#    DSUdata["ClANrs"] = ','.join(str(x) for x in ClANrs)
-    DSUdata["ClANrs"] = repr(ClANrs)
+    DSUdata["ClANrs"] = ','.join(str(x) for x in ClANrs)
+#    DSUdata["ClANrs"] = repr(ClANrs)
     DSUdata["Con1"] = prev_context
     DSUdata["Con2"] = context
-    DSUdata["QFClANrs"] = input("Clause_atoms that are indeed QF (type comma-separated numbers): ") or ""
+    QFClANrs1 = input("Clause_atoms that are indeed QF (type comma-separated numbers): ") or ""
+    QFClANrs2 = ""
+    if QFClANrs1 == "":
+        DSUdata["QFClANrs"] = ""
+    else:
+        for y in QFClANrs1.split(","):
+            QFClANrs2 += str(potential_QF[int(y)]) + ","
+        DSUdata["QFClANrs"] = QFClANrs2
+    for x in DSUdata["QFClANrs"].split(","):
+        print(x)
     DSUdata["QFverb"],DSUdata["QFverbspeech"],DSUdata["QFLMR"] = verbs(DSUdata["QFClANrs"])
-    DSUdata["QFSp"] = input("QFSp: ") or None
+    DSUdata["QFSp"] = input("QFSp: ") or ""
     DSUdata["QFSptype"] = input("QFSptype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb): ") or None
-    DSUdata["MySp"] = repr(input("MySp: ").split(",")) or None
+    DSUdata["MySp"] = repr(input("MySp: ,default " + DSUdata["QFSp"]).split(",")) or DSUdata["QFSp"]
     DSUdata["QFAd"] = input("QFAd: ") or None
     DSUdata["QFAdtype"] = input("QFAdtype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb): ") or None
     DSUdata["QFAdprep"] = input("QFAdprep: ") or None
@@ -427,39 +434,33 @@ def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
         DSUdata["QF"] = "Yes"
     elif DSUdata["QFClANrs"] == "":
         DSUdata["QF"] = "No"
-    insert_dict_in_db(c, "gcdsu", DSUdata)
+    insert_dict_in_db(cursor, "gcdsu", DSUdata)
 
-#}}}
 \end{python}
 
 \begin{python}
-#{{{ Main function
 def main_loop():
     ClANrs =       [[],[],[],[],[],[],[],[]]
     potential_QF = [[],[],[],[],[],[],[],[]]
     pot_QF = []
     context = ""
     prev_context = ["","","","","","","",""]
-
     place = None
     places =       ["","","","","","","",""]
     level = 0
     completed = False
     check_node = ""
-
     for node in NN():
         otype = F.etcbc4_db_otype.v(node)
-
         if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
             break
         elif otype == "chapter":
             if int(F.etcbc4_sft_chapter.v(node)) < 2:    # Prevent re-doing already completed chapters
                 completed = True
-            elif int(F.etcbc4_sft_chapter.v(node)) > 3:    # Set a limit on the amount of data dealt with this time
-                break
+#            elif int(F.etcbc4_sft_chapter.v(node)) > 3:    # Set a limit on the amount of data dealt with this time
+#                break
             else:
                 completed = False
-
         elif otype == "verse" and completed == False:
             place = F.etcbc4_sft_label.v(node)
         elif otype == "clause" and completed == False:
@@ -467,7 +468,6 @@ def main_loop():
             level = F.etcbc4_ft_txt.v(node).count("Q")      # Determine level by parsing text_type data
             previous_context = context
             context = F.etcbc4_ft_txt.v(node)
-
         elif otype == "clause_atom" and completed == False:
             pot_QF.append(node)     # Update pot_QF
             if len(pot_QF) > 5:
@@ -479,7 +479,6 @@ def main_loop():
                 places[level] = place               # Store starting place of new DSU
                 potential_QF[level] = pot_QF[:-1]   # Store potential QF of new DSU
                 prev_context[level] = previous_context    # Store context (preceding text_type)
-
             elif prev_level > level:                # End of one or more DSU's
                 for j in range((level+1),(prev_level+1)): # Process the DSU's that end here
                     check_node = str(ClANrs[j][0])
@@ -489,7 +488,6 @@ def main_loop():
                         process_DSU(ClANrs[j], potential_QF[j],places[j],prev_context[j],context,j)
                     ClANrs[j], potential_QF[j], places[j], prev_context[j] = [],[],"",""    # Delete all stored data
 
-#}}}
 \end{python}
 
 \begin{python}
@@ -499,7 +497,7 @@ main_loop()
 
 #{{{ Wrap up the database connection
 db.commit()
-c.close()
+cursor.close()
 #}}}
 \end{python}
 
@@ -827,7 +825,6 @@ for node in NN():
         cursor.execute("SELECT EXISTS (SELECT * FROM pt WHERE Node = " + check_node + ");") # Check whether reference is not yet saved in database
         result = cursor.fetchone()
         if result == "(0,)":
-            print("catch!")
         potential_ref = False
         potential_suffix = False
         if not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA")):

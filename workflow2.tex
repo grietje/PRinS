@@ -40,39 +40,6 @@
 In this document I try to explain the work flow that I follow to gather, improve and use data about participant references by running Python scripts on the ETCBC database and my own gcdata.sqlite.\\
 Data is indicated with red frames, and scripts with blue ones.
 
-\begin{tikzpicture}[outline/.style={draw=#1,thick,fill=#1!50},
->=stealth',thick,black!50,text=black,
-every new ->/.style={shorten >=.3cm}]
-\centering
-
-\node [outline=red] (input) {ETCBC4 data};
-\node [outline=blue](part1) [below = of input]{Part-1.py};
-\draw [shorten > =.1cm, ->] (input.south) -- (part1.north);
-\node[outline=blue](qf) [below right = of input]{DSU+QF.py};
-\draw [shorten > =.3cm, ->] (input.south) -- (qf.north);
-\node[dashed, outline=blue, fill opacity =.5](enc) [below left = of input]{encoding\_options.py};
-\draw [dashed, shorten > =.3cm, ->] (input.south) -- (enc.north);
-
-\node [outline=red] (pt) [below=of part1]{gcdata.pt};
-\draw [shorten > =.1cm, ->] (part1) -- (pt);
-
-\node [dashed, outline=red, fill opacity =.5](enc2)[below = of enc]{gcdata.enc};
-\draw [dashed, shorten > =.1cm, ->] (enc.south) -- (enc2.north);
-\draw [dashed, shorten > =.1cm, ->] (enc2.east) -- (part1.west);
-
-\node [outline=red] (gcdsu) [below=of qf]{gcdata.gcdsu};
-\draw [shorten > =.1cm, ->] (qf.south) -- (gcdsu.north);
-\node [outline=blue] (part2) [below = of pt] {Part-2.py};
-\draw [shorten > =.1cm, ->] (pt) to [bend right = 20] (part2.north);
-\draw [shorten > =.1cm, ->] (part2.north) to [bend right = 20] (pt);
-\draw [shorten > =.1cm, ->] (gcdsu.south west) to [bend right = 20] (part2.north east);
-\draw [shorten > =.1cm, ->] (part2.north east) to [bend right = 20] (gcdsu.south west);
-
-\node [outline=green](show)[below = of part2]{Display of text with data};
-\draw [shorten > =.1cm, ->] (gcdsu) to [bend left = 40] (show);
-\draw [shorten > =.1cm, ->] (pt) to [bend right = 60] (show.west);
-\draw [dashed, shorten > =.1cm, ->] (show.south) to [bend right = 120] (input);
-\end{tikzpicture}
 
 \chapter{Packages and LAF data that have to be loaded for executing the scripts}
 
@@ -363,10 +330,10 @@ Now we want to determine which \mi{clause_atom_number}s constitute QF's, and gat
  \begin{itemize}
     \item Which \mi{clause_atom}s (if any) are QF
     \item What ``MySp" is. Can be any name
-    \item What ``QFSp" is. Can be anything, or \mi{NULL}
+    \item What ``QFSp" is. Can be anything, or ""
     \item What ``QFSptype" is. Options: \mi{Noun}, \mi{Noun_phrase}, \mi{Name}, \mi{Name_phrase}, \mi{Pers_pronoun}, \mi{Suffix}, \mi{Verb}
     \item What ``MyAd" is. Can be any name
-    \item What ``QFAd" is. Can be anything, or \mi{NULL}
+    \item What ``QFAd" is. Can be anything, or ""
     \item What ``QFAdtype" is. Options: \mi{Noun}, \mi{Noun_phrase}, \mi{Name}, \mi{Name_phrase}, \mi{Pers_pronoun}, \mi{Suffix}, \mi{Verb}
     \item What ``QFAdprep" is
     \item What ``QFplus" is. Can be anything, or \mi{NULL}
@@ -416,16 +383,14 @@ def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
         for y in QFClANrs1.split(","):
             QFClANrs2 += str(potential_QF[int(y)]) + ","
         DSUdata["QFClANrs"] = QFClANrs2
-    for x in DSUdata["QFClANrs"].split(","):
-        print(x)
     DSUdata["QFverb"],DSUdata["QFverbspeech"],DSUdata["QFLMR"] = verbs(DSUdata["QFClANrs"])
     DSUdata["QFSp"] = input("QFSp: ") or ""
     DSUdata["QFSptype"] = input("QFSptype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb): ") or None
     DSUdata["MySp"] = repr(input("MySp: ,default " + DSUdata["QFSp"]).split(",")) or DSUdata["QFSp"]
-    DSUdata["QFAd"] = input("QFAd: ") or None
+    DSUdata["QFAd"] = input("QFAd: ") or ""
     DSUdata["QFAdtype"] = input("QFAdtype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb): ") or None
     DSUdata["QFAdprep"] = input("QFAdprep: ") or None
-    DSUdata["MyAd"] = repr(input("MyAd: ").split(",")) or None
+    DSUdata["MyAd"] = repr(input("MyAd: ,default " + DSUdata["QFAd"]).split(",")) or DSUdata["QFAd"]
     DSUdata["QFplus"] = input("QFplus: ") or None
     DSUdata["QFplustype"] = input("QFplustype: ") or None
     DSUdata["Start_node"] = ClANrs[0]

@@ -560,6 +560,16 @@ def ask_potential_ref(place, candidate, node_type, sub):
 \end{python}
 
 \begin{python}
+# Recovery function
+todo = list(cursor.execute("select ClANr,Node from pt;"))
+for (ClANr,Node) in todo:
+    print(ClANr, Node, F.etcbc4_db_otype.v(int(Node or 0)))
+    print("ClANr is now: ",L.u('clause_atom',int(Node or 0)))
+    cursor.execute("update pt set ClANr=:ClANr where Node=:Node", {"ClANr":L.u('clause_atom',int(Node or 0)),"Node":Node})
+
+\end{python}
+
+\begin{python}
 # Automatically add data to entries that are going to be fed to gcdata.pt
 """ In order to avoid problems with candidates that are not a node number 
     (but, for example, have an `s' attached to it), in this function we
@@ -571,7 +581,7 @@ def add_data(data,candidate):
 #    if str(candidate).endswith("s") or str(candidate).endswith("c") or str(candidate).endwith("d"):
 #        cand = candidate[:-1]
     current = data[candidate]
-    ClANr = L.u('clause',current["Node"])
+    ClANr = L.u('clause_atom',current["Node"])
     current["ClANr"] = ClANr
     current["Emb"] = F.etcbc4_ft_tab.v(ClANr)
     if current["Nodetype"] in ("4","5"): # Larger than phrase, so no PhANr
@@ -832,7 +842,7 @@ We then check of which DSU the \mi{clause_atom_number} of the current participan
 reference is part, and store its \mi{Tag} in the column \mi{DSU}.
 
 \begin{python}
-#{{{ Assign DSU and Level
+# Assign DSU and Level
 DSU_Tags = list(cursor.execute("select DSUtag,Level,ClANrs from gcdsu"))
 pts = list(cursor.execute("select Tag,a,ClANr from pt where DSU is null or DSU = ''"))
 
@@ -844,11 +854,35 @@ for (Tag,a,ClANr) in pts:
             cursor.execute("update pt set DSU=:DSUtag,Level=:Level where a=:a and ClANr=:ClANr", {"DSUtag":DSUtag,"Level":Level,"a":a,"ClANr":str(ClANr)})
             DSU[Tag] = DSUtag
 
-#}}}
 \end{python}
 
 \begin{python}
-#{{{ Feed participants back to DSU (follows on previous block)
+# New try to feed participants back to DSU
+DSU_todo = list(cursor.execute("select DSUtag from gcdsu where Part is NULL or Part = '' or Part = '[]'"))
+
+for DSUtag in DSU_todo:
+    parts = []
+    data = []
+    references = list(cursor.execute("select Tag,Name,Referents,ColPart from pt where DSU=:DSUtag", {"DSUtag":DSUtag, }))
+    for (Tag,Name,Referents,ColPart) in references:
+        if not Name in parts:
+            parts.append(Name)
+        for x in Referents:
+            for y in x:
+                for z in y.split(","):
+                    if not z.strip() in parts:
+                        parts.append(z.strip())
+        for x in ColPart:
+            for y in x:
+                for z in y.split(","):
+                    if not z.strip() in parts:
+                        parts.append(z.strip())
+    print(parts) 
+
+\end{python}
+
+\begin{python}
+# Feed participants back to DSU (follows on previous block)
 parts = {}
 
 for (DSUtag,Level,ClANrs) in DSU_Tags:
@@ -857,25 +891,36 @@ for (DSUtag,Level,ClANrs) in DSU_Tags:
 for (Tag,a,ClANr) in pts:
     probable_parts = []
     ColPart = list(cursor.execute("select ColPart from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
-    if ColPart == None:
-        ColPart = []
-    else:
-        ColPart = eval(ColPart)
+#    print(a,ColPart)
+#    ColPart = list(cursor.execute("select ColPart from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
+    if ColPart != None:
+        print("ColPart",ColPart, type(ColPart))
+#        probable_parts.append(x for x in ColPart.split(","))
+#    if ColPart == None:
+#        ColPart = []
+#    else:
+#        ColPart = eval(ColPart)
     Referents = list(cursor.execute("select Referents from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
-    if Referents == None:
-        Referents = []
-    else:
-        Referents = eval(Referents)
+    if Referents != None:
+        print("Referents",Referents, type(Referents))
+#    probable_parts.append(x for x in Referents.split(","))
+#    if Referents == None:
+#        Referents = []
+#    else:
+#        Referents = eval(Referents)
+    print("probable_parts before Name", probable_parts)
     Name = list(cursor.execute("select Name from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
-    probable_parts = ColPart + Referents
+    print(Name)
+#    probable_parts = ColPart + Referents
     probable_parts.append(Name)
-    if parts[DSU[Tag]] != None:
-        probable_parts += eval(parts[DSU[Tag]])
-    all_parts = list(set(probable_parts))
-    parts[DSU[Tag]] = str(all_parts)
-    cursor.execute("update gcdsu set Part=:all_parts where DSUtag=:DSUtag", {"all_parts":str(all_parts), "DSUtag":DSU[Tag]})
+    print("probable_parts", probable_parts)
+    if parts[DSUtag] != None:
+        probable_parts.append(x for x in eval(parts[DSUtag]))
+    All_parts = list(set(probable_parts))
+    parts[DSUtag] = str(All_parts)
+    print(parts[DSUtag])
+#    cursor.execute("update gcdsu set Part=:all_parts where DSUtag=:DSUtag", {"all_parts":str(all_parts), "DSUtag":DSU[Tag]})
 
-#}}}
 \end{python}
 
 In order to facilitate the combination of information between SQlite rows,

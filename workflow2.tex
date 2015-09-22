@@ -310,6 +310,7 @@ At the moment these cases will not be detected by this script!
 
 \begin{python}
 #{{{ Create an SQLite-table with a row for every QF + DSU, and columns for useful information about these DSU's.
+import json as j
 import sqlite3
 db = sqlite3.connect('gcdata.sqlite')
 cursor = db.cursor()
@@ -827,12 +828,14 @@ db.close()
 
 \chapter{Part-2.py}
 \begin{python}
-#{{{ Load database
+# Load database
+import json as j
 import sqlite3
 
 db = sqlite3.connect('gcdata.sqlite')
+#db.row_factory = sqlite3.Row
 c = db.cursor()
-#}}}
+
 \end{python}
 
 From gcdata.gcdsu we want to extract the \mi{DSU_Tag}, so that we can easily see
@@ -857,69 +860,32 @@ for (Tag,a,ClANr) in pts:
 \end{python}
 
 \begin{python}
-# New try to feed participants back to DSU
+# Feed participants back to DSU
 DSU_todo = list(cursor.execute("select DSUtag from gcdsu where Part is NULL or Part = '' or Part = '[]'"))
 
-for DSUtag in DSU_todo:
+for (DSUtag,) in DSU_todo:
+    print(DSUtag)
     parts = []
     data = []
-    references = list(cursor.execute("select Tag,Name,Referents,ColPart from pt where DSU=:DSUtag", {"DSUtag":DSUtag, }))
+    references = list(cursor.execute("select Tag,Name,Referents,ColPart from pt where DSU=:DSU", {"DSU":DSUtag, }))
     for (Tag,Name,Referents,ColPart) in references:
-        if not Name in parts:
-            parts.append(Name)
-        for x in Referents:
-            for y in x:
-                for z in y.split(","):
-                    if not z.strip() in parts:
-                        parts.append(z.strip())
-        for x in ColPart:
-            for y in x:
-                for z in y.split(","):
-                    if not z.strip() in parts:
-                        parts.append(z.strip())
-    print(parts) 
-
-\end{python}
-
-\begin{python}
-# Feed participants back to DSU (follows on previous block)
-parts = {}
-
-for (DSUtag,Level,ClANrs) in DSU_Tags:
-    parts[DSUtag] = list(cursor.execute("select Part from gcdsu where DSUtag=:DSUtag", {"DSUtag":DSUtag, }))[0][0]
-
-for (Tag,a,ClANr) in pts:
-    probable_parts = []
-    ColPart = list(cursor.execute("select ColPart from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
-#    print(a,ColPart)
-#    ColPart = list(cursor.execute("select ColPart from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
-    if ColPart != None:
-        print("ColPart",ColPart, type(ColPart))
-#        probable_parts.append(x for x in ColPart.split(","))
-#    if ColPart == None:
-#        ColPart = []
-#    else:
-#        ColPart = eval(ColPart)
-    Referents = list(cursor.execute("select Referents from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
-    if Referents != None:
-        print("Referents",Referents, type(Referents))
-#    probable_parts.append(x for x in Referents.split(","))
-#    if Referents == None:
-#        Referents = []
-#    else:
-#        Referents = eval(Referents)
-    print("probable_parts before Name", probable_parts)
-    Name = list(cursor.execute("select Name from pt where Tag=:Tag", {"Tag":Tag, }))[0][0]
-    print(Name)
-#    probable_parts = ColPart + Referents
-    probable_parts.append(Name)
-    print("probable_parts", probable_parts)
-    if parts[DSUtag] != None:
-        probable_parts.append(x for x in eval(parts[DSUtag]))
-    All_parts = list(set(probable_parts))
-    parts[DSUtag] = str(All_parts)
-    print(parts[DSUtag])
-#    cursor.execute("update gcdsu set Part=:all_parts where DSUtag=:DSUtag", {"all_parts":str(all_parts), "DSUtag":DSU[Tag]})
+        if not Name in ("None",None):
+            for x in Name.split(","):
+                if not x.strip() in parts:
+                    parts.append(x)
+        if not Referents in ("None",None):
+            for x in Referents:
+                for y in x:
+                    for z in y.split(","):
+                        if not z.strip() in parts:
+                            parts.append(z.strip())
+        if not ColPart in ("None",None):
+            for x in ColPart:
+                for y in x:
+                    for z in y.split(","):
+                        if not z.strip() in parts:
+                            parts.append(z.strip())
+    cursor.execute("update gcdsu set Part=:Part where DSUtag=:DSUtag", {"Part":str(parts), "DSUtag":DSUtag})
 
 \end{python}
 
@@ -935,6 +901,8 @@ Therefore I provide two kinds of information:
 \item A \mi{Nr} that indicates the number of occurrences of exactly the same referent. This is relevant for \mi{Prev}-data and \mi{Ref}-data.
 \item I mention the names of relevant referents that are included in other referents etc in the column \mi{Referents}, so that these can be counted and processed later on (e.g. to see how often someone is referred to in a particular DSU).
 \end{itemize}
+Note: In de first 15 chapters of Genesis, this data has not been entered consistently. This needs to be checked.
+Remark / question: What to do with sub-participants like possessive pronouns?
 Another aspect that adds complexity, is the occurrence of sub-participants.
 I do not count them in the column \mi{Nr}, but their name is stored in the columns
 \mi{Name} and \mi{Referents}.
@@ -946,17 +914,20 @@ nrs_todo = list(cursor.execute("select Sub, Name, Tag, Nr from pt where Nr is nu
 nrs = {}    # Create dict for all relevant Names + their Nrs
 
 for (Sub, Name, Tag, Nr) in nrs_todo:
-    if Sub == "No":
+    Name = Name.strip()
+    if not Sub.strip().endswith('Sub1'):
         if Name in nrs:
             newnr = nrs[Name] + 1
         elif Name not in nrs:
             oldnr = list(cursor.execute("select Nr from pt where Name=:Name ORDER BY Tag DESC LIMIT 1", {"Name":Name,}))
-            if oldnr == [] or oldnr[0][0] == '':
+            if oldnr in ([],None) or oldnr[0][0] in ('',None):
                 newnr = 1
             else:
                 newnr = int(oldnr[0][0]) + 1
         nrs[Name] = newnr
-        cursor.execute("update pt set Nr=:newnr where Tag=:Tag", {"newnr":newnr, "Tag":Tag})
+#        cursor.execute("update pt set Nr=:newnr where Tag=:Tag", {"newnr":newnr, "Tag":Tag})
+        print(Name,Sub,nrs[Name])
+
 #}}}
 \end{python}
 

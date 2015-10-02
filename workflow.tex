@@ -512,11 +512,11 @@ db.commit()
 \begin{python}
 #{{{ Find fitting info about types and functions
 def types_functions(node,node_type,Clause,ClANr,Phrase,PhANr,SPhNr,WNr,Data):
-    if Data["Nodetype"] == "6":                # On extensive nodetypes, info on smaller items makes no sense
+    if Data["Nodetype"] == "5":                # On extensive nodetypes, info on smaller items makes no sense
         (ClANr,PhANr,SPhNr,WNr) = (0,0,0,0)
-    elif Data["Nodetype"] == "5":
+    elif Data["Nodetype"] == "4":
         (PhANr,SPhNr,WNr) = (0,0,0)
-    elif Data["Nodetype"] in ("3","4"):
+    elif Data["Nodetype"] == "3":
         WNr = 0
     Data["ClANr"] = ClANr                      # Insert data on numbers
     Data["PhANr"] = PhANr

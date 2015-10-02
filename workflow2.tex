@@ -1,4 +1,3 @@
-\documentclass{report}
 \usepackage[landscape]{geometry}
 \usepackage{longtable}
 \usepackage{tabularx}
@@ -40,6 +39,37 @@
 In this document I try to explain the work flow that I follow to gather, improve and use data about participant references by running Python scripts on the ETCBC database and my own gcdata.sqlite.\\
 Data is indicated with red frames, and scripts with blue ones.
 
+\begin{tikzpicture}[outline/.style={draw=#1,thick,fill=#1!50},>=stealth',thick,black!50,text=black,every new ->/.style={shorten >=.3cm}]
+\centering
+
+\node [outline=red] (input) {ETCBC4 data};
+\node [outline=blue](part1) [below = of input]{Part-1.py};
+\draw [shorten > =.1cm, ->] (input.south) -- (part1.north);
+\node[outline=blue](qf) [below right = of input]{DSU+QF.py};
+\draw [shorten > =.3cm, ->] (input.south) -- (qf.north);
+\node[dashed, outline=blue, fill opacity =.5](enc) [below left = of input]{encoding\_options.py};
+\draw [dashed, shorten > =.3cm, ->] (input.south) -- (enc.north);
+
+\node [outline=red] (pt) [below=of part1]{gcdata.pt};
+\draw [shorten > =.1cm, ->] (part1) -- (pt);
+
+\node [dashed, outline=red, fill opacity =.5](enc2)[below = of enc]{gcdata.enc};
+\draw [dashed, shorten > =.1cm, ->] (enc.south) -- (enc2.north);
+\draw [dashed, shorten > =.1cm, ->] (enc2.east) -- (part1.west);
+
+\node [outline=red] (gcdsu) [below=of qf]{gcdata.gcdsu};
+\draw [shorten > =.1cm, ->] (qf.south) -- (gcdsu.north);
+\node [outline=blue] (part2) [below = of pt] {Part-2.py};
+\draw [shorten > =.1cm, ->] (pt) to [bend right = 20] (part2.north);
+\draw [shorten > =.1cm, ->] (part2.north) to [bend right = 20] (pt);
+\draw [shorten > =.1cm, ->] (gcdsu.south west) to [bend right = 20] (part2.north east);
+\draw [shorten > =.1cm, ->] (part2.north east) to [bend right = 20] (gcdsu.south west);
+
+\node [outline=green](show)[below = of part2]{Display of text with data};
+\draw [shorten > =.1cm, ->] (gcdsu) to [bend left = 40] (show);
+\draw [shorten > =.1cm, ->] (pt) to [bend right = 60] (show.west);
+\draw [dashed, shorten > =.1cm, ->] (show.south) to [bend right = 120] (input);
+\end{tikzpicture}
 
 \chapter{Packages and LAF data that have to be loaded for executing the scripts}
 
@@ -65,7 +95,6 @@ print("It works so far." )
 #}}}
 \end{python}
 
-\begin{python}
 #{{{ Load the API
 API = fabric.load("etcbc4", "--", "feature-doc", {
     "xmlids": {"node": False, "edge": False},
@@ -469,6 +498,9 @@ cursor.close()
 
 \chapter{encoding\_options.py}
 \chapter{Part-1.py}
+The chapter \mi{DSU+QF} above was about DSU's. This chapter is about participant references within them, that are dealt with one by one or as a `clan'. There are a lot of scripts that together form an interactive procedure in which much data about each participant reference is gathered and stored in the sqlite table \mi{gcdata.pt}.
+
+First we want to set up the database connection, if this was not yet done by the scripts about DSU's.
 \begin{python}
 # Setup the database stuff
 import sqlite3
@@ -483,8 +515,50 @@ db.commit()
 
 \end{python}
 
+Now we have several functions that together gather information about participant references, and some functions to manage the workflow of all these references. The order of these functions is not intuitive, because functions used by other functions need to be declared before they can be used. A short overview might help:
+
+\begin{tikzpicture}[outline/.style={draw=#1,thick,fill=#1!50},>=stealth',thick,black!50,text=black,every new ->/.style={shorten >=.3cm}]
+\centering
+\node [outline=blue] (basic) {Basic script};
+\node [outline=blue] (flow) [below left = of basic] {Flow_clan};
+\draw [shorten > = .1cm, ->] (basic.south) -- (flow.north);
+
+\node [outline=blue] (prepare) [below = of flow] {* Ask_potential_ref};
+\node [outline=blue] (recognize) [below = of prepare] {** Recognize};
+\node [outline=blue] (clan) [below = of recognize] {Interactive_clan};
+\node [outline=blue] (add) [below = of clan] {* Add_data};
+\draw [shorten > = .1cm, ->] (recognize.south) -- (clan.north);
+
+\node [outline=red] (pt) [below right = of add] {gcdata.pt};
+\draw [shorten > = .1cm, ->] (add.south) -- (pt.north);
+
+\node [outline=blue] (prepare2) {Ask_potential_ref};
+\node [outline=blue] (recognize) [below = of prepare2] {* Recognize};
+%\draw [shorten > = .1cm, ->] (flow.south) -- (clan.north);
+%\node [outline=blue] (single) [below left = of ?????] {Interactive_single};
+%\draw [shorten > = .1cm, ->] (flow.south) -- (single.north east);
+%\draw [shorten > = .1cm, ->] (single.south east) -- (pt.north);
+
+%\node [outline=blue] (functions) {Functions};
+%\node [outline=blue] (recognize) {Recognize};
+%\node [outline=blue] (add) {Add_data};
+
+
+\end{tikzpicture}
+
+\begin{tabbing}
+Functions \= This script searches for the function and grammatical role that references have, as indicated in the ETCBC database.\\
+Recognize \> If a participant has already been treated before, it is likely that some personal data has remained the same, and can therefore be re-used in the participant reference currently under consideration. This procedure of re-using already entered information also helps guard consistency. \\
+Prepare / Ask_potential_ref \> Some basic information about a reference, that can be found automatically, is gathered before the start of the interactive procedure.\\
+Add_data \> Automatically add data to entries that are going to be fed to gcdata.pt \\
+Interactive_single \> This function asks interactively for input about suffixes that are not part of a larger `clan' (i.e. a multi-layered reference), but occur on their own. \\
+Interactive_clan \> This function asks interactively for input about references that are related to each other, i.e. that form a multi-layered `clan'. Several proposals are shown, and can be accepted, rejected or adapted. \\
+Flow_clan \> Overarching flow for clans to let the computer create as much data as possible about selected participant references and do a proposal to the user \\
+Basic script \> Script that loops over the Hebrew text to select potential participant references that need to be dealt with.\\
+\end{tabbing}
+
 \begin{python}
-#{{{ Find fitting info about types and functions # Does not yet work
+#{{{ Functions # Does not yet work
     function = F.etcbc4_ft_function.v(Phrase)
     if Data["Nodetype"] in ("1", "2", "3"):    # F.etcbc4_ft_function.v(node) only applies to phrase level (or lower)
         if function in ("ExsS","IntS","ModS","NCoS","PrcS","PreS") and Data["Nodetype"] == "1":
@@ -561,16 +635,6 @@ def ask_potential_ref(place, candidate, node_type, sub):
 \end{python}
 
 \begin{python}
-# Recovery function
-todo = list(cursor.execute("select ClANr,Node from pt;"))
-for (ClANr,Node) in todo:
-    print(ClANr, Node, F.etcbc4_db_otype.v(int(Node or 0)))
-    print("ClANr is now: ",L.u('clause_atom',int(Node or 0)))
-    cursor.execute("update pt set ClANr=:ClANr where Node=:Node", {"ClANr":L.u('clause_atom',int(Node or 0)),"Node":Node})
-
-\end{python}
-
-\begin{python}
 # Automatically add data to entries that are going to be fed to gcdata.pt
 """ In order to avoid problems with candidates that are not a node number 
     (but, for example, have an `s' attached to it), in this function we
@@ -620,43 +684,11 @@ def add_data(data,candidate):
 \end{python}
 
 \begin{python}
-# Recovery function
-#todo = list(cursor.execute("select Node,Tag,a,ClANr,PhANr,WNr,Nodetype from pt where WNr is NULL or WNr = 'None'"))
-todo = list(cursor.execute("select Node,Tag,a,ClANr,PhANr,WNr,Nodetype from pt where Node = '608882' or Node = '608882' or Node = '7543' or Node = '608812' or Node = '608897'"))
-
-for (Node,Tag,a,ClANr,PhANr,WNr,Nodetype) in todo:
-    ClANr2 = L.u('clause_atom',int(Node))
-    if ClANr2 == None:
-        ClANr2 = 00
-    PhANr2 = L.u('phrase',int(Node))
-    if PhANr2 == None:
-        if F.etcbc4_db_otype.v(int(Node)) in ('phrase','subphrase'):
-            PhANr2 = Node
-        else:
-            PhANr2 = 00
-    WNr2 = L.u('word',int(Node))
-    if WNr2 == None:
-        if F.etcbc4_db_otype.v(int(Node)) == 'word':
-            WNr2 = Node
-        else:
-            WNr2 = 00
-#        print(Tag,ClANr,ClANr2,PhANr,WNr)
-    newtag = a.rjust(15,' ') + "_" + str(ClANr2).rjust(9,'0') + "_" + str(PhANr2).rjust(9,'0') + "_" + str(WNr2).rjust(9,'0') + "_" + str(Nodetype)
-    print(Node,F.etcbc4_db_otype.v(int(Node)),Tag,newtag)
-#    if PhANr != PhANr2:
-#        print(PhANr,PhANr2)
-#    if WNr != WNr2:
-#        print(WNr,WNr2)
-    cursor.execute("update pt set PhANr=:PhANr2, WNr=:WNr2, Tag=:Tag where Node=:Node", {"PhANr2":PhANr2,"WNr2":WNr2,"Tag":newtag,"Node":Node})
-
-\end{python}
-
-\begin{python}
 """ This function asks interactively for input about suffixes that are not part
     of a larger `clan' (i.e. a multi-layered reference), but occur on their own.
 """
 def interactive_single(data,candidate):
-    current = data[candidate]
+    current = add_data(data,candidate)
     print(current["a"])
     print("clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',current["Node"])))) 
     print("suffix:", current["Des"])
@@ -759,7 +791,7 @@ def interactive_clan(data,clan_members):
 
 \begin{python}
 # Let the computer create as much data as possible, especially with REG-rectum data, and do a proposal to the user.
-def major_flow(place, node, node_type):
+def flow_clan(place, node, node_type):
     while F.etcbc4_ft_rela.v(parent[node]) == "rec" or F.etcbc4_ft_rela.v(parent[node]) == "atr": # Regens-rectum relationship or attributive relationship
         if list(C.mother.v(parent[node])) not in ([],None):
             node = list(C.mother.v(parent[node]))[0] # Deal with the clan-head instead of a (grand)child
@@ -794,8 +826,6 @@ def major_flow(place, node, node_type):
             data[candidate2] = ask_potential_ref(place, candidate2, "suffix", subdata)
         else:
             print("no suffix found")
-#    insert_dict_in_db(cursor,"pt",data[candidate])
-#    return
     interactive_clan(data,clan_members)
 
 \end{python}
@@ -835,19 +865,19 @@ for node in NN():
         cursor.execute("SELECT EXISTS (SELECT * FROM pt WHERE Node = " + check_node + ");") # Check whether reference is not yet saved in database
         result = cursor.fetchone()
         if result == "(0,)":
-        potential_ref = False
-        potential_suffix = False
+            potential_ref = False
+            potential_suffix = False
         if not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA")):
             potential_ref = True
         if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
             potential_suffix = True
-        if result == (0,) and potential_ref == True: # Not yet saved, to be dealt with in major flow (may have suffixes as well, these will be parsed within the major flow)
-            major_flow(place, node, "word")
-        if result == (0,) and potential_ref == False and potential_suffix == True: # Not yet saved, not to be dealt with in major flow, but suffix needs to be parsed
+        if result == (0,) and potential_ref == True: # Not yet saved, to be dealt with in flow_clan (may have suffixes as well, these will be parsed within the flow)
+            flow_clan(place, node, "word")
+        if result == (0,) and potential_ref == False and potential_suffix == True: # Not yet saved, not to be dealt with in flow_clan, but suffix needs to be parsed
             print("single-catch")
             candidate = str(node)+"s"
             data[candidate] = ask_potential_ref(place, node, "single_suffix", "Prep")
-            data[candidate] = add_data(data,candidate)
+#            data[candidate] = add_data(data,candidate)
             interactive_single(data,candidate)
 #            insert_dict_in_db(cursor,"pt",data[candidate])
 
@@ -1007,3 +1037,46 @@ for (Tag,Name,Nr) in todo:
 
 \end{document}
 #sagemathcloud={"latex_command":"pdflatex -synctex=1 -shell-escape -interact=nonstopmode 'workflow2.tex'"}
+
+
+\begin{python}
+# Recovery function
+todo = list(cursor.execute("select ClANr,Node from pt;"))
+for (ClANr,Node) in todo:
+    print(ClANr, Node, F.etcbc4_db_otype.v(int(Node or 0)))
+    print("ClANr is now: ",L.u('clause_atom',int(Node or 0)))
+    cursor.execute("update pt set ClANr=:ClANr where Node=:Node", {"ClANr":L.u('clause_atom',int(Node or 0)),"Node":Node})
+
+
+
+\begin{python}
+# Recovery function
+#todo = list(cursor.execute("select Node,Tag,a,ClANr,PhANr,WNr,Nodetype from pt where WNr is NULL or WNr = 'None'"))
+todo = list(cursor.execute("select Node,Tag,a,ClANr,PhANr,WNr,Nodetype from pt where Node = '7514' or Node = '7517' or Node = '7520' or Node = '7521' or Node = '1262342'"))
+
+for (Node,Tag,a,ClANr,PhANr,WNr,Nodetype) in todo:
+    ClANr2 = L.u('clause_atom',int(Node))
+    if ClANr2 == None:
+        ClANr2 = 00
+    PhANr2 = L.u('phrase',int(Node))
+    if PhANr2 == None:
+        if F.etcbc4_db_otype.v(int(Node)) in ('phrase','subphrase'):
+            PhANr2 = Node
+        else:
+            PhANr2 = 00
+    WNr2 = L.u('word',int(Node))
+    if WNr2 == None:
+        if F.etcbc4_db_otype.v(int(Node)) == 'word':
+            WNr2 = Node
+        else:
+            WNr2 = 00
+#        print(Tag,ClANr,ClANr2,PhANr,WNr)
+    newtag = a.rjust(15,' ') + "_" + str(ClANr2).rjust(9,'0') + "_" + str(PhANr2).rjust(9,'0') + "_" + str(WNr2).rjust(9,'0') + "_" + str(Nodetype)
+    print(Node,F.etcbc4_db_otype.v(int(Node)),Tag,newtag)
+#    if PhANr != PhANr2:
+#        print(PhANr,PhANr2)
+#    if WNr != WNr2:
+#        print(WNr,WNr2)
+    cursor.execute("update pt set PhANr=:PhANr2, WNr=:WNr2, Tag=:Tag where Node=:Node", {"PhANr2":PhANr2,"WNr2":WNr2,"Tag":newtag,"Node":Node})
+
+\end{python}

@@ -1,3 +1,4 @@
+\documentclass{report}
 \usepackage[landscape]{geometry}
 \usepackage{longtable}
 \usepackage{tabularx}
@@ -95,6 +96,7 @@ print("It works so far." )
 #}}}
 \end{python}
 
+\begin{python}
 #{{{ Load the API
 API = fabric.load("etcbc4", "--", "feature-doc", {
     "xmlids": {"node": False, "edge": False},
@@ -515,73 +517,41 @@ db.commit()
 
 \end{python}
 
-Now we have several functions that together gather information about participant references, and some functions to manage the workflow of all these references. The order of these functions is not intuitive, because functions used by other functions need to be declared before they can be used. A short overview might help:
+Now we have several functions that together gather information about participant references, and some functions to manage the workflow of all these references. The order of these functions is not intuitive, because functions used by other functions need to be declared before they can be used. A short overview might help; blue boxes are scripts, the red one is an sqlite table. Scripts indicated with a * are embedded within another one, and therefore included in a larger box.
 
-\begin{tikzpicture}[outline/.style={draw=#1,thick,fill=#1!50},>=stealth',thick,black!50,text=black,every new ->/.style={shorten >=.3cm}]
+\begin{tikzpicture}[outline/.style={draw=#1,thick,fill=#1!50},
+>=stealth',thick,black!50,text=black,every new ->/.style={shorten >=.3cm}]
 \centering
 \node [outline=blue] (basic) {Basic script};
-\node [outline=blue] (flow) [below left = of basic] {Flow_clan};
+\node [outline=blue, text width=5.5em] (flow) [below left = of basic] {Flow\_clan *Prepare **Recognize};
 \draw [shorten > = .1cm, ->] (basic.south) -- (flow.north);
 
-\node [outline=blue] (prepare) [below = of flow] {* Ask_potential_ref};
-\node [outline=blue] (recognize) [below = of prepare] {** Recognize};
-\node [outline=blue] (clan) [below = of recognize] {Interactive_clan};
-\node [outline=blue] (add) [below = of clan] {* Add_data};
-\draw [shorten > = .1cm, ->] (recognize.south) -- (clan.north);
+\node [outline=blue, text width=7.5em] (clan) [below = of flow] {Interactive\_clan *Add\_data};
+\draw [shorten > = .1cm, ->] (flow.south) -- (clan.north);
 
-\node [outline=red] (pt) [below right = of add] {gcdata.pt};
-\draw [shorten > = .1cm, ->] (add.south) -- (pt.north);
+\node [outline=red] (pt) [below right = of clan] {gcdata.pt};
+\draw [shorten > = .1cm, ->] (clan.south) -- (pt.north);
 
-\node [outline=blue] (prepare2) {Ask_potential_ref};
-\node [outline=blue] (recognize) [below = of prepare2] {* Recognize};
-%\draw [shorten > = .1cm, ->] (flow.south) -- (clan.north);
-%\node [outline=blue] (single) [below left = of ?????] {Interactive_single};
-%\draw [shorten > = .1cm, ->] (flow.south) -- (single.north east);
-%\draw [shorten > = .1cm, ->] (single.south east) -- (pt.north);
-
-%\node [outline=blue] (functions) {Functions};
-%\node [outline=blue] (recognize) {Recognize};
-%\node [outline=blue] (add) {Add_data};
-
+\node [outline=blue, text width = 5.5em] (prepare2) [below right = of basic] {Prepare *Recognize};
+\draw [shorten > = .1cm, ->] (basic.south) -- (prepare2.north);
+\node [outline=blue, text width = 7.5em] (single) [below = of prepare2] {Interactive\_single *Add\_data};
+\draw [shorten > = .1cm, ->] (prepare2.south) -- (single.north);
+\draw [shorten > = .1cm, ->] (single.south) -- (pt.north);
 
 \end{tikzpicture}
 
-\begin{tabbing}
-Functions \= This script searches for the function and grammatical role that references have, as indicated in the ETCBC database.\\
-Recognize \> If a participant has already been treated before, it is likely that some personal data has remained the same, and can therefore be re-used in the participant reference currently under consideration. This procedure of re-using already entered information also helps guard consistency. \\
-Prepare / Ask_potential_ref \> Some basic information about a reference, that can be found automatically, is gathered before the start of the interactive procedure.\\
-Add_data \> Automatically add data to entries that are going to be fed to gcdata.pt \\
-Interactive_single \> This function asks interactively for input about suffixes that are not part of a larger `clan' (i.e. a multi-layered reference), but occur on their own. \\
-Interactive_clan \> This function asks interactively for input about references that are related to each other, i.e. that form a multi-layered `clan'. Several proposals are shown, and can be accepted, rejected or adapted. \\
-Flow_clan \> Overarching flow for clans to let the computer create as much data as possible about selected participant references and do a proposal to the user \\
-Basic script \> Script that loops over the Hebrew text to select potential participant references that need to be dealt with.\\
-\end{tabbing}
+\begin{tabularx}{\textwidth}{lX}
+Basic script & Script that loops over the Hebrew text to select potential participant references that need to be dealt with.\\
+Flow\_clan & Overarching flow for clans to let the computer create as much data as possible about selected participant references (with REG-rectum data) and do a proposal to the user \\
+Interactive\_clan & This function asks interactively for input about references that are related to each other, i.e. that form a multi-layered `clan'. Several proposals are shown, and can be accepted, rejected or adapted. \\
+Interactive\_single & This function asks interactively for input about suffixes that are not part of a larger `clan' (i.e. a multi-layered reference), but occur on their own. \\
+Prepare & Some basic information about a reference, that can be found automatically, is gathered before the start of the interactive procedure.\\
+Recognize & If a participant has already been treated before, it is likely that some personal data has remained the same, and can therefore be re-used in the participant reference currently under consideration. This procedure of re-using already entered information also helps guard consistency. \\
+Add\_data & Automatically add data to entries that are going to be fed to gcdata.pt \\
+\end{tabularx}
+
 
 \begin{python}
-#{{{ Functions # Does not yet work
-    function = F.etcbc4_ft_function.v(Phrase)
-    if Data["Nodetype"] in ("1", "2", "3"):    # F.etcbc4_ft_function.v(node) only applies to phrase level (or lower)
-        if function in ("ExsS","IntS","ModS","NCoS","PrcS","PreS") and Data["Nodetype"] == "1":
-            Data["Role"] = "Subject"
-        elif function in ("PreO","PtcO") and Data["Nodetype"] == "1":
-            Data["Role"] = "Object"
-        elif Data["Nodetype"] == "1" or F.etcbc4_ft_rela.v(SPhNr) == "rec":
-            Data["Role"] = input("Grammatical role / function:" + "rec") or "rec"
-        else:
-            Data["Role"] = input("Grammatical role / function: " + function ) or function
-    else:
-        Data["Role"] = input("Grammatical role / function: ")
-
-#}}}
-\end{python}
-
-\begin{python}
-# Propose some data about a participant if this participant is recognized by gcdata.pt
-""" If a participant has already been treated before, it is likely that some
-    personal data has remained the same, and can therefore be re-used in the
-    participant reference currently under consideration. This procedure of 
-    re-using already entered information also helps guard consistency.
-"""
 def recognize(Des):
     Recognize = list(cursor.execute("select Name,Anim,Human,Col from pt where Des=:Des", {"Des":Des, }))
     if Recognize == []:
@@ -592,11 +562,7 @@ def recognize(Des):
 \end{python}
 
 \begin{python}
-# Prepare references for interactive procedure by collecting some data
-""" Some basic information about a reference, that can be found automatically,
-    is gathered before the start of the interactive procedure.
-"""
-def ask_potential_ref(place, candidate, node_type, sub):
+def prepare(place, candidate, node_type, sub):
     cand = candidate
     if str(candidate).endswith("s") or str(candidate).endswith("c") or str(candidate).endswith("d"):
         cand = int(candidate[:-1]) # If the `candidate' is not a node number, we have to make it so before we are able to retrieve certain information from the database.
@@ -610,8 +576,10 @@ def ask_potential_ref(place, candidate, node_type, sub):
         nodetype = F.etcbc4_db_otype.v(cand)
         if nodetype == "word":
             current["Nodetype"] = "2"
+            current["Role"] = F.etcbc4_ft_function.v(L.u('phrase',cand))
         elif nodetype in ("subphrase", "phrase", "phrase_atom"):
             current["Nodetype"] = "3"
+            current["Role"] = F.etcbc4_ft_function.v(cand)
         elif nodetype in ("clause","clause_atom"):
             current["Nodetype"] = "4"
         if not get_cons_of_word_list(give_me_your_words(cand)) == "KL": # `KL' is not an independent reference, so the person it refers to is different every time. Therefore it is useless to run the function `Recognize' in this case.
@@ -630,12 +598,15 @@ def ask_potential_ref(place, candidate, node_type, sub):
         current["Node"] = int(cand)
         current["Destype"] = "7"
         current["Sub"] = sub
+        if F.etcbc4_ft_function.v(L.u('phrase',cand)) in ("ExsS","IntS","ModS","NCoS","PrcS","PreS"):
+            current["Role"] = "Subject"
+        elif F.etcbc4_ft_function.v(L.u('phrase',cand)) in ("PreO","PtcO"):
+            current["Role"] = "Object"
     return(current)
 
 \end{python}
 
 \begin{python}
-# Automatically add data to entries that are going to be fed to gcdata.pt
 """ In order to avoid problems with candidates that are not a node number 
     (but, for example, have an `s' attached to it), in this function we
     do not use `candidate' to retrieve data from the database, but
@@ -646,23 +617,24 @@ def add_data(data,candidate):
 #    if str(candidate).endswith("s") or str(candidate).endswith("c") or str(candidate).endwith("d"):
 #        cand = candidate[:-1]
     current = data[candidate]
-    ClANr = L.u('clause_atom',current["Node"])
+    if current["Nodetype"] == "4":
+        ClANr = current["Node"]
+    else:
+        ClANr = L.u('clause_atom',current["Node"])
     current["ClANr"] = ClANr
     current["Emb"] = F.etcbc4_ft_tab.v(ClANr)
     if current["Nodetype"] in ("1","2"): # Smaller than phrase, so can have PhANr
         current["PhANr"] = L.u('phrase',current["Node"])
     elif current["Nodetype"] == "3": # phrase:
-        current["PhANr"] = Node
-    else:
-        current["PhANr"] = 00
-    if current["Nodetype"] in ("1","2"): # Smaller than subphrase, so can have SPhNr
+        current["PhANr"] = current["Node"]
+        current["Phfunc"] = F.etcbc4_ft_function.v(current["Node"])
+    if current["Nodetype"] in ("1","2"): # Smaller than subphrase, so can have SPhNr and has WNr
         current["SPhNr"] = L.u('subphrase',current["Node"])
-    else:
-        current["SPhNr"] = 00
-    if current["Nodetype"] in ("1","2"): # Suffix or word, so WNr is applicable
         current["WNr"] = F.etcbc4_ft_number.v(current["Node"])
-    else:
-        current["WNr"] = 00
+        current["Phfunc"] = F.etcbc4_ft_function.v(L.u('phrase',current["Node"]))
+    for x in (current["ClANr"],current["PhANr"],current["SPhNr"],current["WNr"]):
+        if x == None:
+            x = 00 
     if current["Nodetype"] == "2": # Reference is a word
         current["P"] = F.etcbc4_ft_ps.v(current["Node"])
         current["N"] = F.etcbc4_ft_nu.v(current["Node"])
@@ -674,19 +646,12 @@ def add_data(data,candidate):
         current["N"] = suffix_dict[F.etcbc4_ft_prs.v(current["Node"])]['nu']
         current["G"] = suffix_dict[F.etcbc4_ft_prs.v(current["Node"])]['gn']
         current["Lexset"] = "suffix"
-        if F.etcbc4_ft_function.v(L.u('phrase',current["Node"])) in ("ExsS","IntS","ModS","NCoS","PrcS","PreS"):
-            current["Role"] = "Subject"
-        elif F.etcbc4_ft_function.v(L.u('phrase',current["Node"])) in ("PreO","PtcO"):
-            current["Role"] = "Object"
     current["Tag"] = current["a"].rjust(15,' ') + "_" + str(current["ClANr"]).rjust(9,'0') + "_" + str(current["PhANr"]).rjust(9,'0') + "_" + str(current["WNr"]).rjust(9,'0') + "_" + str(current["Nodetype"])
     return(current)
 
 \end{python}
 
 \begin{python}
-""" This function asks interactively for input about suffixes that are not part
-    of a larger `clan' (i.e. a multi-layered reference), but occur on their own.
-"""
 def interactive_single(data,candidate):
     current = add_data(data,candidate)
     print(current["a"])
@@ -706,15 +671,12 @@ def interactive_single(data,candidate):
     else:
         current["Referents"] = None
         current["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
+    current["Role"] = input("Role in sentence? Default is" + current["Role"]) or current["Role"]
     insert_dict_in_db(cursor,"pt",current)
 
 \end{python}
 
 \begin{python}
-""" This function asks interactively for input about references that are related
-    to each other, i.e. that form a multi-layered `clan'. Several proposals are
-    shown, and can be accepted, rejected or adapted.
-"""
 def interactive_clan(data,clan_members):
     format_string_a = "{0!s: <9} {1!s: <15} {2!s: <40}"
     format_string_b = "********* Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}"
@@ -757,7 +719,7 @@ def interactive_clan(data,clan_members):
     clan_members3 = list(clan_members2)
     for candidate in clan_members2:
         current = data[candidate]
-        for x in ["Nodetype","Destype","Name","Anim","Human","Col"]:
+        for x in ["Nodetype","Destype","Name","Anim","Human","Col","Role"]:
             if current[x] in (None,"None"):
                 current[x] = input(str(x) + " of node " + str(candidate) + ": ")
                 if current["Destype"] == "X":
@@ -768,17 +730,17 @@ def interactive_clan(data,clan_members):
     for candidate in clan_members3:
         current = data[candidate]
         print(format_string_a.format(candidate, current["Sub"], current["Des"]))
-        print(format_string_b.format(current["Nodetype"], current["Destype"], current["Name"], current["Anim"], current["Human"], current["Col"]))
+        print(format_string_b.format(current["Nodetype"], current["Destype"], current["Name"], current["Anim"], current["Human"], current["Col"], current["Role"]))
     for candidate in clan_members3:
         current = data[candidate]
         check = input("Is the data of " + str(candidate) + " correct? Default 'Y' ") or "Y"
         while check != "Y":
-            for x in ("Des","Sub","Nodetype","Destype","Name","Anim","Human","Col"):
+            for x in ("Des","Sub","Nodetype","Destype","Name","Anim","Human","Col","Role"):
                 current[x] = input(x + " of node " + str(candidate) + ", default = " + str(current[x]) + " ") or current[x] 
                 if current["Destype"] == "X":
                     data.pop(candidate, None)
             print(format_string_a.format(candidate, current["Sub"], current["Des"]))
-            print(format_string_b.format(current["Nodetype"], current["Destype"], current["Name"], current["Anim"], current["Human"], current["Col"]))
+            print(format_string_b.format(current["Nodetype"], current["Destype"], current["Name"], current["Anim"], current["Human"], current["Col"], current["Role"]))
             check = input("Is the data correct? Default 'Y' ") or "Y"
         current["Referents"] = input("Contextually relevant referents that are part of Name: ") or None
         current["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
@@ -790,7 +752,6 @@ def interactive_clan(data,clan_members):
 \end{python}
 
 \begin{python}
-# Let the computer create as much data as possible, especially with REG-rectum data, and do a proposal to the user.
 def flow_clan(place, node, node_type):
     while F.etcbc4_ft_rela.v(parent[node]) == "rec" or F.etcbc4_ft_rela.v(parent[node]) == "atr": # Regens-rectum relationship or attributive relationship
         if list(C.mother.v(parent[node])) not in ([],None):
@@ -813,17 +774,16 @@ def flow_clan(place, node, node_type):
             del clan[candidate]
             candidate = L.d('word',candidate)[0] 
         for x in C.mother.v(candidate):
-#            clan[x] += "Super "
             if not parent[x] in clan:
                 clan[parent[x]] = "Super "
     for candidate in clan:
         clan_members.append(candidate)
         subdata = deepcopy(clan[candidate])
-        data[candidate] = ask_potential_ref(place, candidate, "word+", subdata)
+        data[candidate] = prepare(place, candidate, "word+", subdata)
         if not F.etcbc4_ft_prs.v(candidate) in ("absent","n/a",None):
             candidate2 = str(candidate)+"s"
             clan_members.append(candidate2)
-            data[candidate2] = ask_potential_ref(place, candidate2, "suffix", subdata)
+            data[candidate2] = prepare(place, candidate2, "suffix", subdata)
         else:
             print("no suffix found")
     interactive_clan(data,clan_members)
@@ -831,7 +791,7 @@ def flow_clan(place, node, node_type):
 \end{python}
 
 \begin{python}
-# Record some statistics and filter potential participant references
+# Basic script: record some statistics and filter potential participant references
 DSU = False
 completed = False
 potential_ref = False
@@ -876,10 +836,8 @@ for node in NN():
         if result == (0,) and potential_ref == False and potential_suffix == True: # Not yet saved, not to be dealt with in flow_clan, but suffix needs to be parsed
             print("single-catch")
             candidate = str(node)+"s"
-            data[candidate] = ask_potential_ref(place, node, "single_suffix", "Prep")
-#            data[candidate] = add_data(data,candidate)
+            data[candidate] = prepare(place, node, "single_suffix", "Prep")
             interactive_single(data,candidate)
-#            insert_dict_in_db(cursor,"pt",data[candidate])
 
 \end{python}
 
@@ -1047,8 +1005,7 @@ for (ClANr,Node) in todo:
     print("ClANr is now: ",L.u('clause_atom',int(Node or 0)))
     cursor.execute("update pt set ClANr=:ClANr where Node=:Node", {"ClANr":L.u('clause_atom',int(Node or 0)),"Node":Node})
 
-
-
+\end{python}
 \begin{python}
 # Recovery function
 #todo = list(cursor.execute("select Node,Tag,a,ClANr,PhANr,WNr,Nodetype from pt where WNr is NULL or WNr = 'None'"))

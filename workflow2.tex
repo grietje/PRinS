@@ -553,7 +553,7 @@ Add\_data & Automatically add data to entries that are going to be fed to gcdata
 
 \begin{python}
 def recognize(Des):
-    Recognize = list(cursor.execute("select Name,Anim,Human,Col from pt where Des=:Des", {"Des":Des, }))
+    Recognize = list(cursor.execute("select Name,Anim,Human,Col from pt where Des=:Des and not Destype=8 ORDER BY Tag DESC LIMIT 1", {"Des":Des, }))
     if Recognize == []:
         return []
     else:
@@ -598,10 +598,14 @@ def prepare(place, candidate, node_type, sub):
         current["Node"] = int(cand)
         current["Destype"] = "7"
         current["Sub"] = sub
+#        print("no problem so far")
         if F.etcbc4_ft_function.v(L.u('phrase',cand)) in ("ExsS","IntS","ModS","NCoS","PrcS","PreS"):
             current["Role"] = "Subject"
         elif F.etcbc4_ft_function.v(L.u('phrase',cand)) in ("PreO","PtcO"):
             current["Role"] = "Object"
+        else:
+            current["Role"] = "Prep" # Will be checked interactively
+#        print("No problem so far 2")
     return(current)
 
 \end{python}
@@ -619,19 +623,30 @@ def add_data(data,candidate):
     current = data[candidate]
     if current["Nodetype"] == "4":
         ClANr = current["Node"]
+        current["Cltype"] = F.etcbc4_ft_typ.v(current["Node"])
     else:
         ClANr = L.u('clause_atom',current["Node"])
+        current["Cltype"] = F.etcbc4_ft_typ.v(L.u('clause',current["Node"]))
     current["ClANr"] = ClANr
     current["Emb"] = F.etcbc4_ft_tab.v(ClANr)
     if current["Nodetype"] in ("1","2"): # Smaller than phrase, so can have PhANr
         current["PhANr"] = L.u('phrase',current["Node"])
     elif current["Nodetype"] == "3": # phrase:
         current["PhANr"] = current["Node"]
+        current["Phtype"] = F.etcbc4_ft_typ.v(current["Node"])
+        if current["Phtype"] == None: # Apparently node is a subphrase, not a phrase
+            current["Phtype"] = F.etcbc4_ft_typ.v(L.u('phrase',current["Node"]))
         current["Phfunc"] = F.etcbc4_ft_function.v(current["Node"])
+        if F.etcbc4_db_otype.v(current["Node"]) == 'subphrase':
+            current["SPhNr"] = current["Node"]
+        else:
+            current["SPhNr"] = None
+        current["WNr"] = None
     if current["Nodetype"] in ("1","2"): # Smaller than subphrase, so can have SPhNr and has WNr
         current["SPhNr"] = L.u('subphrase',current["Node"])
         current["WNr"] = F.etcbc4_ft_number.v(current["Node"])
         current["Phfunc"] = F.etcbc4_ft_function.v(L.u('phrase',current["Node"]))
+        current["Phtype"] = F.etcbc4_ft_typ.v(L.u('phrase',current["Node"]))
     for x in (current["ClANr"],current["PhANr"],current["SPhNr"],current["WNr"]):
         if x == None:
             x = 00 
@@ -671,7 +686,7 @@ def interactive_single(data,candidate):
     else:
         current["Referents"] = None
         current["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
-    current["Role"] = input("Role in sentence? Default is" + current["Role"]) or current["Role"]
+    current["Role"] = input("Role in sentence? Default is " + current["Role"]) or current["Role"]
     insert_dict_in_db(cursor,"pt",current)
 
 \end{python}
@@ -784,8 +799,6 @@ def flow_clan(place, node, node_type):
             candidate2 = str(candidate)+"s"
             clan_members.append(candidate2)
             data[candidate2] = prepare(place, candidate2, "suffix", subdata)
-        else:
-            print("no suffix found")
     interactive_clan(data,clan_members)
 
 \end{python}
@@ -804,7 +817,7 @@ for node in NN():
     if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
         break
 #    elif otype == "chapter":
-#        if int(F.etcbc4_sft_chapter.v(node)) < 1:    # Prevent re-doing already completed chapters
+#        if int(F.etcbc4_sft_chapter.v(node)) < 10:    # Prevent re-doing already completed chapters
 #            completed = True
 #        elif int(F.etcbc4_sft_chapter.v(node)) > 3:    # Set a limit on the amount of data dealt with this time
 #            break
@@ -824,9 +837,9 @@ for node in NN():
 #        if check_node != "":     # Just a hack when temporarily outcommenting lines below
         cursor.execute("SELECT EXISTS (SELECT * FROM pt WHERE Node = " + check_node + ");") # Check whether reference is not yet saved in database
         result = cursor.fetchone()
-        if result == "(0,)":
-            potential_ref = False
-            potential_suffix = False
+#        if result == "(0,)":
+        potential_ref = False
+        potential_suffix = False
         if not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA")):
             potential_ref = True
         if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
@@ -834,7 +847,6 @@ for node in NN():
         if result == (0,) and potential_ref == True: # Not yet saved, to be dealt with in flow_clan (may have suffixes as well, these will be parsed within the flow)
             flow_clan(place, node, "word")
         if result == (0,) and potential_ref == False and potential_suffix == True: # Not yet saved, not to be dealt with in flow_clan, but suffix needs to be parsed
-            print("single-catch")
             candidate = str(node)+"s"
             data[candidate] = prepare(place, node, "single_suffix", "Prep")
             interactive_single(data,candidate)
@@ -1036,4 +1048,41 @@ for (Node,Tag,a,ClANr,PhANr,WNr,Nodetype) in todo:
 #        print(WNr,WNr2)
     cursor.execute("update pt set PhANr=:PhANr2, WNr=:WNr2, Tag=:Tag where Node=:Node", {"PhANr2":PhANr2,"WNr2":WNr2,"Tag":newtag,"Node":Node})
 
+\end{python}
+
+\begin{python}
+# Recovery function for Cltype and Phtype
+todo = list(c.execute("select Node,Nodetype from pt where Phtype is NULL;"))
+for (Node,Nodetype) in todo:
+    if Nodetype == "4":
+        Cltype = F.etcbc4_ft_typ.v(int(Node))
+    elif Nodetype in ("1","2","3"):
+        Cltype = F.etcbc4_ft_typ.v(L.u('clause',int(Node)))
+    if Nodetype == "3":
+        Phtype = F.etcbc4_ft_typ.v(int(Node))
+    elif Nodetype in ("1","2") or Phtype is None:
+        Phtype = F.etcbc4_ft_typ.v(L.u('phrase',int(Node)))
+    print(Node,Nodetype,Cltype,Phtype)
+    c.execute("update pt set Cltype=:Cltype, Phtype=:Phtype where Node=:Node and Nodetype=:Nodetype", {"Cltype":Cltype, "Phtype":Phtype, "Node":Node, "Nodetype":Nodetype})
+
+\end{python}
+
+\begin{python}
+# Test function
+done = []
+test = list(c.execute("select * from pt"))
+for i in range(84):
+    todo = True
+    for x in test:
+        if x[i] == None:
+            todo = True
+        else: 
+            todo = False
+            done.append(i)
+            break
+
+print("done: ",done)
+for i in range(84):
+    if not i in done:
+        print("todo: ", i)
 \end{python}

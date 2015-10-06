@@ -564,7 +564,7 @@ def recognize(Des):
 \begin{python}
 def prepare(place, candidate, node_type, sub):
     cand = candidate
-    if str(candidate).endswith("s") or str(candidate).endswith("c") or str(candidate).endswith("d"):
+    if str(candidate).endswith("s") or str(candidate).endswith("c") or str(candidate).endswith("d"): # Suffix or copied reference
         cand = int(candidate[:-1]) # If the `candidate' is not a node number, we have to make it so before we are able to retrieve certain information from the database.
     Recognize = []
 #    current = data[candidate]
@@ -582,13 +582,18 @@ def prepare(place, candidate, node_type, sub):
             current["Role"] = F.etcbc4_ft_function.v(cand)
         elif nodetype in ("clause","clause_atom"):
             current["Nodetype"] = "4"
-        if not get_cons_of_word_list(give_me_your_words(cand)) == "KL": # `KL' is not an independent reference, so the person it refers to is different every time. Therefore it is useless to run the function `Recognize' in this case.
+        if not get_cons_of_word_list(give_me_your_words(cand)) == "KL" and not F.etcbc4_ft_sp.v(cand) == "verb": # `KL' is not an independent reference, so the person it refers to is different every time. Therefore it is useless to run the function `Recognize' in this case. Same for verbs: they usually have different subjects the next time.
             Recognize = recognize(get_cons_of_word_list(give_me_your_words(cand)))
         if not Recognize == []:
             current["Name"] = Recognize[0][0]
             current["Anim"] = Recognize[0][1]
             current["Human"] = Recognize[0][2]
             current["Col"] = Recognize[0][3]
+        if not F.etcbc4_ft_prs.v(cand) in ("absent","n/a"): # Reference has a suffix
+            if str(sub) in ("None", ""):
+                sub = "Super1"
+            else:
+                sub = str(sub) + "Super1"
         current["Sub"] = sub
     else: # Reference is a suffix
         current = {}
@@ -597,7 +602,10 @@ def prepare(place, candidate, node_type, sub):
         current["a"] = place
         current["Node"] = int(cand)
         current["Destype"] = "7"
-        current["Sub"] = sub
+        if str(sub) not in ("", "None"):
+            current["Sub"] = sub
+        else:
+            current["Sub"] = "Rec" # Most probable role for a suffix
 #        print("no problem so far")
         if F.etcbc4_ft_function.v(L.u('phrase',cand)) in ("ExsS","IntS","ModS","NCoS","PrcS","PreS"):
             current["Role"] = "Subject"
@@ -694,7 +702,7 @@ def interactive_single(data,candidate):
 \begin{python}
 def interactive_clan(data,clan_members):
     format_string_a = "{0!s: <9} {1!s: <15} {2!s: <40}"
-    format_string_b = "********* Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}"
+    format_string_b = "********* Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}, Role: {6!s: <8}"
     print(data[clan_members[-1]]["a"], " Clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',clan_members[-1]))))
 #    print("Nodetypes: 1=Part_suffix, 2=Part_word, 3=Part_(sub)phrase, 4=Part_clause, 5=Part_sentence")
 #    print("Destypes: 1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective")
@@ -712,7 +720,7 @@ def interactive_clan(data,clan_members):
         if current["Anim"] == "2":
             current["Human"] = "2"
         print(format_string_a.format(candidate, current["Sub"], current["Des"]))
-        print(format_string_b.format(current["Nodetype"], current["Destype"], current["Name"], current["Anim"], current["Human"], current["Col"]))
+        print(format_string_b.format(current["Nodetype"], current["Destype"], current["Name"], current["Anim"], current["Human"], current["Col"], current["Role"]))
     clan_members2 = list(clan_members)
     for candidate in clan_members:
         current = data[candidate]
@@ -742,6 +750,7 @@ def interactive_clan(data,clan_members):
                     clan_members3.remove(candidate)
                     if clan_members3 == []:
                         return
+        current["Sub"] = input("Sub of node " + str(candidate) + ", default is: " + str(current["Sub"]) + " ") or current["Sub"]
     for candidate in clan_members3:
         current = data[candidate]
         print(format_string_a.format(candidate, current["Sub"], current["Des"]))
@@ -774,7 +783,7 @@ def flow_clan(place, node, node_type):
     clan = {}
     clan_members = []
     data = {}
-    if not F.etcbc4_ft_g_cons.v(node) == get_cons_of_word_list(give_me_your_words(parent[node])):
+    if not F.etcbc4_ft_g_cons.v(node) == get_cons_of_word_list(give_me_your_words(parent[node])) and not F.etcbc4_ft_sp.v(give_me_your_words(parent[node])[0]) == "prep":
         clan[parent[node]] = "Super "
         clan[node] = "Sub1 "
     else:

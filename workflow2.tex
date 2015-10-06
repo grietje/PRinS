@@ -526,7 +526,7 @@ Now we have several functions that together gather information about participant
 \node [outline=blue, text width=5.5em] (flow) [below left = of basic] {Flow\_clan *Prepare **Recognize};
 \draw [shorten > = .1cm, ->] (basic.south) -- (flow.north);
 
-\node [outline=blue, text width=7.5em] (clan) [below = of flow] {Interactive\_clan *Add\_data};
+\node [outline=blue, text width=7.5em] (clan) [below = of flow] {Interactive\_clan *Add\_data *Recognize2};
 \draw [shorten > = .1cm, ->] (flow.south) -- (clan.north);
 
 \node [outline=red] (pt) [below right = of clan] {gcdata.pt};
@@ -554,6 +554,16 @@ Add\_data & Automatically add data to entries that are going to be fed to gcdata
 \begin{python}
 def recognize(Des):
     Recognize = list(cursor.execute("select Name,Anim,Human,Col from pt where Des=:Des and not Destype=8 ORDER BY Tag DESC LIMIT 1", {"Des":Des, }))
+    if Recognize == []:
+        return []
+    else:
+        return Recognize
+
+\end{python}
+
+\begin{python}
+def recognize2(Name):
+    Recognize = list(cursor.execute("select Anim,Human,Col from pt where Name=:Name ORDER BY Tag DESC LIMIT 1", {"Name":Name, }))
     if Recognize == []:
         return []
     else:
@@ -612,7 +622,7 @@ def prepare(place, candidate, node_type, sub):
         elif F.etcbc4_ft_function.v(L.u('phrase',cand)) in ("PreO","PtcO"):
             current["Role"] = "Object"
         else:
-            current["Role"] = "Prep" # Will be checked interactively
+            current["Role"] = "Pos ?" # Will be checked interactively
 #        print("No problem so far 2")
     return(current)
 
@@ -694,7 +704,7 @@ def interactive_single(data,candidate):
     else:
         current["Referents"] = None
         current["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
-    current["Role"] = input("Role in sentence? Default is " + current["Role"]) or current["Role"]
+    current["Role"] = input("Role in sentence? Default is Prep") or "Prep" 
     insert_dict_in_db(cursor,"pt",current)
 
 \end{python}
@@ -742,7 +752,7 @@ def interactive_clan(data,clan_members):
     clan_members3 = list(clan_members2)
     for candidate in clan_members2:
         current = data[candidate]
-        for x in ["Nodetype","Destype","Name","Anim","Human","Col","Role"]:
+        for x in ["Nodetype","Destype","Name","Role"]:
             if current[x] in (None,"None"):
                 current[x] = input(str(x) + " of node " + str(candidate) + ": ")
                 if current["Destype"] == "X":
@@ -751,6 +761,19 @@ def interactive_clan(data,clan_members):
                     if clan_members3 == []:
                         return
         current["Sub"] = input("Sub of node " + str(candidate) + ", default is: " + str(current["Sub"]) + " ") or current["Sub"]
+        if str(current["Name"]).endswith("!"):
+            current["Name"] = current["Name"][:-1]
+            Recognize = recognize(current["Name"]) 
+            print("Recognize is: ",Recognize)
+            if not Recognize == []:
+                current["Anim"] = Recognize[0][0]
+                current["Human"] = Recognize[0][1]
+                current["Col"] = Recognize[0][2]
+                print("data: ",current["Anim"], current["Human"], current["Col"])
+            else:
+                for x in ["Anim","Human","Col"]:
+                    if current[x] in (None,"None"):
+                        current[x] = input(str(x) + " of node " + str(candidate) + ": ")
     for candidate in clan_members3:
         current = data[candidate]
         print(format_string_a.format(candidate, current["Sub"], current["Des"]))

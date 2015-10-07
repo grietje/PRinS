@@ -616,14 +616,12 @@ def prepare(place, candidate, node_type, sub):
             current["Sub"] = sub
         else:
             current["Sub"] = "Rec" # Most probable role for a suffix
-#        print("no problem so far")
         if F.etcbc4_ft_function.v(L.u('phrase',cand)) in ("ExsS","IntS","ModS","NCoS","PrcS","PreS"):
             current["Role"] = "Subject"
         elif F.etcbc4_ft_function.v(L.u('phrase',cand)) in ("PreO","PtcO"):
             current["Role"] = "Object"
         else:
             current["Role"] = "Pos ?" # Will be checked interactively
-#        print("No problem so far 2")
     return(current)
 
 \end{python}
@@ -764,12 +762,10 @@ def interactive_clan(data,clan_members):
         if str(current["Name"]).endswith("!"):
             current["Name"] = current["Name"][:-1]
             Recognize = recognize2(current["Name"]) 
-            print("Recognize is: ",Recognize)
             if not Recognize == []:
                 current["Anim"] = Recognize[0][0]
                 current["Human"] = Recognize[0][1]
                 current["Col"] = Recognize[0][2]
-                print("data: ",current["Anim"], current["Human"], current["Col"])
         for x in ["Anim","Human","Col"]:
             if current[x] in (None,"None"):
                 current[x] = input(str(x) + " of node " + str(candidate) + ": ")
@@ -847,13 +843,13 @@ for node in NN():
     otype = F.etcbc4_db_otype.v(node)
     if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
         break
-#    elif otype == "chapter":
-#        if int(F.etcbc4_sft_chapter.v(node)) < 10:    # Prevent re-doing already completed chapters
-#            completed = True
+    elif otype == "chapter":
+        if int(F.etcbc4_sft_chapter.v(node)) < 19:    # Prevent re-doing already completed chapters
+            completed = True
 #        elif int(F.etcbc4_sft_chapter.v(node)) > 3:    # Set a limit on the amount of data dealt with this time
 #            break
-#        else:
-#            completed = False 
+        else:
+            completed = False 
     elif otype == "verse":
 #        if int(F.etcbc4_sft_verse.v(node)) < 22:
 #           completed = True

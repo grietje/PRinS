@@ -763,17 +763,16 @@ def interactive_clan(data,clan_members):
         current["Sub"] = input("Sub of node " + str(candidate) + ", default is: " + str(current["Sub"]) + " ") or current["Sub"]
         if str(current["Name"]).endswith("!"):
             current["Name"] = current["Name"][:-1]
-            Recognize = recognize(current["Name"]) 
+            Recognize = recognize2(current["Name"]) 
             print("Recognize is: ",Recognize)
             if not Recognize == []:
                 current["Anim"] = Recognize[0][0]
                 current["Human"] = Recognize[0][1]
                 current["Col"] = Recognize[0][2]
                 print("data: ",current["Anim"], current["Human"], current["Col"])
-            else:
-                for x in ["Anim","Human","Col"]:
-                    if current[x] in (None,"None"):
-                        current[x] = input(str(x) + " of node " + str(candidate) + ": ")
+        for x in ["Anim","Human","Col"]:
+            if current[x] in (None,"None"):
+                current[x] = input(str(x) + " of node " + str(candidate) + ": ")
     for candidate in clan_members3:
         current = data[candidate]
         print(format_string_a.format(candidate, current["Sub"], current["Des"]))

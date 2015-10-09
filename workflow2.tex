@@ -553,6 +553,7 @@ Add\_data & Automatically add data to entries that are going to be fed to gcdata
 
 \begin{python}
 def recognize(Des):
+    Recognize = []
     Recognize = list(cursor.execute("select Name,Anim,Human,Col from pt where Des=:Des and not Destype=8 ORDER BY Tag DESC LIMIT 1", {"Des":Des, }))
     if Recognize == []:
         return []
@@ -563,6 +564,7 @@ def recognize(Des):
 
 \begin{python}
 def recognize2(Name):
+    Recognize = []
     Recognize = list(cursor.execute("select Anim,Human,Col from pt where Name=:Name ORDER BY Tag DESC LIMIT 1", {"Name":Name, }))
     if Recognize == []:
         return []
@@ -595,6 +597,7 @@ def prepare(place, candidate, node_type, sub):
         if not get_cons_of_word_list(give_me_your_words(cand)) == "KL" and not F.etcbc4_ft_sp.v(cand) == "verb": # `KL' is not an independent reference, so the person it refers to is different every time. Therefore it is useless to run the function `Recognize' in this case. Same for verbs: they usually have different subjects the next time.
             Recognize = recognize(get_cons_of_word_list(give_me_your_words(cand)))
         if not Recognize == []:
+            print("Recognize is: ",Recognize)
             current["Name"] = Recognize[0][0]
             current["Anim"] = Recognize[0][1]
             current["Human"] = Recognize[0][2]
@@ -664,7 +667,7 @@ def add_data(data,candidate):
         current["Phfunc"] = F.etcbc4_ft_function.v(L.u('phrase',current["Node"]))
         current["Phtype"] = F.etcbc4_ft_typ.v(L.u('phrase',current["Node"]))
     for x in (current["ClANr"],current["PhANr"],current["SPhNr"],current["WNr"]):
-        if x == None:
+        if x in (None,"None"):
             x = 00 
     if current["Nodetype"] == "2": # Reference is a word
         current["P"] = F.etcbc4_ft_ps.v(current["Node"])
@@ -678,9 +681,20 @@ def add_data(data,candidate):
         current["G"] = suffix_dict[F.etcbc4_ft_prs.v(current["Node"])]['gn']
         current["Lexset"] = "suffix"
     current["Tag"] = current["a"].rjust(15,' ') + "_" + str(current["ClANr"]).rjust(9,'0') + "_" + str(current["PhANr"]).rjust(9,'0') + "_" + str(current["WNr"]).rjust(9,'0') + "_" + str(current["Nodetype"])
-    return(current)
+    if current["Tag"] in list(cursor.execute("select Tag from pt")): # Double-check whether this work
+        current["Tag"] = current["Tag"][:-1]+"0"
+        if current["Tag"] in list(cursor.execute("select Tag from pt")):
+            current["Tag"] = current["Tag"][:-1]+"1"
+                if current["Tag"] in list(cursor.execute("select Tag from pt")):
+                    current["Tag"] = current["Tag"][:-1]+"2"
+    if "None" in current["Tag"]:
+        print("Problem!!!!!!!!!!!!!!!!! Tag is not correct!", current)
+    else:
+        return(current)
 
 \end{python}
+
+WARNING! Sometimes Tags are identical, which should not be so. Recovery function at end of document
 
 \begin{python}
 def interactive_single(data,candidate):
@@ -1112,4 +1126,21 @@ print("done: ",done)
 for i in range(84):
     if not i in done:
         print("todo: ", i)
+\end{python}
+
+\begin{python}
+# Function to test for identical Tags (which should not occur)
+Tags = []
+double = []
+data = list(cursor.execute("select ID,Tag from pt"))
+for (ID,Tag) in data:
+    if Tag in Tags:
+        double.append((ID,Tag))
+    else:
+        Tags.append(Tag)
+
+for (ID,Tag) in double:
+    Tag = str(Tag) +"0"
+    cursor.execute("update pt set Tag=:Tag where ID=:ID",{"Tag":Tag,"ID":"ID"})
+
 \end{python}

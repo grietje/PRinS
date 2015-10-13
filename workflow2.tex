@@ -577,7 +577,6 @@ def recognize2(Name):
 \begin{python}
 def prepare(place, candidate, node_type, sub):
     cand = candidate
-    print("!!! test: cand is: ", cand)
     if str(candidate).endswith("s") or str(candidate).endswith("c") or str(candidate).endswith("d"): # Suffix or copied reference
         cand = int(candidate[:-1]) # If the `candidate' is not a node number, we have to make it so before we are able to retrieve certain information from the database.
     Recognize = []
@@ -599,8 +598,6 @@ def prepare(place, candidate, node_type, sub):
         if not get_cons_of_word_list(give_me_your_words(cand)) == "KL" and not F.etcbc4_ft_sp.v(cand) == "verb": # `KL' is not an independent reference, so the person it refers to is different every time. Therefore it is useless to run the function `Recognize' in this case. Same for verbs: they usually have different subjects the next time.
             Recognize = recognize(get_cons_of_word_list(give_me_your_words(cand)))
         if not Recognize == []:
-            print("Cand is: ", cand)
-            print("Recognize is: ",Recognize)
             current["Name"] = Recognize[0][0]
             current["Anim"] = Recognize[0][1]
             current["Human"] = Recognize[0][2]
@@ -670,8 +667,11 @@ def add_data(data,candidate):
         current["Phfunc"] = F.etcbc4_ft_function.v(L.u('phrase',current["Node"]))
         current["Phtype"] = F.etcbc4_ft_typ.v(L.u('phrase',current["Node"]))
     for x in (current["ClANr"],current["PhANr"],current["SPhNr"],current["WNr"]):
-        if x in (None,"None"):
+        if str(x).strip() in (None,"None"):
             x = 00 
+            print(x)
+    if current["WNr"] in (None,"None"): # Should be unnecessary after previous lines, but somewhere there is a bug an I try to find it...
+        current["WNr"] = 00
     if current["Nodetype"] == "2": # Reference is a word
         current["P"] = F.etcbc4_ft_ps.v(current["Node"])
         current["N"] = F.etcbc4_ft_nu.v(current["Node"])
@@ -688,8 +688,8 @@ def add_data(data,candidate):
         current["Tag"] = current["Tag"][:-1]+"0"
         if current["Tag"] in list(cursor.execute("select Tag from pt")):
             current["Tag"] = current["Tag"][:-1]+"1"
-                if current["Tag"] in list(cursor.execute("select Tag from pt")):
-                    current["Tag"] = current["Tag"][:-1]+"2"
+            if current["Tag"] in list(cursor.execute("select Tag from pt")):
+                current["Tag"] = current["Tag"][:-1]+"2"
     if "None" in current["Tag"]:
         print("Problem!!!!!!!!!!!!!!!!! Tag is not correct!", current)
     else:

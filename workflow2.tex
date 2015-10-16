@@ -554,7 +554,6 @@ Add\_data & Automatically add data to entries that are going to be fed to gcdata
 \begin{python}
 def recognize(Des):
     Recognize = []
-    print(Des)
     Recognize = list(cursor.execute("select Name,Anim,Human,Col from pt where Des=:Des and not Destype=8 ORDER BY Tag DESC LIMIT 1", {"Des":Des, }))
     if Recognize == []:
         return []
@@ -861,7 +860,7 @@ for node in NN():
     if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
         break
     elif otype == "chapter":
-        if int(F.etcbc4_sft_chapter.v(node)) < 19:    # Prevent re-doing already completed chapters
+        if int(F.etcbc4_sft_chapter.v(node)) < 20:    # Prevent re-doing already completed chapters
             completed = True
 #        elif int(F.etcbc4_sft_chapter.v(node)) > 3:    # Set a limit on the amount of data dealt with this time
 #            break

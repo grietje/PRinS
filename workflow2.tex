@@ -846,7 +846,7 @@ def flow_clan(place, node, node_type):
 \end{python}
 
 \begin{python}
-# Basic script: record some statistics and filter potential participant references
+3 Basic script: record some statistics and filter potential participant references
 DSU = False
 completed = False
 potential_ref = False
@@ -859,7 +859,7 @@ for node in NN():
     if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
         break
     elif otype == "chapter":
-        if int(F.etcbc4_sft_chapter.v(node)) < 23:    # Prevent re-doing already completed chapters
+        if int(F.etcbc4_sft_chapter.v(node)) < 24:    # Prevent re-doing already completed chapters
             completed = True
 #        elif int(F.etcbc4_sft_chapter.v(node)) > 3:    # Set a limit on the amount of data dealt with this time
 #            break

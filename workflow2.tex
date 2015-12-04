@@ -866,10 +866,10 @@ for node in NN():
         else:
             completed = False 
     elif otype == "verse":
-#        if int(F.etcbc4_sft_verse.v(node)) < 22:
-#           completed = True
-#        else:
-#           completed = False
+        if int(F.etcbc4_sft_verse.v(node)) < 36:
+           completed = True
+        else:
+           completed = False
         if completed == False:
             place = F.etcbc4_sft_label.v(node)
     elif otype == "clause" and completed == False:

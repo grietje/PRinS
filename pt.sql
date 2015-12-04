@@ -95,5 +95,6 @@ Phfunc      VARCHAR(10),             -- Function of the phrase to which referenc
 SPhNr       VARCHAR(10),             -- Subphrase number
 Sub         VARCHAR(5),              -- Specifies participant type: independent or a kind of sub-participant
 InfoStruc   VARCHAR(50),	     -- Gives information about Information Structure (topic, focus, etc)
+Center      VARCHAR(50),             -- Gives the center of reference
 
 );

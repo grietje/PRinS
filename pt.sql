@@ -94,6 +94,6 @@ Phtype      VARCHAR(10),             -- Type of the phrase\_atom to which refere
 Phfunc      VARCHAR(10),             -- Function of the phrase to which reference belongs as given by F.etcbc4\_ft\_function.v(node)
 SPhNr       VARCHAR(10),             -- Subphrase number
 Sub         VARCHAR(5),              -- Specifies participant type: independent or a kind of sub-participant
-InfoStruc   VARCHAR(50),	     -- Gives informatio about Information Structure (topic, focus, etc)
+InfoStruc   VARCHAR(50),	     -- Gives information about Information Structure (topic, focus, etc)
 
 );

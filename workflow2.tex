@@ -397,6 +397,9 @@ def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
     print("Potential QF:")  # Show the clause_atom_numbers of potential_QF with their text
     for x in potential_QF:
         print('{0:<3} {1:<8} {2:>35} {3} {4:<35}'.format(potential_QF.index(x), x, get_text_of_word_list(give_me_your_words(x))," | ", get_cons_of_word_list(give_me_your_words(x))))
+        for y in give_me_your_words(int(x)):
+            if F.etcbc4_ft_ls.v(y) == "quot":
+                print("*** Quotation verb:", F.etcbc4_ft_g_cons.v(y), "in ClANr",potential_QF.index(x))
     print("Start of DSU:")  # Show the first clause_atom_numbers and text of the DSU
     for y in ClANrs[:3]:
         print('{0:<11} {1:>35} {2} {3:<35}'.format(y, get_text_of_word_list(give_me_your_words(y))," | ",get_cons_of_word_list(give_me_your_words(y))))
@@ -411,6 +414,9 @@ def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
     QFClANrs2 = ""
     if QFClANrs1 == "":
         DSUdata["QFClANrs"] = ""
+    elif QFClANrs1 == "X":
+        DSUdata["QFClANrs"] = ""
+        DSUdata["ClANrs"] = ""
     else:
         for y in QFClANrs1.split(","):
             QFClANrs2 += str(potential_QF[int(y)]) + ","
@@ -418,11 +424,11 @@ def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
     DSUdata["QFverb"],DSUdata["QFverbspeech"],DSUdata["QFLMR"] = verbs(DSUdata["QFClANrs"])
     DSUdata["QFSp"] = input("QFSp: ") or ""
     DSUdata["QFSptype"] = input("QFSptype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb): ") or None
-    DSUdata["MySp"] = repr(input("MySp: ,default " + DSUdata["QFSp"]).split(",")) or DSUdata["QFSp"]
+    DSUdata["MySp"] = repr(input("MySp: ,default " + DSUdata["QFSp"]).split(",") + " ") or DSUdata["QFSp"]
     DSUdata["QFAd"] = input("QFAd: ") or ""
     DSUdata["QFAdtype"] = input("QFAdtype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb): ") or None
     DSUdata["QFAdprep"] = input("QFAdprep: ") or None
-    DSUdata["MyAd"] = repr(input("MyAd: ,default " + DSUdata["QFAd"]).split(",")) or DSUdata["QFAd"]
+    DSUdata["MyAd"] = repr(input("MyAd: ,default " + DSUdata["QFAd"]).split(",") + " ") or DSUdata["QFAd"]
     DSUdata["QFplus"] = input("QFplus: ") or None
     DSUdata["QFplustype"] = input("QFplustype: ") or None
     DSUdata["Start_node"] = ClANrs[0]
@@ -859,17 +865,17 @@ for node in NN():
     if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
         break
     elif otype == "chapter":
-        if int(F.etcbc4_sft_chapter.v(node)) < 27:    # Prevent re-doing already completed chapters
+        if int(F.etcbc4_sft_chapter.v(node)) < 28:    # Prevent re-doing already completed chapters
             completed = True
 #        elif int(F.etcbc4_sft_chapter.v(node)) > 3:    # Set a limit on the amount of data dealt with this time
 #            break
         else:
             completed = False 
     elif otype == "verse":
-        if int(F.etcbc4_sft_verse.v(node)) < 36:
-           completed = True
-        else:
-           completed = False
+#        if int(F.etcbc4_sft_verse.v(node)) < 22:
+#           completed = True
+#        else:
+#           completed = False
         if completed == False:
             place = F.etcbc4_sft_label.v(node)
     elif otype == "clause" and completed == False:

@@ -335,7 +335,7 @@ A DSU is a Direct Speech Unit, and a QF is a Quotative Frame.
 \textbf{WARNING:} DSU's are found on the basis of \mi{text_type}s of \mi{clause_atom}s as stored in the ETCBC database. However, testing shows that these are not 100\% correct and will need improvement.
 
 \textbf{WARNING2:} This task assumes that a DSU ends when the embedding (number of \mi{Q}'s in the \mi{text_type} of a \mi{clause_atom}) decreases.
-However, it might very well be possible that various DSU's follow each other on the same level of embedding without intervening lower-\mi{Q} \mi{clause_atom}s.
+However, it might be possible that various DSU's follow each other on the same level of embedding without intervening lower-\mi{Q} \mi{clause_atom}s.
 At the moment these cases will not be detected by this script!
 \end{multicols}
 
@@ -355,23 +355,27 @@ db.commit()
 \end{python}
 
 \begin{multicols}{2}
-Now we want to determine which \mi{clause_atom_number}s constitute QF's, and gather \mi{user_input} about them.
+Now we want to determine which \mi{clause_atom_number}s constitute QF's, and gather \mi{user_input} about them. This is done by showing the four clauses preceding the DSU, and the first four clauses of the DSU itself, all with \mi{clause_atom_number} and \mi{g_consonants}.
+
+In the literature about Biblical Hebrew quotative frames, there are different opinions about the extensiveness of these frames. Therefore we include various options in our database:
+
 \begin{itemize}
- \item Show 4 clauses before DSU + first 4 clauses of DSU itself, all with \mi{clause_atom_number} and \mi{g_consonants}.
- \item Ask for block of \mi{clause_atom}s before DSU:
- \begin{itemize}
-    \item Which \mi{clause_atom}s (if any) are QF
-    \item What ``MySp" is. Can be any name
-    \item What ``QFSp" is. Can be anything, or ""
-    \item What ``QFSptype" is. Options: \mi{Noun}, \mi{Noun_phrase}, \mi{Name}, \mi{Name_phrase}, \mi{Pers_pronoun}, \mi{Suffix}, \mi{Verb}
-    \item What ``MyAd" is. Can be any name
-    \item What ``QFAd" is. Can be anything, or ""
-    \item What ``QFAdtype" is. Options: \mi{Noun}, \mi{Noun_phrase}, \mi{Name}, \mi{Name_phrase}, \mi{Pers_pronoun}, \mi{Suffix}, \mi{Verb}
-    \item What ``QFAdprep" is
-    \item What ``QFplus" is. Can be anything, or \mi{NULL}
-    \item What ``QFplustype" is. Can be something like \mi{Time} or \mi{Space}, or \mi{NULL}
-  \end{itemize}
+    \item The \mi{minimal quotative frame} or \mi{quotative frame proper} that only contains the clause or clauses with the verb of speech. In the case of \hebr{L>MR}, the QF includes the clause immediately preceding \hebr{L>MR} because \hebr{L>MR} is not an independent verb on itself.
+    \begin{itemize}
+        \item ``MySp", the name of the person that the user perceives as speaker 
+        \item ``QFSp", the designation of speaker in the text. Can be anything, or ""
+        \item ``QFSptype". Options: \mi{Noun}, \mi{Noun_phrase}, \mi{Name}, \mi{Name_phrase}, \mi{Pers_pronoun}, \mi{Suffix}, \mi{Verb}
+        \item ``MyAd", the name of the person that the user perceives as addressee 
+        \item ``QFAd", the designation of addressee in the text. Can be anything, or ""
+        \item ``QFAdtype". Options: \mi{Noun}, \mi{Noun_phrase}, \mi{Name}, \mi{Name_phrase}, \mi{Pers_pronoun}, \mi{Suffix}, \mi{Verb}
+        \item ``QFAdprep", the preposition introducing the addressee
+        \item ``QFplus". Can be anything that gives extra information, or \mi{NULL}
+        \item ``QFplustype". Can be something like \mi{Time} or \mi{Space}, or \mi{NULL}
+    \end{itemize}
+    \item As an alternative, called \mi{MillerQF}, there is the option to store a more extensive QF including metapragmatic verbs. If this is done, the speakers and addressees may have changed. This can be stored by the tags \mi{MillerSp}, \mi{MillerSptype}, et cetera. 
+    \item The second alternative, \mi{LongQF}, is both \emph{long} because it is the most extensive, and \emph{Long} because it is based on Longacre's claim that verbs of motion, psychological verbs, and metapragmatic verbs all should be included in the quotative frame. Here also, there are tags like \mi{LongSp}, \mi{LongSptype}, et cetera.
 \end{itemize}
+
 \end{multicols}
 
 \begin{python}
@@ -400,6 +404,8 @@ def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
         for y in give_me_your_words(int(x)):
             if F.etcbc4_ft_ls.v(y) == "quot":
                 print("*** Quotation verb:", F.etcbc4_ft_g_cons.v(y), "in ClANr",potential_QF.index(x))
+            if F.etcbc4_ft_lex.v(y) in (``>LH['',``B>R['',``DJN['',``DRC['',``XNN['',``XRC['',``KXC['',``NB>['',``SWT['',``<WD['',``P>R['',``YXQ['',``RMH['',``GLH >ZN['',``HNH DBR JHWH >L['',``HJH DBR JHWH >L['',``JD<['',``HWYJ> DBH['',``MYWT['',``SPR['',``NTN MWPT['',``<BR HRNH['',``H<BJR QWL['',``FJM <LJLT DBRJM['',``SPD['',``<NH['',``QR>['',``Z<Q['',``NGD['',``YWH['',``Y<Q['',``C>L['',``CB<['',``CLX['',``KTB['',``CM<['',``CJD['',``BRK['',``NDR['',``SPR['',``PLL['',``HTL['',``QLS['',``M>N['',``NXM['',``QWN['',``QJN['',``<TR['',``RW<['',``FJM DBR['',``HJH MCL['',``NF> MC>['',``HRJM QWL['',``BKH['',``HCJB DBR['',``J<Y['',``XRP['',``LWN['',``RJB['',``TQ<[''):
+                print("*** Miller verb:", F.etcbc4_ft_g_cons.v(y), "in ClANr", potential_QF.index(x))
     print("Start of DSU:")  # Show the first clause_atom_numbers and text of the DSU
     for y in ClANrs[:3]:
         print('{0:<11} {1:>35} {2} {3:<35}'.format(y, get_text_of_word_list(give_me_your_words(y))," | ",get_cons_of_word_list(give_me_your_words(y))))
@@ -424,11 +430,11 @@ def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
     DSUdata["QFverb"],DSUdata["QFverbspeech"],DSUdata["QFLMR"] = verbs(DSUdata["QFClANrs"])
     DSUdata["QFSp"] = input("QFSp: ") or ""
     DSUdata["QFSptype"] = input("QFSptype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb): ") or None
-    DSUdata["MySp"] = repr(input("MySp: ,default " + DSUdata["QFSp"]).split(",") + " ") or DSUdata["QFSp"]
+    DSUdata["MySp"] = repr(input("MySp: ,default " + DSUdata["QFSp"] +" ").split(",")) or DSUdata["QFSp"]
     DSUdata["QFAd"] = input("QFAd: ") or ""
     DSUdata["QFAdtype"] = input("QFAdtype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb): ") or None
     DSUdata["QFAdprep"] = input("QFAdprep: ") or None
-    DSUdata["MyAd"] = repr(input("MyAd: ,default " + DSUdata["QFAd"]).split(",") + " ") or DSUdata["QFAd"]
+    DSUdata["MyAd"] = repr(input("MyAd: ,default " + DSUdata["QFAd"] + " ").split(",")) or DSUdata["QFAd"]
     DSUdata["QFplus"] = input("QFplus: ") or None
     DSUdata["QFplustype"] = input("QFplustype: ") or None
     DSUdata["Start_node"] = ClANrs[0]

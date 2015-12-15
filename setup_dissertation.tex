@@ -1,0 +1,272 @@
+\documentclass[twoside,a4paper,10pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{ecjhebrew}
+\usepackage{csquotes}
+
+\usepackage{tikz}
+\usepackage{xspace}
+\usepackage{graphicx}
+\usepackage{parskip}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{lscape}
+\usepackage{verbatim}
+\usepackage[usenames,dvipsnames]{color}
+\definecolor{TGred}{rgb}{.6,0,0}
+\usepackage{cleveref}
+
+%\usepackage[style=chicago-notes,autocite=footnote,firstinits=true,backend=bibtex]{biblatex}
+\usepackage[style=chicago-notes,backend=bibtex]{biblatex}
+\addbibresource{bib.bib}
+
+\usepackage[font=small,font=it,labelsep=endash]{caption}
+
+\usepackage{microtype}
+
+\frenchspacing
+
+\usepackage{enumitem}
+
+\usepackage{appendix}
+
+\usepackage{mparhack}
+\def\degree{${}^{\circ}$\xspace}
+
+\newcommand{\fixme}[1]{{\color{red} #1}}
+\newcommand{\marginfixme}[1]{\marginpar{\raggedright \color{red} #1}}
+\usepackage[hmargin=3cm,vmargin=2.5cm]{geometry}
+
+\widowpenalty10000
+\clubpenalty10000
+
+\usepackage{placeins}
+
+
+\usepackage{bibleref}
+\def\bv{\bibleverse}
+\usepackage{ecjhebrew}
+\newcommand{\cl}[2]{\begingroup\beginL\begingroup\color{#1}\beginR#2\endR\endgroup\endL\endgroup}
+\newcommand{\hebr}[1]{\cjRL{#1}}
+
+
+\newcommand{\myTitle}{Participants in direct speech\xspace}
+\newcommand{\mySubtitle}{A computer-assisted analysis of participant reference and participant tracking in Biblical Hebrew direct speech sections\xspace}
+\newcommand{\myDegree}{Master of Arts in Theology\xspace}
+\newcommand{\myName}{Grietje Commelin-Troost\xspace}
+%\newcommand{\mySupervisor}{prof. dr. W.T. van Peursen\xspace}
+\newcommand{\posttitle}{Supervisor: prof. dr. W.T. van Peursen\xspace}
+
+\usepackage{hyperref}
+
+\hypersetup{pdftitle={\myTitle},%
+	pdfauthor={\myName},%
+	pdfsubject={\myTitle},%
+	pdfkeywords={},%
+	pdfcreator={pdfLaTeX},%
+	pdfproducer={LaTeX},%
+	colorlinks,linkcolor=TGred,urlcolor=TGred,citecolor=TGred
+}
+
+\raggedbottom
+
+\begin{document}
+\pagenumbering{gobble}
+\begin{center}
+\null
+\vspace*{40ex}
+{\LARGE \myTitle}\\
+\vspace*{10ex}
+{\Large \mySubtitle}\\
+\vspace*{55ex}
+{\large \myName}\\
+\bigskip
+{\large Promotor: prof. dr. W.T. van Peursen}\\
+\bigskip
+\normalsize \today
+\vfill
+\end{center}
+
+\newpage
+\fixme{Motto}
+\newpage
+\section*{Abstract}
+\newpage
+\section*{Samenvatting}
+\newpage
+\section*{Table of contents}
+\newpage
+\section*{Abbreviations and key terms}
+\subsection{Abbreviations}
+\begin{tabbing}
+QF \hspace{5ex} \= Quotative Frame \\
+DSU \> Direct Speech Unit \\
+
+\end{tabbing}
+
+\subsection{Key terms}
+Some key terms that are used in this dissertation, are used by other researchers as well. However, nuances in meaning might differ. Other terms are coined by myself, because existing terms have connotations that would be misleading in my use of them. To avoid confusion, below I give an overview of some key term.
+
+\begin{tabular}{p{19ex}p{80ex}}
+Direct Speech Unit & An uninterrupted portion of direct speech, together with its Quotative Frame. In practice, this often means that a Direct Speech Unit forms one turn in a conversation or a closed-off portion of direct speech within a non-direct speech context. \\
+Quotative Frame & The clause(s) immediately preceding a portion of direct speech that introduce this direct speech section. A Quotative Frame usually contains one or more verbs of speech, e.g. \cjRL{WJMR} (``he said'').\\
+Participant & Any entity playing an active or passive role in a text. The prototype participant is an acting or speaking human person, but non-human and even non-animate entities can also be participants. \\
+Participant reference & Any textual designation referring to a participant. A good starting point is to consider any text element that has an encoding for person, number and/or gender as a participant reference.\\
+Participant reference system & A language-specific set of ``rules'' about the encoding of participants. \\
+Participant tracking & The process of determining which participants are referred to in a text.\\
+Verb of speech & Also called ``verb of quotation''. A type of verbs denoting a speech act, and therefore often introducing a portion of direct speech. The verbs of speech that occur in \fixme{Genesis} are: \fixme{Check them in database}.\\
+
+\end{tabular}
+
+\newpage
+\section*{Acknowledgments}
+\begin{itemize}
+\item Van Peursen
+\item Talstra
+\item Johan!!!
+\end{itemize}
+\newpage
+\section{Introduction}
+\subsection{Topic / problem}
+The Hebrew Bible consists of texts, 
+\subsection{Purpose}
+\subsection{Scope}
+\subsection{Methodology}
+\subsection{Choices and conventions in encoding the data}
+\subsubsection{DSU's and QF's}
+It is not always easy to point out the boundaries of direct speeches and conversations. When, for example, in Genesis 3 God speaks with Adam and Eve, after a while the serpent is included in the conversation. Does his entering the scene start a new conversation (because there is an extra participant now), or is the first conversation going on because God, Adam and Eve are still active participants? And how do we account for the three monologues of God to the serpent, Eve and Adam respectively, that follow (or continue) the conversation?
+
+In order to keep my data as ``objective'' and ``theory-independent'' as possible, I based my encodings on a very basic discourse level, which I named ``Direct Speech Unit''. This is an uninterrupted portion of direct speech, together with its Quotative Frame. In practice, this often means that a Direct Speech Unit forms one turn in a conversation or a closed-off portion of direct speech within a non-direct speech context. Such units can still be long and complex, but most of the time they are not. Moreover, the theoretical choices behind the DSU are very basic and simple. These DSU's can then form the building blocks for more complex and high-level analyses, without determining a particular theoretical framework beforehand. 
+
+A Quotative Frame is the introduction to a direct speech section, and frames a DSU in its textual context. Commonly, a QF is the clause immediately preceding the direct speech portion, and containing one or more verbs of speech, e.g. \cjRL{WJMR} (``he said''). Sometimes speaker and/or addressee are explicitly mentioned, but this is not necessary. Often the textual context gives us enough clues about the participants involved. Sometimes it is not clear whether there is an addressee at all, for example in the creation account where God speaks things into being, or in case of a blessing.
+
+\subsubsection{Participant references}
+
+\section{Theoretical framework}
+\subsection{Narrative, direct speech and quotative frames}
+Biblical texts belong to various genres, such as narrative or poetic texts. Within these texts occur portions of quoted direct speech. These are part of the text as a whole, but also in a way separate from it: their textual structure is different, the participants and their roles are different, and they are written from different perspectives.
+
+Portions of direct speech usually do not occur out of nowhere; they are introduced by so called \mi{quotative frames}, abbreviated as \mi{QF}'s. An important question is the delineation of these \mi{QF}'s and their function in the text. They serve as a bridge between narrative and direct speech, but to what extend do they fit in the text structure of the narrative and to what extend are they dependent on, and influenced by, the content and position of the direct speech portion they are introducing?
+
+It is clear that the options for mentioning speaker and addressee are restricted by the surrounding textual context. When there are three male individuals interacting with each other, for example, a pretty high level of encoding may be necessary to disambiguate who is speaking to whom. When a man and a woman are discussing something, only speech verbs would be enough for disambiguation, because they are inflected for gender. The question remains, however, what is going on beyond this necessary level of identification. To what extent does a narrator play with quotative frames in order to get accross some message about the importance of the quote within the text, or about the social relationship between the participants involved, and so on?
+
+\subsection{The extensiveness of quotative frames}
+It is not immediately clear how extensive a quotative frame is, in other words what does belong to the QF and what does not. The \mi{minimal quotative frame} or \mi{quotative frame proper} only contains the clause or clauses with the verb of speech. This verb can be a form of \hebr{>MR}, \hebr{DBR}, or (in \bibleverse{Daniel}) \hebr{MLL}. In the case of \hebr{L>MR} it is reasonable to include the clause immediately preceding \hebr{L>MR} because \hebr{L>MR} is not an independent verb on itself.
+
+Cynthia Miller \fixme{reference!} proposes to include metapragmatic verbs, and thus to make the QF more extensive. Many of these verbs occur with \hebr{L>MR}, and would thus be included in our \mi{minimal quotative frame}, but with less theoretical justification. These verbs are:
+\begin{multicolumn}{2}
+    
+\begin{itemize}
+    \item \hebr{>LH}, `to take an oath'
+    \item \hebr{B>R}, `to give news'
+    \item \hebr{DJN}, `to argue with'
+    \item \hebr{DRC}, `to seek'
+    \item \hebr{XNN}, `to implore favor'
+    \item \hebr{XRC}, `to be silent'
+    \item \hebr{KXC}, `to lie'
+    \item \hebr{NB>}, `to prophesy'
+    \item \hebr{SWT}, `to incite'
+    \item \hebr{<WD}, `to testify'
+    \item \hebr{P>R}, `to boast'
+    \item \hebr{YXQ}, `to laugh'
+    \item \hebr{RMH}, `to deceive'
+    \item \hebr{GLH >ZN}, `to uncover ears'
+    \item \hebr{HNH DBR JHWH >L}, `behold the word of YHWH was to'
+    \item \hebr{HJH DBR JHWH >L}, `the word of YHWH was to'
+    \item \hebr{JD<}, `to cause to know'
+    \item \hebr{HWYJ> DBH}, `to cause an evil report to go out'
+    \item \hebr{MYWT}, `commandments'
+    \item \hebr{SPR}, `letter'
+    \item \hebr{NTN MWPT}, `to give a sign'
+    \item \hebr{<BR HRNH}, `a shout crossed over/through'
+    \item \hebr{H<BJR QWL}, `to cause the sound to cross over'
+    \item \hebr{FJM <LJLT DBRJM}, `to make baseless charges'
+\end{itemize}
+
+\end{multicolumn}
+
+Other metapragmatical verbs occur (also) with a finite form of \hebr{>MR}, and sometimes they are the only verb of speech present. The verbs for which this holds, and that would thus not be included when using the minimal definition of QF, are:
+\begin{multicolumn}{2}
+\begin{itemize}
+Occurring as single speech verb:
+\item \hebr{SPD}, `to mourn'
+\item \hebr{<NH}, `to answer'
+\item \hebr{QR>}, `to call'
+\item \hebr{Z<Q}, `to cry out'
+\item \hebr{NGD}, `to tell'
+\item \hebr{YWH}, `to command'
+\item \hebr{Y<Q}, `to cry out'
+\item \hebr{C>L}, `to ask/greet'
+\item \hebr{CB<}, `to swear'
+\item \hebr{CLX}, `to send'
+\item \hebr{KTB}, `to write'
+\item \hebr{CM<}, `to hear'
+\item \hebr{CJD}, `to sing'
+Not occurring as single speech verb:
+\item \hebr{BRK}, `to bless'
+\item \hebr{NDR}, `to vow'
+\item \hebr{SPR}, `to recount'
+\item \hebr{PLL}, `to pray'
+\item \hebr{HTL}, `to mock'
+\item \hebr{QLS}, `to mock'
+\item \hebr{M>N}, `to refuse'
+\item \hebr{NXM}, `to comfort'
+\item \hebr{QWN} or \hebr{QJN}, `to lament'
+\item \hebr{<TR}, `to pray'
+\item \hebr{RW<}, `to give a shout'
+\item \hebr{FJM DBR}, `to put a word'
+\item \hebr{HJH MCL}, `a proverb was'
+\item \hebr{NF> MC>}, `to raise a proverb'
+\item \hebr{HRJM QWL}, `to cause a shout to rise'
+\item \hebr{BKH}, `to weep'
+\item \hebr{HCJB DBR}, `cause a word to return'
+\item \hebr{J<Y}, `to take counsel'
+\item \hebr{XRP}, `to reproach'
+\item \hebr{LWN}, `to grumble'
+\item \hebr{RJB}, `to strive, contend'
+\item \hebr{TQ<}, `to sound the ram's horn'
+\end{itemize}
+\end{multicolumn}
+
+\fixme{reference! Miller pages 210-212}
+
+Just the occurrence of one of those verbs does not make it part of the quotative frame. There are some further restrictions: ``each verb refers to the same speech event, the speech participants are identical and have identical roles, the verbs share arguments, the verbs are inflected identically with respect to gender and number (with corporate entities this may be different), and the tense/aspect is either identical or consecutive.'' \fixme{reference: Miller 204-205}
+
+Miller's theory is an adaptation or an even more elaborate proposal made by Longacre. \fixme{reference Longacre}. He proposes to include verbs of motion, psychological verbs, and metapragmatic verbs, which in some cases means that ``the clause with the verb `say' may be preceded by two or three such preparatory clauses. In such a situation the whole sequence of two to four clauses with whatever nouns and pronouns that it contains is relevant to the specification or nonspecification of speaker and addressee; it functions as an \emph{expanded quotation formula}.'' \fixme{reference: Longacre page 160}
+This very extensive view of quotative frames makes the boundary between QF and surrounding narrative less strict; the QF is more a fluent part of the narrative that just happens to be positioned before the direct speech section, instead of a separate block in between the narrative and the quote. 
+At the very least, as Miller notes \fixme{reference: Miller 204-205}, Longacre's theory does not make very clear when a clause does or does not belong to the quotative frame.
+
+\subsection{Perspective and information}
+Direct speech sections are spoken by a speaker, in principle from his own perspective. This perspective might differ from that of the narrator and the reader. In some cases it is clear that the speaker lacks information that the reader has, for example in \bibleverse{GEN}(27:18), where Isaak asks \hebr{MJ >TH BNJ}, and the narrator has told already about Jacob's plans to deceive his father.
+
+Since direct speech portions reflect the perspective of the speaker and addressee, participant references in these portions are chosen from their perspective as well.
+
+The reverse is also true, namely that speakers and addressees have a corpus of knowledge that readers do not share. It is the narrator's task to make their conversations intelligible for readers by selecting quotes, narrating background stories et cetera. But this is never done ``objectively'', as if every possible narrator would do this in exactly the same way. Narrators have a purpose with their stories; they select and arrange the narrated information accordingly. This process of arrangement is, among other ways, reflected in the framing of direct speech sections.
+
+
+\section{Observations from computer-assisted analyses}
+\section{Model of participant reference system}
+\newpage
+\section{Conclusion}
+\subsection{Research results}
+\subsection{Areas for further research}
+\subsection{Conclusion}
+\newpage
+\section*{Bibliography}
+\printbibliography
+
+\end{document}
+
+
+
+
+Miller [204-205]: When a quotative frame has multiple finite metapragmatic verbs (note: Longacre includes motion verbs and psychological verbs, but Miller includes only metapragmatic verbs within the quotative frame --> boundaries clear), each verb refers to the same speech event, the speech participants are identical and have identical roles, | the verbs share arguments, the verbs are inflected identically with respect to gender and number (with corporate entities this may be different), and the tense/aspect is either identical or consecutive.
+
+
+[160]
+``Quotation formulas \emph{proper} consist of some form of the verb'' >MR ``+/- nouns and/or
+pronouns. Very frequently, however, the clause that contains the verb `say' is preceded by another clause that has either a \emph{motion} verb (`and they drew near to him, and they said'); a verb of \emph{psychological} orientation (`and they feared greatly, and they said'); or a \emph{verb} that is more specific in relation to the speech act (`and he refused, and he said'). Furthermore, the clause with the verb `say' may be preceded by two or three such preparatory clauses. In such a situation the whole sequence of two to four clauses with whatever nouns and pronouns that it contains is relevant to the specification or nonspecification of speaker and addressee; it functions as an \emph{expanded quotation formula}.''
+
+Longacre sees no difference between nouns etc in preceding clauses and those in the quotation formula proper.
+

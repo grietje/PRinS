@@ -404,7 +404,7 @@ def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
         for y in give_me_your_words(int(x)):
             if F.etcbc4_ft_ls.v(y) == "quot":
                 print("*** Quotation verb:", F.etcbc4_ft_g_cons.v(y), "in ClANr",potential_QF.index(x))
-            if F.etcbc4_ft_lex.v(y) in (``>LH['',``B>R['',``DJN['',``DRC['',``XNN['',``XRC['',``KXC['',``NB>['',``SWT['',``<WD['',``P>R['',``YXQ['',``RMH['',``GLH >ZN['',``HNH DBR JHWH >L['',``HJH DBR JHWH >L['',``JD<['',``HWYJ> DBH['',``MYWT['',``SPR['',``NTN MWPT['',``<BR HRNH['',``H<BJR QWL['',``FJM <LJLT DBRJM['',``SPD['',``<NH['',``QR>['',``Z<Q['',``NGD['',``YWH['',``Y<Q['',``C>L['',``CB<['',``CLX['',``KTB['',``CM<['',``CJD['',``BRK['',``NDR['',``SPR['',``PLL['',``HTL['',``QLS['',``M>N['',``NXM['',``QWN['',``QJN['',``<TR['',``RW<['',``FJM DBR['',``HJH MCL['',``NF> MC>['',``HRJM QWL['',``BKH['',``HCJB DBR['',``J<Y['',``XRP['',``LWN['',``RJB['',``TQ<[''):
+            if F.etcbc4_ft_lex.v(y) in ('>LH[','B>R[','DJN[','DRC[','XNN[','XRC[','KXC[','NB>[','SWT[','<WD[','P>R[','YXQ[','RMH[','GLH >ZN[','HNH DBR JHWH >L[','HJH DBR JHWH >L[','JD<[','HWYJ> DBH[','MYWT[','SPR[','NTN MWPT[','<BR HRNH[','H<BJR QWL[','FJM <LJLT DBRJM[','SPD[','<NH[','QR>[','Z<Q[','NGD[','YWH[','Y<Q[','C>L[','CB<[','CLX[','KTB[','CM<[','CJD[','BRK[','NDR[','SPR[','PLL[','HTL[','QLS[','M>N[','NXM[','QWN[','QJN[','<TR[','RW<[','FJM DBR[','HJH MCL[','NF> MC>[','HRJM QWL[','BKH[','HCJB DBR[','J<Y[','XRP[','LWN[','RJB[','TQ<['):
                 print("*** Miller verb:", F.etcbc4_ft_g_cons.v(y), "in ClANr", potential_QF.index(x))
     print("Start of DSU:")  # Show the first clause_atom_numbers and text of the DSU
     for y in ClANrs[:3]:
@@ -412,7 +412,7 @@ def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
     print("-"*20)
     DSUdata["a"] = place
     DSUdata["Level"] = level
-    DSUdata["ClANrs"] = ','.join(str(x) for x in ClANrs)
+    DSUdata["ClANrs"] = ','.join(str(x) for x in set(ClANrs))
 #    DSUdata["ClANrs"] = repr(ClANrs)
     DSUdata["Con1"] = prev_context
     DSUdata["Con2"] = context
@@ -444,6 +444,7 @@ def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
     elif DSUdata["QFClANrs"] == "":
         DSUdata["QF"] = "No"
     insert_dict_in_db(cursor, "gcdsu", DSUdata)
+    db.commit()
 
 \end{python}
 

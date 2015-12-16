@@ -437,6 +437,28 @@ def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
     DSUdata["MyAd"] = repr(input("MyAd: ,default " + DSUdata["QFAd"] + " ").split(",")) or DSUdata["QFAd"]
     DSUdata["QFplus"] = input("QFplus: ") or None
     DSUdata["QFplustype"] = input("QFplustype: ") or None
+    Miller = input("Miller? Default No ") or "N"
+    if Miller != "N":
+        MillerQF1 = input("Clause_atoms that are MillerQF (type comma-separated numbers): ")
+        MillerQF2 = ""
+        for y in MillerQF1.split(","):
+            MillerQF2 += str(potential_QF[int(y)]) + ","
+            DSUdata["MillerQF"] = MillerQF2
+        DSUdata["MillerSp"] = input("MillerSp: ") or ""
+        DSUdata["MillerSptype"] = input("MillerSptype: ") or None
+        DSUdata["MillerAd"] = input("MillerAd: ") or ""
+        DSUdata["MillerAdtype"] = input("MillerAdtype: ") or None
+    Long = input("Long? Default No ") or "N"
+    if Long != "N":
+        LongQF1 = input("Clause_atoms that are LongQF (type comma-separated numbers): ")
+        LongQF2 = ""
+        for y in LongQF1.split(","):
+            LongQF2 += str(potential_QF[int(y)]) + ","
+            DSUdata["LongQF"] = LongQF2
+        DSUdata["LongSp"] = input("LongSp: ") or ""
+        DSUdata["LongSptype"] = input("LongSptype: ") or None
+        DSUdata["LongAd"] = input("LongAd: ") or ""
+        DSUdata["LongAdtype"] = input("LongAdtype: ") or None
     DSUdata["Start_node"] = ClANrs[0]
     DSUdata["DSUtag"] = str(DSUdata["Start_node"]) + str(DSUdata["Level"])
     if DSUdata["QFClANrs"] != "":

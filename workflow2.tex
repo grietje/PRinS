@@ -429,10 +429,10 @@ def process_DSU(ClANrs, potential_QF, place,prev_context,context,level):
         DSUdata["QFClANrs"] = QFClANrs2
     DSUdata["QFverb"],DSUdata["QFverbspeech"],DSUdata["QFLMR"] = verbs(DSUdata["QFClANrs"])
     DSUdata["QFSp"] = input("QFSp: ") or ""
-    DSUdata["QFSptype"] = input("QFSptype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb): ") or None
+    DSUdata["QFSptype"] = input("QFSptype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb, 9=Adjective, 10=PtcA, 11=PtcP): ") or None
     DSUdata["MySp"] = repr(input("MySp: ,default " + DSUdata["QFSp"] +" ").split(",")) or DSUdata["QFSp"]
     DSUdata["QFAd"] = input("QFAd: ") or ""
-    DSUdata["QFAdtype"] = input("QFAdtype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb): ") or None
+    DSUdata["QFAdtype"] = input("QFAdtype (1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Other_pronoun, 7=Suffix, 8=Verb, 9=Adjective, 10=PtcA, 11=PtcP): ") or None
     DSUdata["QFAdprep"] = input("QFAdprep: ") or None
     DSUdata["MyAd"] = repr(input("MyAd: ,default " + DSUdata["QFAd"] + " ").split(",")) or DSUdata["QFAd"]
     DSUdata["QFplus"] = input("QFplus: ") or None
@@ -606,6 +606,7 @@ def prepare(place, candidate, node_type, sub):
             current["Role"] = F.etcbc4_ft_function.v(cand)
         elif nodetype in ("clause","clause_atom"):
             current["Nodetype"] = "4"
+            current["Role"] = "???"
         if not get_cons_of_word_list(give_me_your_words(cand)) == "KL" and not F.etcbc4_ft_sp.v(cand) == "verb": # `KL' is not an independent reference, so the person it refers to is different every time. Therefore it is useless to run the function `Recognize' in this case. Same for verbs: they usually have different subjects the next time.
             Recognize = recognize(get_cons_of_word_list(give_me_your_words(cand)))
         if not Recognize == []:
@@ -740,12 +741,12 @@ def interactive_clan(data,clan_members):
     format_string_b = "********* Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}, Role: {6!s: <8}"
     print(data[clan_members[-1]]["a"], " Clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',clan_members[-1]))))
 #    print("Nodetypes: 1=Part_suffix, 2=Part_word, 3=Part_(sub)phrase, 4=Part_clause, 5=Part_sentence")
-#    print("Destypes: 1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective")
+#    print("Destypes: 1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective, 10=PtcA, 11=PtcP")
 #    print("Anim: 1=Animate, 2-Non-animate; Human: 1=Human, 2=Non-human, 3=Humans included")
 #    print("Col: 1=Individual, 2=Collective, 3=Individual in compound design, 4=Plural")
     for candidate in clan_members:
         current = data[candidate]
-        for x in ["Nodetype","Destype","Name","Anim","Human","Col"]:
+        for x in ["Nodetype","Destype","Name","Anim","Human","Col","Role"]:
             if not x in current:
                 current[x] = None
         if F.etcbc4_db_otype.v(candidate) == "word" and not current["Nodetype"] == "1":
@@ -1061,246 +1062,4 @@ for (Tag,Name,Nr) in todo:
 
 \end{document}
 #sagemathcloud={"latex_command":"pdflatex -synctex=1 -shell-escape -interact=nonstopmode 'workflow2.tex'"}
-
-
-\begin{python}
-# Recovery function
-todo = list(cursor.execute("select ClANr,Node from pt;"))
-for (ClANr,Node) in todo:
-    print(ClANr, Node, F.etcbc4_db_otype.v(int(Node or 0)))
-    print("ClANr is now: ",L.u('clause_atom',int(Node or 0)))
-    cursor.execute("update pt set ClANr=:ClANr where Node=:Node", {"ClANr":L.u('clause_atom',int(Node or 0)),"Node":Node})
-
-\end{python}
-
-
-\begin{python}
-# Add Role 
-todo = list(c.execute("select Node,Tag,a,Nodetype,Sub,Des from pt where Role is NULL"))
-
-for (Node,Tag,a,Nodetype,Sub,Des) in todo:
-    if "Rec" in str(Sub):
-        Role = "Pos ?"
-    else:
-        Role = F.etcbc4_ft_function.v(L.u('phrase',int(Node))) 
-        if Role == None:
-            Role = F.etcbc4_ft_function.v(int(Node))
-    print(Node, a, Nodetype, Sub, Des, Role)
-    c.execute("update pt set Role=:Role where Node=:Node and Nodetype=:Nodetype", {"Role":Role,"Node":Node,"Nodetype":Nodetype})
-
-\end{python}
-
-\begin{python}
-# Recovery function
-#todo = list(cursor.execute("select Node,Tag,a,ClANr,PhANr,WNr,Nodetype from pt where WNr is NULL or WNr = 'None'"))
-todo = list(cursor.execute("select Node,Tag,a,ClANr,PhANr,WNr,Nodetype from pt where Node = '7514' or Node = '7517' or Node = '7520' or Node = '7521' or Node = '1262342'"))
-
-for (Node,Tag,a,ClANr,PhANr,WNr,Nodetype) in todo:
-    ClANr2 = L.u('clause_atom',int(Node))
-    if ClANr2 == None:
-        ClANr2 = 00
-    PhANr2 = L.u('phrase',int(Node))
-    if PhANr2 == None:
-        if F.etcbc4_db_otype.v(int(Node)) in ('phrase','subphrase'):
-            PhANr2 = Node
-        else:
-            PhANr2 = 00
-    WNr2 = L.u('word',int(Node))
-    if WNr2 == None:
-        if F.etcbc4_db_otype.v(int(Node)) == 'word':
-            WNr2 = Node
-        else:
-            WNr2 = 00
-#        print(Tag,ClANr,ClANr2,PhANr,WNr)
-    newtag = a.rjust(15,' ') + "_" + str(ClANr2).rjust(9,'0') + "_" + str(PhANr2).rjust(9,'0') + "_" + str(WNr2).rjust(9,'0') + "_" + str(Nodetype)
-    print(Node,F.etcbc4_db_otype.v(int(Node)),Tag,newtag)
-#    if PhANr != PhANr2:
-#        print(PhANr,PhANr2)
-#    if WNr != WNr2:
-#        print(WNr,WNr2)
-    cursor.execute("update pt set PhANr=:PhANr2, WNr=:WNr2, Tag=:Tag where Node=:Node", {"PhANr2":PhANr2,"WNr2":WNr2,"Tag":newtag,"Node":Node})
-
-\end{python}
-
-\begin{python}
-# Recovery function for Cltype and Phtype
-todo = list(c.execute("select Node,Nodetype from pt where Phtype is NULL;"))
-for (Node,Nodetype) in todo:
-    if Nodetype == "4":
-        Cltype = F.etcbc4_ft_typ.v(int(Node))
-    elif Nodetype in ("1","2","3"):
-        Cltype = F.etcbc4_ft_typ.v(L.u('clause',int(Node)))
-    if Nodetype == "3":
-        Phtype = F.etcbc4_ft_typ.v(int(Node))
-    elif Nodetype in ("1","2") or Phtype is None:
-        Phtype = F.etcbc4_ft_typ.v(L.u('phrase',int(Node)))
-    print(Node,Nodetype,Cltype,Phtype)
-    c.execute("update pt set Cltype=:Cltype, Phtype=:Phtype where Node=:Node and Nodetype=:Nodetype", {"Cltype":Cltype, "Phtype":Phtype, "Node":Node, "Nodetype":Nodetype})
-
-\end{python}
-
-\begin{python}
-# Test function
-done = []
-test = list(c.execute("select * from pt"))
-for i in range(84):
-    todo = True
-    for x in test:
-        if x[i] == None:
-            todo = True
-        else: 
-            todo = False
-            done.append(i)
-            break
-
-print("done: ",done)
-for i in range(84):
-    if not i in done:
-        print("todo: ", i)
-\end{python}
-
-\begin{python}
-# Function to test for identical Tags (which should not occur)
-Tags = []
-double = []
-data = list(cursor.execute("select ID,Tag from pt"))
-for (ID,Tag) in data:
-    if Tag in Tags:
-        double.append((ID,Tag))
-    else:
-        Tags.append(Tag)
-
-for (ID,Tag) in double:
-    Tag = str(Tag) +"0"
-    cursor.execute("update pt set Tag=:Tag where ID=:ID",{"Tag":Tag,"ID":"ID"})
-
-\end{python}
-
-\begin{python}
-# Make histogram
-import operator
-from pandas import Series,DataFrame
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-#df = DataFrame(np.random.rand(6,4))
-
-freq1 = {}
-names = list(c.execute("select Name,Sub,Destype from pt where Human = 1"))
-for (Name,Sub,Destype) in names:
-    if not str(Sub).strip().endswith("Sub1"):
-        if Name in freq1:
-            freq1[Name] += 1
-        elif not Name in freq1:
-            freq1[Name] = 1
-
-sortednames = sorted(freq1.items(), key=operator.itemgetter(1))
-topnames = sortednames[-10:]
-
-freq2 = {}
-for Name,_ in topnames:
-    freq2[Name] = list(c.execute("select Destype,Count(*) from pt where Name = :Name group by Destype order by Destype", {"Name":Name}))
-
-freq3 = {}
-destypes = ["Noun", "Noun_phrase", "Name", "Name_phrase", "Pers_pronoun", "Demonstr_pronoun", "Suffix", "Verb", "Adjective"]
-for Name in freq2.keys():
-    freq3[Name] = {}
-    for (Destype, cnt) in freq2[Name]:
-        destype_real = destypes[int(Destype)-1]
-        freq3[Name][destype_real] = cnt
-    for x in destypes:
-        if x not in freq3[Name]:
-            freq3[Name][x] = 0
-
-df = DataFrame(freq3).transpose()
-cols = df.columns.tolist()
-cols = ["Verb","Suffix","Pers_pronoun","Demonstr_pronoun","Adjective","Noun","Noun_phrase","Name","Name_phrase"]
-df = df[cols]
-df2 = df.divide(df.sum(axis=1), axis=0)
-df2
-df2.plot(kind="bar",stacked=True)
-plt.show()
-
-\end{python}
-
-
-\begin{python}
-# Histogram for subjects and non-subjects
-import operator
-from pandas import Series,DataFrame
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-
-freq1 = {}
-names = list(c.execute("select Name,Sub,Destype,Role from pt where Human = 1"))
-for (Name,Sub,Destype,Role) in names:
-    if not str(Sub).strip().endswith("Sub1"):
-        if Name in freq1:
-           freq1[Name] += 1
-        elif not Name in freq1:
-            freq1[Name] = 1
-
-#Option including compound participants
-#for (Name,Sub,Destype,Role) in names:
-#    real_names = Name.split(",")
-#    real_names = [x.strip() for x in real_names]
-#    for real_name in real_names:
-#        if not str(Sub).strip().endswith("Sub1"):
-#            if Name in freq1:
-#               freq1[Name] += 1
-#            elif not Name in freq1:
-#                freq1[Name] = 1
-
-sortednames = sorted(freq1.items(), key=operator.itemgetter(1))
-topnames = sortednames[-10:]
-
-freqSubj = {}
-freqNonSubj = {}
-for Name,_ in topnames:
-    freqSubj[Name] = list(c.execute("select Destype,Count(*) from pt where Name = :Name and Role in ('Subj','Pred','PreC','PreO') group by Destype order by Destype", {"Name":Name}))
-    freqNonSubj[Name] = list(c.execute("select Destype,Count(*) from pt where Name = :Name and Role not in ('Subj','Pred','PreC','PreO') group by Destype order by Destype", {"Name":Name}))
-
-freqSubj2 = {}
-freqNonSubj2 = {}
-destypes = ["Noun", "Noun_phrase", "Name", "Name_phrase", "Pers_pronoun", "Demonstr_pronoun", "Suffix", "Verb", "Adjective"]
-for Name in freqSubj.keys():
-    freqSubj2[Name] = {}
-    for (Destype, cnt) in freqSubj[Name]:
-        destype_real = destypes[int(Destype)-1]
-        freqSubj2[Name][destype_real] = cnt
-    for x in destypes:
-        if x not in freqSubj2[Name]:
-            freqSubj2[Name][x] = 0
-
-for Name in freqNonSubj.keys():
-    freqNonSubj2[Name] = {}
-    for (Destype, cnt) in freqNonSubj[Name]:
-        destype_real = destypes[int(Destype)-1]
-        freqNonSubj2[Name][destype_real] = cnt
-    for x in destypes:
-        if x not in freqNonSubj2[Name]:
-            freqNonSubj2[Name][x] = 0
-
-dfSubj = DataFrame(freqSubj2).transpose()
-cols = dfSubj.columns.tolist()
-cols = ["Verb","Suffix","Pers_pronoun","Demonstr_pronoun","Adjective","Noun","Noun_phrase","Name","Name_phrase"]
-dfSubj = dfSubj[cols]
-dfSubj2 = dfSubj.divide(dfSubj.sum(axis=1), axis=0)
-dfSubj2
-dfSubj2.plot(kind="bar",stacked=True,title = "Subject or predicate")
-
-dfNonSubj = DataFrame(freqNonSubj2).transpose()
-cols = dfNonSubj.columns.tolist()
-cols = ["Verb","Suffix","Pers_pronoun","Demonstr_pronoun","Adjective","Noun","Noun_phrase","Name","Name_phrase"]
-dfNonSubj = dfNonSubj[cols]
-dfNonSubj2 = dfNonSubj.divide(dfNonSubj.sum(axis=1), axis=0)
-dfNonSubj2
-dfNonSubj2.plot(kind="bar",stacked=True,title = "Non-subject")
-
-plt.show()
-
-
-
-\end{python}
 

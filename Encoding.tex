@@ -8,8 +8,9 @@
 \definecolor{light-gray}{gray}{0.80}
 \usepackage{tikz}
 \usetikzlibrary{calc,shapes, positioning,arrows}
+\usepackage{arydshln}
 
-\usepackage{minted}
+\usepackage{minted1}
 \usepackage{listings}
 \newcommand{\mi}[1]{\lstinline{#1}}
 
@@ -74,7 +75,26 @@ every new ->/.style={shorten >=.3cm}]
 \end{tikzpicture}
 
 \subsubsection{Slots and sub-participants}
-Usually, a sentence has a verb that takes certain elements with it: a subject, sometimes an object, or an indirect object. The verb \hebr{NTN} (``to give''), for example, needs a giver, a receiver and a gift. There can also be `free' optional elements, like a time reference or some other circumstantial information. The places where all these elements can occur, are called `slots'. Participant references occur on these slots.
+Usually, a sentence has a verb that takes certain elements with it: a subject, sometimes an object, or an indirect object. The verb \hebr{NTN} (``to give''), for example, normally has a giver, a receiver and a gift. There can also be `free' optional elements, like a time reference or some other circumstantial information. The places where all these elements can occur, are called `slots'. This is not to say that their relative position within the sentence is fixed as if they had a particular place and word order, but that there is the expectation of some element with a particular semantic relation to the verb. Participant references occur on these slots. See a text portion from \bibleverse{Gen}(1:29) and \bibleverse{Gen}(15:3) for clarification:
+
+\begin{table}[h]
+\begin{tabularx}{\textwidth}{XXlXll}
+\cline{1-1} \cline{3-3} \cline{5-5}
+\multicolumn{1}{|c|}{Gift} &  & \multicolumn{1}{|c|}{Receiver} & & \multicolumn{1}{|c|}{Giver} & \\
+\cline{1-1} \cline{3-3} \cline{5-5}
+\multicolumn{1}{|c|}{\hebr{>T KL <FB ZR< ZR< >CR <L PNJ KL H >RY}} & & \multicolumn{1}{|c|}{\hebr{LKM}} & & \multicolumn{1}{|c|}{\hebr{NTTJ}} & \multicolumn{1}{c}{\bibleverse{Gen}(1:29)} \\
+\cline{1-1} \cline{3-3} \cline{5-5}
+\multicolumn{1}{c}{every herb yielding seed, which} & & \multicolumn{1}{c}{you} & & \multicolumn{1}{l}{I have given} &\\
+\multicolumn{1}{c}{is on the surface of all the earth (...)} & & & & &\\
+\\
+\cline{1-1} \cline{3-3} \cline{5-5}
+\multicolumn{1}{|c|}{Gift} &  & \multicolumn{1}{|c|}{Giver} & & \multicolumn{1}{|c|}{Receiver} & \\
+\cline{1-1} \cline{3-3} \cline{5-5}
+\multicolumn{1}{|c|}{\hebr{ZR<}} & & \multicolumn{1}{|c|}{\hebr{NTTH}} & \multicolumn{1}{c}{\hebr{L>}} & \multicolumn{1}{|c|}{\hebr{LJ}} & \multicolumn{1}{c}{\bibleverse{Gen}(15:3)}\\
+\cline{1-1} \cline{3-3} \cline{5-5}
+\multicolumn{1}{c}{children} & & \multicolumn{1}{c}{you have given} & \multicolumn{1}{c}{not} & \multicolumn{1}{c}{to me} & \\
+\end{tabularx}
+\end{table}
 
 Extensive references can sometimes be `deconstructed' into multiple sub-participants. This is the case, for example, with personal pronouns indicating a possessive relation: the phrase ``his father'' contains a reference to a father, but also to his son. Other examples are words with a \mi{sub_phrase} attached to them, such as ``\emph{fruit} trees \emph{bearing fruit after their kind, with their seeds in it, on the earth}''. This kind of references is dealt with on multiple levels: the reference as a whole is treated as such, but the sub-participants are also taken into account, because they fulfill a function in the text and influence other participant references.
 
@@ -93,14 +113,13 @@ In order to make our data and analyses as clear as possible, we distinguish betw
 In complex cases, such as a \mi{Regens-rectum} relationship within an attributive clause, these labels can be nested.
 In order to avoid unclarity in nested labels, sometimes the `empty' label \mi{0} is used. In this way we can differentiate, for example, between a word that is in a \mi{Rec} relationship to the corresponding \mi{Sub1} and a participant that is part of a larger \mi{Rec} clause without being in a \mi{Rec} relationship itself. The former has the simple label \mi{Rec}, the second is annotated with \mi{Rec 0}. A typical example is a circumstantial phrase within an attributive clause, such as a place reference introduced by a preposition.
 
-\textbf{Is this 0 a good idea?? Also: need to think about imperative with object suffix (``subdue her'').}
-\textbf{Think about constructions like \hebr{>RY KN<N}. Is \hebr{KN<N} Attr or Rec?}
+\textbf{Is this 0 a good idea?? Also: need to think about imperative with object suffix (``subdue her'').} \\
+\textbf{Think about constructions like \hebr{>RY KN<N}. Is \hebr{KN<N} Attr or Rec?} \\
 \textbf{There are inconsistencies in the coding of suffixes attached to Sub1. Is this case `Sub1 Rec' or just `Rec'? Mainly in larger constructions}
 
 In the case of a suffix, the labeling is altered a bit in order to avoid clumsy constructions in which the whole word has a \mi{Super} label, and is then splitted into the word without suffix and the suffix, with a \mi{Sub1} and \mi{Rec} label respectively. If the only difference between a \mi{Super} participant and its \mi{Sub1} is a suffix, the whole word is assigned a label \mi{Super1} (indicating this is a \mi{Super} participant which is almost identical with its \mi{Sub1}), and the suffix is coded as usual.
 
-\paragraph{Types of participants: an example text}
-Some examples of \mi{Rec} sub-participants are printed in blue in the text of \bibleverse{Gen}(3:18-20) below:\\
+\paragraph{Types of participants: an example text} Some examples of \mi{Rec} sub-participants are printed in blue in the text of \bibleverse{Gen}(3:18-20) below:\\
 
 \noindent%
 \begin{tabular}{rl}

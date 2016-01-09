@@ -1,0 +1,1204 @@
+\documentclass{report}
+\usepackage[landscape]{geometry}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage[inline]{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{calc,shapes, positioning,arrows}
+
+\usepackage{bibleref}
+
+\usepackage{minted1}
+%\usepackage{minted}
+\usepackage{listings}
+\newcommand{\mi}[1]{\lstinline{#1}}
+\usepackage{pgfplots}
+
+\makeatletter
+\newenvironment{python}{%
+  \VerbatimEnvironment
+  \minted@resetoptions
+  \setkeys{minted@opt}{}
+      \begin{VerbatimOut}{\jobname.pyg}}
+{%
+      \end{VerbatimOut}
+      \minted@pygmentize{python}
+      \DeleteFile{\jobname.pyg}}
+\makeatother
+
+\usepackage{multicol}
+
+%\usepackage[usenames, dvipsnames]{color}
+%\newcommand{\fixme}[1]{{#1}}
+
+\title{Work flow with gcdata.sqlite and several Python scripts}
+\author{Grietje Commelin}
+
+\begin{document}
+\maketitle
+
+\begin{python}
+{{{ Import all important libraries
+import os, sys, time
+import collections
+import random
+import laf
+from copy import deepcopy
+from laf.fabric import LafFabric
+import etcbc
+from etcbc.preprocess import prepare
+from etcbc.lib import Transcription, monad_set
+from etcbc.trees import Tree
+from etcbc.featuredoc import FeatureDoc
+fabric = LafFabric()
+tr = Transcription()
+          
+#}}}
+\end{python}
+
+\begin{python}
+#{{{ Load the API
+API = fabric.load("etcbc4", "--", "feature-doc", {
+    "xmlids": {"node": False, "edge": False},
+    "features": ('''
+            otype
+            domain
+            function
+            g_cons
+            g_cons_utf8
+            g_lex
+            g_lex_utf8
+            g_nme
+            g_nme_utf8
+            g_pfm
+            g_pfm_utf8
+            g_prs
+            g_prs_utf8
+            g_uvf
+            g_uvf_utf8
+            g_vbe
+            g_vbe_utf8
+            g_vbs
+            g_vbs_utf8
+            g_word
+            g_word_utf8
+            gn
+            lex
+            lex_utf8
+            ls
+            nme
+            nu
+            number
+            pdp
+            pfm
+            prs
+            ps
+            rela
+            sp
+            st
+            tab
+            trailer_utf8
+            txt
+            typ
+            uvf
+            vbe
+            vbs
+            vs
+            vt
+            book
+            chapter
+            label
+            verse
+    ''','''
+            mother
+    '''),
+    "primary": False,
+    "prepare": prepare,
+})
+exec(fabric.localnames.format(var='fabric'))
+
+#}}}
+\end{python}
+
+\begin{python}
+#{{{ Stuff necessary to load parents relationships
+type_info = (
+    ("word", ''),
+    ("subphrase", 'U'),
+    ("phrase", 'P'),
+    ("clause", 'C'),
+    ("sentence", 'S'),
+)
+type_table = dict(t for t in type_info)
+type_order = [t[0] for t in type_info]
+
+pos_table = {
+    'adjv': 'aj',
+    'advb': 'av',
+    'art': 'dt',
+    'conj': 'cj',
+    'intj': 'ij',
+    'inrg': 'ir',
+    'nega': 'ng',
+    'subs': 'n',
+    'nmpr': 'n-pr',
+    'prep': 'pp',
+    'prps': 'pr-ps',
+    'prde': 'pr-dem',
+    'prin': 'pr-int',
+    'verb': 'vb',
+}
+
+ccr_info = {
+    'Adju': ('r', 'Cadju'),
+    'Attr': ('r', 'Cattr'),
+    'Cmpl': ('r', 'Ccmpl'),
+    'CoVo': ('n', 'Ccovo'),
+    'Coor': ('x', 'Ccoor'),
+    'Objc': ('r', 'Cobjc'),
+    'PrAd': ('r', 'Cprad'),
+    'PreC': ('r', 'Cprec'),
+    'Resu': ('n', 'Cresu'),
+    'RgRc': ('r', 'Crgrc'),
+    'Spec': ('r', 'Cspec'),
+    'Subj': ('r', 'Csubj'),
+    'NA':   ('n', 'C'),
+}
+
+tree_types = ('sentence', 'clause', 'clause_atom', 'phrase', 'subphrase', 'word')
+(root_type, leaf_type, clause_type) = (tree_types[0], tree_types[-1], 'clause')
+ccr_table = dict((c[0],c[1][1]) for c in ccr_info.items())
+ccr_class = dict((c[0],c[1][0]) for c in ccr_info.items())
+
+root_verse = {}
+root_clause_atom = {}
+
+for n in NN():
+    otype = F.otype.v(n)
+    if otype == "book" and F.etcbc4_sft_book.v(n) != "Genesis":
+        break
+    elif otype == "chapter" and int(F.etcbc4_sft_chapter.v(n)) > 5:
+        break
+    elif otype == "verse": cur_verse = F.label.v(n)
+    elif otype == "clause_atom":
+        root_verse[n] = cur_verse
+        cur_clause_atom = F.etcbc4_ft_number.v(n)
+    elif otype == "word":
+        root_verse[n] = cur_verse
+        root_clause_atom[n] = cur_clause_atom
+#        print(list(C.parent.v(n)))
+
+tree = Tree(API, otypes = tree_types,
+     clause_type=clause_type,
+     ccr_feature='rela',
+     pt_feature='typ',
+     pos_feature='sp',
+     mother_feature = 'mother',
+     )
+#tree.restructure_clauses(ccr_class)
+results = tree.relations()
+parent = results['eparent']
+sisters = results['sisters']
+children = results['echildren']
+elder_sister = results['elder_sister']
+print("Ready for processing") # Was msg()
+#}}}
+\end{python}
+
+\begin{python}
+#{{{ Import the helper functions
+
+def give_me_your_daughters(n):
+        global F
+        daughters = []
+        for x in Ci.mother.v(n):
+            daughters.append(x)
+            if list(Ci.mother.v(x)) != []:
+                daughters += give_me_your_daughters(x)
+        return(daughters)
+
+def give_me_your_words(n):
+        global F
+        if F.etcbc4_db_otype.v(n) == 'word':
+                return [n]
+        else:
+            list_of_word_lists = [give_me_your_words(c) for c in children[n]]
+            return [item for sublist in list_of_word_lists for item in sublist]
+
+def give_me_your_subphrases(n):
+        global F
+        subphrases = []
+        for x in children[n]:
+            if F.etcbc4_db_otype.v(x) == "subphrase":
+                subphrases.append(x)
+            if children[x] != []:
+                subphrases += give_me_your_subphrases(x)
+        return subphrases
+
+def get_text_of_word_list(word_list):
+        global F
+        return ' '.join(map(F.etcbc4_ft_g_cons_utf8.v, word_list))
+
+def get_cons_of_word_list(word_list):
+        global F
+        return ' '.join(map(F.etcbc4_ft_g_cons.v, word_list))
+
+def give_me_your_parents_up_to(node, parent_type='clause', limit=19):
+    # This function is very dangerous. If you feed it something larger than a clause, stuff explodes.
+        global parent
+        if limit < 0:
+                return []
+        if not node in parent:
+                return ["not in parent"]
+        p = parent[node]
+        if F.etcbc4_db_otype.v(p) == parent_type:
+                return [p]
+        else:
+                return [p] + give_me_your_parents_up_to(p, parent_type, limit-1)
+
+suffix_dict = {
+'W'   : { 'ps' : 'p3', 'nu' : 'sg', 'gn' : 'm' },
+'K'   : { 'ps' : 'p2', 'nu' : 'sg', 'gn' : 'm' },
+'J'   : { 'ps' : 'p1', 'nu' : 'sg', 'gn' : 'unknown' },
+'M'   : { 'ps' : 'p3', 'nu' : 'pl', 'gn' : 'm' },
+'H'   : { 'ps' : 'p3', 'nu' : 'sg', 'gn' : 'f' },
+'HM'  : { 'ps' : 'p3', 'nu' : 'pl', 'gn' : 'm' },
+'KM'  : { 'ps' : 'p2', 'nu' : 'pl', 'gn' : 'm' },
+'NW'  : { 'ps' : 'p1', 'nu' : 'pl', 'gn' : 'unknown' },
+'HW'  : { 'ps' : 'p3', 'nu' : 'sg', 'gn' : 'm' },
+'NJ'  : { 'ps' : 'p1', 'nu' : 'sg', 'gn' : 'unknown' },
+'K='  : { 'ps' : 'p2', 'nu' : 'sg', 'gn' : 'f' },
+'HN'  : { 'ps' : 'p3', 'nu' : 'pl', 'gn' : 'f' },
+'H='  : { 'ps' : 'p3', 'nu' : 'sg', 'gn' : 'unknown' },
+'MW'  : { 'ps' : 'p3', 'nu' : 'pl', 'gn' : 'm' },
+'N'   : { 'ps' : 'p3', 'nu' : 'pl', 'gn' : 'f' },
+'KN'  : { 'ps' : 'p2', 'nu' : 'pl', 'gn' : 'f' },
+}
+
+def insert_dict_in_db(cursor, table, values):
+        columns = ', '.join(values.keys())
+        placeholders = ':'+', :'.join(values.keys())
+        query = 'INSERT INTO %s (%s) VALUES (%s)' % (table, columns, placeholders)
+#        print(query)
+        cursor.execute(query, values)
+
+#}}}
+\end{python}
+
+\chapter{Part-1.py}
+\begin{python}
+# Setup the database stuff
+import sqlite3
+
+db = sqlite3.connect('gcdata.sqlite')
+cursor = db.cursor()
+
+#create_table_query = open("pt.sql").read()
+#cursor.execute(create_table_query)
+
+db.commit()
+
+\end{python}
+
+\begin{python}
+def recognize(Des):
+    Recognize = []
+    Recognize = list(cursor.execute("select Name,Anim,Human,Col from pt where Des=:Des and not Destype=8 ORDER BY Tag DESC LIMIT 1", {"Des":Des, }))
+    if Recognize == []:
+        return []
+    else:
+        return Recognize
+
+\end{python}
+
+\begin{python}
+def recognize2(Name):
+    Recognize = []
+    Recognize = list(cursor.execute("select Anim,Human,Col from pt where Name=:Name ORDER BY Tag DESC LIMIT 1", {"Name":Name, }))
+    if Recognize == []:
+        return []
+    else:
+        return Recognize
+
+\end{python}
+
+\begin{python}
+def prepare(place, candidate, node_type, sub):
+    cand = candidate
+    if str(candidate).endswith("s") or str(candidate).endswith("c") or str(candidate).endswith("d"): # Suffix or copied reference
+        cand = int(candidate[:-1]) # If the `candidate' is not a node number, we have to make it so before we are able to retrieve certain information from the database.
+    Recognize = []
+#    current = data[candidate]
+    if node_type == "word+": # Reference is a word or higher-level reference
+        current= {}
+        current["Des"] = get_cons_of_word_list(give_me_your_words(cand))
+        current["a"] = place
+        current["Node"] = candidate
+        nodetype = F.etcbc4_db_otype.v(cand)
+        if nodetype == "word":
+            current["Nodetype"] = "2"
+            current["Role"] = F.etcbc4_ft_function.v(L.u('phrase',cand))
+        elif nodetype in ("subphrase", "phrase", "phrase_atom"):
+            current["Nodetype"] = "3"
+            current["Role"] = F.etcbc4_ft_function.v(cand)
+        elif nodetype in ("clause","clause_atom"):
+            current["Nodetype"] = "4"
+        if not get_cons_of_word_list(give_me_your_words(cand)) == "KL" and not F.etcbc4_ft_sp.v(cand) == "verb": # `KL' is not an independent reference, so the person it refers to is different every time. Therefore it is useless to run the function `Recognize' in this case. Same for verbs: they usually have different subjects the next time.
+            Recognize = recognize(get_cons_of_word_list(give_me_your_words(cand)))
+        if not Recognize == []:
+            current["Name"] = Recognize[0][0]
+            current["Anim"] = Recognize[0][1]
+            current["Human"] = Recognize[0][2]
+            current["Col"] = Recognize[0][3]
+        if not F.etcbc4_ft_prs.v(cand) in ("absent","n/a",None): # Reference has a suffix
+            if str(sub) in ("None", ""):
+                sub = "Super1"
+            else:
+                sub = str(sub) + "Super1"
+        current["Sub"] = sub
+    else: # Reference is a suffix
+        current = {}
+        current["Des"] = F.etcbc4_ft_prs.v(cand)
+        current["Nodetype"] = "1"
+        current["a"] = place
+        current["Node"] = int(cand)
+        current["Destype"] = "7"
+        if str(sub) not in ("", "None"):
+            current["Sub"] = sub
+        else:
+            current["Sub"] = "Rec" # Most probable role for a suffix
+        if F.etcbc4_ft_function.v(L.u('phrase',cand)) in ("ExsS","IntS","ModS","NCoS","PrcS","PreS"):
+            current["Role"] = "Subject"
+        elif F.etcbc4_ft_function.v(L.u('phrase',cand)) in ("PreO","PtcO"):
+            current["Role"] = "Object"
+        else:
+            current["Role"] = "Pos ?" # Will be checked interactively
+    return(current)
+
+\end{python}
+
+\begin{python}
+""" In order to avoid problems with candidates that are not a node number 
+    (but, for example, have an `s' attached to it), in this function we
+    do not use `candidate' to retrieve data from the database, but
+    `data[candidate]["Node"]'.
+"""
+def add_data(data,candidate):
+#    cand = candidate
+#    if str(candidate).endswith("s") or str(candidate).endswith("c") or str(candidate).endwith("d"):
+#        cand = candidate[:-1]
+    current = data[candidate]
+    if current["Nodetype"] == "4":
+        ClANr = current["Node"]
+        current["Cltype"] = F.etcbc4_ft_typ.v(current["Node"])
+    else:
+        ClANr = L.u('clause_atom',current["Node"])
+        current["Cltype"] = F.etcbc4_ft_typ.v(L.u('clause',current["Node"]))
+    current["ClANr"] = ClANr
+    current["Emb"] = F.etcbc4_ft_tab.v(ClANr)
+    if current["Nodetype"] in ("1","2"): # Smaller than phrase, so can have PhANr
+        current["PhANr"] = L.u('phrase',current["Node"])
+    elif current["Nodetype"] == "3": # phrase:
+        current["PhANr"] = current["Node"]
+        current["Phtype"] = F.etcbc4_ft_typ.v(current["Node"])
+        if current["Phtype"] == None: # Apparently node is a subphrase, not a phrase
+            current["Phtype"] = F.etcbc4_ft_typ.v(L.u('phrase',current["Node"]))
+        current["Phfunc"] = F.etcbc4_ft_function.v(current["Node"])
+        if F.etcbc4_db_otype.v(current["Node"]) == 'subphrase':
+            current["SPhNr"] = current["Node"]
+        else:
+            current["SPhNr"] = None
+        current["WNr"] = None
+    if current["Nodetype"] in ("1","2"): # Smaller than subphrase, so can have SPhNr and has WNr
+        current["SPhNr"] = L.u('subphrase',current["Node"])
+        current["WNr"] = F.etcbc4_ft_number.v(current["Node"])
+        current["Phfunc"] = F.etcbc4_ft_function.v(L.u('phrase',current["Node"]))
+        current["Phtype"] = F.etcbc4_ft_typ.v(L.u('phrase',current["Node"]))
+    for x in (current["ClANr"],current["PhANr"],current["SPhNr"],current["WNr"]):
+        if str(x).strip() in (None,"None"):
+            x = 00 
+    if current["WNr"] in (None,"None"): # Should be unnecessary after previous lines, but somewhere there is a bug an I try to find it...
+        current["WNr"] = 00
+    if current["Nodetype"] == "2": # Reference is a word
+        current["P"] = F.etcbc4_ft_ps.v(current["Node"])
+        current["N"] = F.etcbc4_ft_nu.v(current["Node"])
+        current["G"] = F.etcbc4_ft_gn.v(current["Node"])
+        current["Lexset"] = F.etcbc4_ft_ls.v(current["Node"])
+        current["PartSpeech"] = F.etcbc4_ft_sp.v(current["Node"])
+    elif current["Nodetype"] == "1": # Reference is a suffix
+        current["P"] = suffix_dict[F.etcbc4_ft_prs.v(current["Node"])]['ps']    # Since the suffix_features are not yet available in the ETCBC database, we extract them from a dictionary based on surface consonants
+        current["N"] = suffix_dict[F.etcbc4_ft_prs.v(current["Node"])]['nu']
+        current["G"] = suffix_dict[F.etcbc4_ft_prs.v(current["Node"])]['gn']
+        current["Lexset"] = "suffix"
+    current["Tag"] = current["a"].rjust(15,' ') + "_" + str(current["ClANr"]).rjust(9,'0') + "_" + str(current["PhANr"]).rjust(9,'0') + "_" + str(current["WNr"]).rjust(9,'0') + "_" + str(current["Nodetype"])
+    if current["Tag"] in list(cursor.execute("select Tag from pt")): # Double-check whether this work
+        current["Tag"] = current["Tag"][:-1]+"0"
+        if current["Tag"] in list(cursor.execute("select Tag from pt")):
+            current["Tag"] = current["Tag"][:-1]+"1"
+            if current["Tag"] in list(cursor.execute("select Tag from pt")):
+                current["Tag"] = current["Tag"][:-1]+"2"
+    if "None" in current["Tag"]:
+        print("Problem!!!!!!!!!!!!!!!!! Tag is not correct!", current)
+    else:
+        return(current)
+
+\end{python}
+
+\begin{python}
+def interactive_single(data,candidate):
+    current = add_data(data,candidate)
+    print(current["a"])
+    print("clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',current["Node"])))) 
+    print("suffix:", current["Des"])
+    current["Sub"] = input("Is this a sub-participant? Default 'Prep' ") or "Prep" 
+    current["Name"] = input("What is the name of the referent? : ")
+    current["Anim"] = input("1=Animate, 2=Non-animate: ")
+    if current["Anim"] == "2":
+        current["Human"] = "None"
+    else:
+        current["Human"] = input("1=Human (or divine), 2=Non-human, 3=Humans included: ")
+    current["Col"] = input("Is the participant an individual (1), collective (2) or an individual in a compound design (3)? Or dual/plural?(4)")
+    if current["Col"] in ("2","3","4"):
+        current["Referents"] = input("Contextually relevant referents that are part of Name: ")
+        current["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
+    else:
+        current["Referents"] = None
+        current["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
+    current["Role"] = input("Role in sentence? Default is Prep") or "Prep" 
+    insert_dict_in_db(cursor,"pt",current)
+
+\end{python}
+
+\begin{python}
+def interactive_clan(data,clan_members):
+    format_string_a = "{0!s: <9} {1!s: <15} {2!s: <40}"
+    format_string_b = "********* Nodetype: {0!s: <4}, Destype: {1!s: <4}, Name: {2!s: <10}, Anim: {3!s: <4}, Human: {4!s: <4}, Col: {5!s: <4}, Role: {6!s: <8}"
+    print(data[clan_members[-1]]["a"], " Clause:", get_cons_of_word_list(give_me_your_words(L.u('clause',clan_members[-1]))))
+#    print("Nodetypes: 1=Part_suffix, 2=Part_word, 3=Part_(sub)phrase, 4=Part_clause, 5=Part_sentence")
+#    print("Destypes: 1=Noun, 2=Noun_phrase, 3=Name, 4=Name_phrase, 5=Pers_pronoun, 6=Demonstr_pronoun, 7=Suffix, 8=Verb, 9=Adjective, 10=PtcA, 11=PtcP")
+#    print("Anim: 1=Animate, 2-Non-animate; Human: 1=Human, 2=Non-human, 3=Humans included")
+#    print("Col: 1=Individual, 2=Collective, 3=Individual in compound design, 4=Plural")
+    for candidate in clan_members:
+        current = data[candidate]
+        for x in ["Nodetype","Destype","Name","Anim","Human","Col"]:
+            if not x in current:
+                current[x] = None
+        if F.etcbc4_db_otype.v(candidate) == "word" and not current["Nodetype"] == "1":
+            current["Nodetype"] = "2"
+        if current["Destype"] == "1":
+            current["Nodetype"] = "2"
+        if current["Anim"] == "2":
+            current["Human"] = "2"
+        print(format_string_a.format(candidate, current["Sub"], current["Des"]))
+        print(format_string_b.format(current["Nodetype"], current["Destype"], current["Name"], current["Anim"], current["Human"], current["Col"], current["Role"]))
+    clan_members2 = list(clan_members)
+    for candidate in clan_members:
+        current = data[candidate]
+        copy = input("Do you need a copy of reference " + str(candidate) + "? Default 'N' ") or "N"
+        if copy == "Y":
+            copy_ref = str(candidate)+"c"
+            clan_members2.append(copy_ref)
+            data[copy_ref] = deepcopy(current)
+            copy2 = input("Do you need another copy of reference " + str(candidate) + "? Default 'N' ") or "N"
+            if copy2 == "Y":
+                copy2_ref = str(candidate)+"d"
+                clan_members2.append(copy2_ref)
+                data[copy2_ref] = deepcopy(current)
+        elif copy == "X":
+            data.pop(candidate, None)
+            clan_members2.remove(candidate)
+            if clan_members2 == []:
+                return
+    clan_members3 = list(clan_members2)
+    for candidate in clan_members2:
+        current = data[candidate]
+        for x in ["Nodetype","Destype","Name","Role"]:
+            if current[x] in (None,"None"):
+                current[x] = input(str(x) + " of node " + str(candidate) + ": ")
+                if current["Destype"] == "X":
+                    data.pop(candidate, None)
+                    clan_members3.remove(candidate)
+                    if clan_members3 == []:
+                        return
+        current["Sub"] = input("Sub of node " + str(candidate) + ", default is: " + str(current["Sub"]) + " ") or current["Sub"]
+        if str(current["Name"]).endswith("!"):
+            current["Name"] = current["Name"][:-1]
+            Recognize = recognize2(current["Name"]) 
+            if not Recognize == []:
+                current["Anim"] = Recognize[0][0]
+                current["Human"] = Recognize[0][1]
+                current["Col"] = Recognize[0][2]
+        for x in ["Anim","Human","Col"]:
+            if current[x] in (None,"None"):
+                current[x] = input(str(x) + " of node " + str(candidate) + ": ")
+    for candidate in clan_members3:
+        current = data[candidate]
+        print(format_string_a.format(candidate, current["Sub"], current["Des"]))
+        print(format_string_b.format(current["Nodetype"], current["Destype"], current["Name"], current["Anim"], current["Human"], current["Col"], current["Role"]))
+    for candidate in clan_members3:
+        current = data[candidate]
+        check = input("Is the data of " + str(candidate) + " correct? Default 'Y' ") or "Y"
+        while check != "Y":
+            for x in ("Des","Sub","Nodetype","Destype","Name","Anim","Human","Col","Role"):
+                current[x] = input(x + " of node " + str(candidate) + ", default = " + str(current[x]) + " ") or current[x] 
+                if current["Destype"] == "X":
+                    data.pop(candidate, None)
+            print(format_string_a.format(candidate, current["Sub"], current["Des"]))
+            print(format_string_b.format(current["Nodetype"], current["Destype"], current["Name"], current["Anim"], current["Human"], current["Col"], current["Role"]))
+            check = input("Is the data correct? Default 'Y' ") or "Y"
+        current["Referents"] = input("Contextually relevant referents that are part of Name: ") or None
+        current["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
+        if check == "Y":
+            add_data(data,candidate)
+            insert_dict_in_db(cursor,"pt",current)
+            db.commit()
+
+\end{python}
+
+\begin{python}
+def flow_clan(place, node, node_type):
+    while F.etcbc4_ft_rela.v(parent[node]) == "rec" or F.etcbc4_ft_rela.v(parent[node]) == "atr": # Regens-rectum relationship or attributive relationship
+        if list(C.mother.v(parent[node])) not in ([],None):
+            node = list(C.mother.v(parent[node]))[0] # Deal with the clan-head instead of a (grand)child
+    clan = {}
+    clan_members = []
+    data = {}
+    if not F.etcbc4_ft_g_cons.v(node) == get_cons_of_word_list(give_me_your_words(parent[node])) and not F.etcbc4_ft_sp.v(give_me_your_words(parent[node])[0]) == "prep":
+        clan[parent[node]] = "Super "
+        clan[node] = "Sub1 "
+    else:
+        clan[node] = None
+    for candidate in give_me_your_daughters(node):
+        if F.etcbc4_db_otype.v(candidate) == "subphrase" and F.etcbc4_ft_rela.v(candidate) == "rec":
+            clan[candidate] = "Rec "
+        elif F.etcbc4_db_otype.v(candidate) == "subphrase" and F.etcbc4_ft_rela.v(candidate) == "atr":
+            clan[candidate] = "Attr "
+        if len(L.d('word',candidate)) == 1 and get_cons_of_word_list(give_me_your_words(candidate)) == F.etcbc4_ft_g_cons.v(L.d('word',candidate)[0]):
+            clan[L.d('word',candidate)[0]] = deepcopy(clan[candidate])
+            del clan[candidate]
+            candidate = L.d('word',candidate)[0] 
+        for x in C.mother.v(candidate):
+            if not parent[x] in clan:
+                clan[parent[x]] = "Super "
+    for candidate in clan:
+        clan_members.append(candidate)
+        subdata = deepcopy(clan[candidate])
+        data[candidate] = prepare(place, candidate, "word+", subdata)
+        if not F.etcbc4_ft_prs.v(candidate) in ("absent","n/a",None):
+            candidate2 = str(candidate)+"s"
+            clan_members.append(candidate2)
+            data[candidate2] = prepare(place, candidate2, "suffix", subdata)
+    interactive_clan(data,clan_members)
+
+\end{python}
+\begin{python}
+#How much Direct Speech?
+from pandas import Series,DataFrame
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib2tikz import save as tikz_save
+data = {}
+DSU = False
+books = []
+
+for node in NN():
+    otype = F.etcbc4_db_otype.v(node)
+    if otype == "book":
+        book = F.etcbc4_sft_book.v(node)
+        books.append(book)
+        data[book] = {"direct_speech" : 0, "narrative" : 0}
+    elif otype == "clause":
+        DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
+        if DSU:
+            data[book]["direct_speech"] += 1
+        else:
+            data[book]["narrative"] += 1
+
+df = DataFrame(data,columns=books).transpose()
+df.plot(kind="bar",legend=False)
+plt.savefig("plots/narrative_speech.pgf", bbox_inches="tight")
+tikz_save("plots/narrative_speech.tex")
+plt.show()
+
+\end{python}
+
+\input{plots/narrative_speech.pgf}
+
+
+\begin{python}
+# Find all subjects in narrative and direct speech sections in whole OT 
+# NOTE: Names, pronouns etc often are accompanied by a finite verb. This verb should not be counted as a "verb" referent. Idea for a solution: check for every "verb" referent whether there is another referent with the same name in de same clause --> should not be counted as a "verb". The problem is that a referent's name is only known for part of Genesis; it is not part of the ETCBC data. Therefore we have to work around this by deleting from the plot all finite verbs that occur in a clause that has a subject phrase - assuming these verbs and subjects belong to the same referent. My hypothesis is that for such a large corpus the error rate will be quite small.
+
+import operator
+from pandas import Series,DataFrame
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+DSU = False
+potential_ref = False
+potential_suffix = False
+nar_data = {}
+speech_data = {}
+nar_phrases = []
+speech_phrases = []
+
+for node in NN():
+    otype = F.etcbc4_db_otype.v(node)
+    if otype == "verse":
+        place = F.etcbc4_sft_label.v(node)
+    elif otype == "clause":
+        DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
+    elif F.etcbc4_db_otype.v(node) == "word" and DSU == False:
+        potential_ref = False
+        potential_suffix = False
+        if not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA")):
+            potential_ref = True
+            phrase = L.u('phrase',node)
+            if not phrase in nar_phrases and DSU == False:
+                nar_phrases.append(phrase)
+            if not phrase in speech_phrases and DSU == True:
+                speech_prhases.append(phrase) 
+        if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
+            potential_suffix = True
+            if F.etcbc4_ft_function.v(L.u('phrase',node)) in ('PreS','ExsS','IntS','ModS','NCoS','PrcS'): # Subject suffix
+                if DSU == False:
+                    nar_data[node] = {"node":node,"destype":"suffix"}
+                elif DSU == True:
+                    speech_data[node] = {"node":node,"destype":"suffix"}
+
+\end{python}
+
+\begin{python}
+# NOTE: this function and the next one still need to be adapted from working with one data dict to working with two (nar_data and speech_data)
+nonverbs = []
+verbs = []
+
+for phrase in ref_phrases:
+    if F.etcbc4_ft_function.v(phrase) in ('Subj','Pred','PreC','PreO'):
+        data[phrase] = {}
+        data[phrase]["node"] = phrase
+        phrase_nodes = give_me_your_words(phrase)
+        phrase_cons = list(map(F.etcbc4_ft_g_cons.v, phrase_nodes))
+        for x in phrase_cons:
+            if len(x) == 1:
+                phrase_cons.remove(x)
+        if len(phrase_cons) > 1:
+            if F.etcbc4_ft_sp.v(phrase_nodes[0]) == "nmpr" or F.etcbc4_ft_ls.v(phrase_nodes[1]) == "nmpr":
+                data[phrase]["destype"] = "name_phrase"
+                nonverbs.append(L.u('clause',phrase))
+            else:
+                data[phrase]["destype"] = "phrase"
+                nonverbs.append(L.u('clause',phrase))
+        elif len(phrase_cons) == 1:
+            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "verb":
+                if F.etcbc4_ft_vt.v(phrase_nodes[-1]) == "ptca":
+                    data[phrase]["destype"] = "ptca"
+                    verbs.append((L.u('clause',phrase),phrase))
+                elif F.etcbc4_ft_vt.v(phrase_nodes[-1]) == "ptcp":
+                    data[phrase]["destype"] = "ptcp"
+                    verbs.append((L.u('clause',phrase),phrase))
+                else:
+                    data[phrase]["destype"] = "verb"
+                    verbs.append((L.u('clause',phrase),phrase))
+            elif F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "subs":
+                data[phrase]["destype"] = "noun"
+                nonverbs.append(L.u('clause',phrase))
+            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "nmpr":
+                data[phrase]["destype"] = "name"
+                nonverbs.append(L.u('clause',phrase))
+            elif F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "prps":
+                data[phrase]["destype"] = "personal_pronoun"
+                nonverbs.append(L.u('clause',phrase))
+            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "prde":
+                data[phrase]["destype"] = "demonstr_pronoun"
+                nonverbs.append(L.u('clause',phrase))
+            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "adjv":
+                data[phrase]["destype"] = "adjective"
+                nonverbs.append(L.u('clause',phrase))
+
+for (verb_clause,phrase) in verbs:
+    if verb_clause in nonverbs: # There is already a more extensive subject reference in the same clause, so we assume the verb is not a reference on its own
+        del data[phrase]
+        if phrase in data:
+            print("problem: still double")
+        
+# Check if everything went well
+# Check fails, for there are compount subjects. These are multiple referents in the same clause
+
+check = {}
+for key in data:
+    if L.u('clause',key) in check:
+#        print("Oops!", key)
+        check[L.u('clause',key)].append((key,data[key]["destype"]))
+    else:
+        check[L.u('clause',key)] = []
+        check[L.u('clause',key)].append((key,data[key]["destype"]))
+    
+#print(data)
+                
+\end{python}
+
+\begin{python}
+# Make histogram
+import operator
+from pandas import Series,DataFrame
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+#df = DataFrame(np.random.rand(6,4))
+
+
+df = DataFrame(data).transpose()
+t2 = df['destype'].value_counts()
+t3 = Series(t2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
+t3.plot(kind="bar")
+plt.show()
+
+\end{python}
+\begin{python}
+#{{{ Commit and close the database
+db.commit()
+db.close()
+#}}}
+\end{python}
+
+\chapter{Part-2.py}
+\begin{python}
+# Load database
+import json as j
+import sqlite3
+
+db = sqlite3.connect('gcdata.sqlite')
+#db.row_factory = sqlite3.Row
+c = db.cursor()
+
+\end{python}
+
+From gcdata.gcdsu we want to extract the \mi{DSU_Tag}, so that we can easily see
+whether various participant references occur in the same DSU or in a different one.
+For each DSU we create a dictionary item with its \mi{Tag}, \mi{place} and \mi{clause_atom_numbers}.
+We then check of which DSU the \mi{clause_atom_number} of the current participant
+reference is part, and store its \mi{Tag} in the column \mi{DSU}.
+
+\begin{python}
+# Assign DSU and Level
+DSU_Tags = list(cursor.execute("select DSUtag,Level,ClANrs from gcdsu"))
+pts = list(cursor.execute("select Tag,a,ClANr from pt where DSU is null or DSU = ''"))
+
+DSU = {}
+
+for (Tag,a,ClANr) in pts:
+    for (DSUtag,Level,ClANrs) in DSU_Tags:
+        if str(ClANr) in ClANrs.split(","):
+            cursor.execute("update pt set DSU=:DSUtag,Level=:Level where a=:a and ClANr=:ClANr", {"DSUtag":DSUtag,"Level":Level,"a":a,"ClANr":str(ClANr)})
+            DSU[Tag] = DSUtag
+
+\end{python}
+
+\begin{python}
+# Feed participants back to DSU
+DSU_todo = list(cursor.execute("select DSUtag from gcdsu where Part is NULL or Part = '' or Part = '[]'"))
+
+for (DSUtag,) in DSU_todo:
+    print(DSUtag)
+    parts = []
+    data = []
+    references = list(cursor.execute("select Tag,Name,Referents,ColPart from pt where DSU=:DSU", {"DSU":DSUtag, }))
+    for (Tag,Name,Referents,ColPart) in references:
+        if not Name in ("None",None):
+            for x in Name.split(","):
+                if not x.strip() in parts:
+                    parts.append(x)
+        if not Referents in ("None",None):
+            for x in Referents:
+                for y in x:
+                    for z in y.split(","):
+                        if not z.strip() in parts:
+                            parts.append(z.strip())
+        if not ColPart in ("None",None):
+            for x in ColPart:
+                for y in x:
+                    for z in y.split(","):
+                        if not z.strip() in parts:
+                            parts.append(z.strip())
+    cursor.execute("update gcdsu set Part=:Part where DSUtag=:DSUtag", {"Part":str(parts), "DSUtag":DSUtag})
+
+\end{python}
+
+In order to facilitate the combination of information between SQlite rows,
+we assign a number to each participant reference, indicating how many times
+this participant has been referred to, including the current reference.
+Later on, we can then identify the \mi{Ref}-values by selecting values with the
+same \mi{Name} and a \mi{Nr} that is 1 lower than the current \mi{Nr}.
+A difficulty arises when a participant is referred to as part of a group,
+e.g. ``God said to them...'' meaning both the man and the woman of \bibleverse{Gen}[1].
+Therefore I provide two kinds of information:
+\begin{itemize}
+\item A \mi{Nr} that indicates the number of occurrences of exactly the same referent. This is relevant for \mi{Prev}-data and \mi{Ref}-data.
+\item I mention the names of relevant referents that are included in other referents etc in the column \mi{Referents}, so that these can be counted and processed later on (e.g. to see how often someone is referred to in a particular DSU).
+\end{itemize}
+Note: In de first 15 chapters of Genesis, this data has not been entered consistently. This needs to be checked.
+Remark / question: What to do with sub-participants like possessive pronouns?
+Another aspect that adds complexity, is the occurrence of sub-participants.
+I do not count them in the column \mi{Nr}, but their name is stored in the columns
+\mi{Name} and \mi{Referents}.
+
+
+\begin{python}
+#{{{ Assign Nr - new try
+nrs_todo = list(cursor.execute("select Sub, Name, Tag, Nr from pt where Nr is null or Nr = ''"))  # Select all rows that need a Nr
+nrs = {}    # Create dict for all relevant Names + their Nrs
+
+for (Sub, Name, Tag, Nr) in nrs_todo:
+    Name = str(Name).strip()
+    if not str(Sub).strip().endswith('Sub1'):
+        if Name in nrs:
+            newnr = nrs[Name] + 1
+        elif Name not in nrs:
+            oldnr = list(cursor.execute("select Nr from pt where Name=:Name and not Nr is NULL ORDER BY Tag DESC LIMIT 1", {"Name":Name,}))
+            if oldnr in ([],None) or oldnr[0][0] in ('',None):
+                newnr = 1
+            else:
+                newnr = int(oldnr[0][0]) + 1
+        nrs[Name] = newnr
+        cursor.execute("update pt set Nr=:newnr where Tag=:Tag", {"newnr":newnr, "Tag":Tag})
+        print(Name,Sub,nrs[Name])
+
+#}}}
+\end{python}
+
+Below we do a for-loop over all rows in gcdata.pt that still miss certain data,
+and update them with information about the preceding reference to this participant (\mi{Ref}),
+the previous reference (irrespective of the participant) (\mi{Prev}) and the first reference
+to this participant (\mi{1}).
+
+We repeat the process for other information. Putting all these columns in one
+for-loop would overload them and make the code unclear.
+
+\begin{python}
+#{{{ Update Ref, Prev and *1-data
+all_tags = list(cursor.execute("select Tag from pt ORDER BY Tag"))
+todo = list(cursor.execute("select Tag,Name,Nr from pt where RefNode is null or RefNode = ''"))
+
+for (Tag,Name,Nr) in todo:
+    Refdata = list(cursor.execute("select DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Name=:Name ORDER BY Tag DESC LIMIT 1", {"Name":Name, })) # Ref-data
+    cursor.execute("update pt set RefDSU=:DSU, Refa=:a, RefClANr=:ClANr, RefPhANr=:PhANr, RefNode=:Node, RefNodetype=:Nodetype, RefWNr =:WNr where Name=:Name and Nr=:Nr",{"DSU":Refdata[0][0],"a":Refdata[0][1],"ClANr":Refdata[0][2],"PhANr":Refdata[0][3],"Node":Refdata[0][4],"Nodetype":Refdata[0][5],"WNr":Refdata[0][6],"Name":Name,"Nr":Nr}) 
+    Onedata = list(cursor.execute("select DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Name=:Name ORDER BY Tag LIMIT 1", {"Name":Name, })) # *1-data
+    cursor.execute("update pt set DSU1=:DSU, a1=:a, ClANr1=:ClANr, PhANr1=:PhANr, Node1=:Node, Nodetype1=:Nodetype, WNr1=:WNr where Name=:Name and Nr=:Nr",{"DSU":Onedata[0][0],"a":Onedata[0][1],"ClANr":Onedata[0][2],"PhANr":Onedata[0][3],"Node":Onedata[0][4],"Nodetype":Onedata[0][5],"WNr":Onedata[0][6],"Name":Name,"Nr":Nr}) 
+
+    index = [y[0] for y in all_tags].index(Tag)  # Check the index of this row in the ordered list all_tags, in order to find the previous row = Prev_data 
+    if index == 0:  # Apparently this is the first row of the table
+        Prevdata = list(cursor.execute("select Name, DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Tag=:Tag",{"Tag":Tag, })) # Prev-data for first entry
+    else:
+        prev_Tag = all_tags[(index-1)][0]
+        Prevdata = list(cursor.execute("select Name, DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Tag=:prev_Tag",{"prev_Tag":prev_Tag, })) # Prev-data
+    cursor.execute("update pt set PrevName =:PrevName, PrevDSU=:DSU, Preva=:a, PrevClANr=:ClANr, PrevPhANr=:PhANr, PrevNode=:Node, PrevNodetype=:Nodetype, PrevWNr =:WNr where Name=:Name and Nr=:Nr",{"PrevName":Name,"DSU":Prevdata[0][0],"a":Prevdata[0][1],"ClANr":Prevdata[0][2],"PhANr":Prevdata[0][3],"Node":Prevdata[0][4],"Nodetype":Prevdata[0][5],"WNr":Prevdata[0][6],"Name":Name,"Nr":Nr}) 
+
+for (Tag,Name,Nr) in todo:
+    Refdata = list(cursor.execute("select Con, Level, Emb, Des, Destype, Role, P, N, G, Lexset, PartSpeech from pt where Name=:Name ORDER BY Tag DESC LIMIT 1", {"Name":Name, })) # Ref-data
+    cursor.execute("update pt set RefCon=:Con, RefLevel=:Level, RefEmb=:Emb, RefDes=:Des, RefDestype=:Destype, RefRole=:Role, RefP=:P, RefN=:N, RefG=:G, RefLexset=:Lexset, RefPartSpeech=:PartSpeech where Name=:Name", {"Con":Refdata[0][0],"Level":Refdata[0][1],"Emb":Refdata[0][2],"Des":Refdata[0][3],"Destype":Refdata[0][4],"Role":Refdata[0][5],"P":Refdata[0][6],"N":Refdata[0][7],"G":Refdata[0][8],"Lexset":Refdata[0][9],"PartSpeech":Refdata[0][10],"Name":Name})
+    index = [y[0] for y in all_tags].index(Tag)  # Check the index of this row in the ordered list all_tags, in order to find the previous row = Prev_data 
+    if index == 0:  # Apparently this is the first row of the table
+        Prevdata = list(cursor.execute("select Con, Level, Emb, Des, Destype, Role, P, N, G, Lexset, PartSpeech from pt where Tag=:Tag",{"Tag":Tag, })) # Prev-data for first entry
+    else:
+        prev_Tag = all_tags[(index-1)][0]
+        Prevdata = list(cursor.execute("select Con, Level, Emb, Des, Destype, Role, P, N, G, Lexset, PartSpeech from pt where Tag=:prev_Tag",{"prev_Tag":prev_Tag, })) # Prev-data
+    cursor.execute("update pt set PrevCon=:Con, PrevLevel=:Level, PrevEmb=:Emb, PrevDes=:Des, PrevDestype=:Destype, PrevRole=:Role, PrevP=:P, PrevN=:N, PrevG=:G, PrevLexset=:Lexset, PrevPartSpeech=:PartSpeech where Tag=:Tag", {"Con":Prevdata[0][0],"Level":Prevdata[0][1],"Emb":Prevdata[0][2],"Des":Prevdata[0][3],"Destype":Prevdata[0][4],"Role":Prevdata[0][5],"P":Prevdata[0][6],"N":Prevdata[0][7],"G":Prevdata[0][8],"Lexset":Prevdata[0][9],"PartSpeech":Prevdata[0][10],"Tag":Tag})
+#}}}
+\end{python}
+
+\end{document}
+#sagemathcloud={"latex_command":"pdflatex -synctex=1 -shell-escape -interact=nonstopmode 'workflow2.tex'"}
+
+\begin{python}
+# Add extra destypes
+todo = list(c.execute("select Node,Nodetype from pt where Destype=8"))
+
+for (Node,Nodetype) in todo:
+    if F.etcbc4_ft_vt.v(int(Node)) == "ptca":
+        new_destype = 10
+        c.execute("update pt set Destype=:new_destype where Node=:Node and Nodetype=:Nodetype", {"new_destype":new_destype,"Node":Node,"Nodetype":Nodetype})
+    elif F.etcbc4_ft_vt.v(int(Node)) == "ptcp":
+        new_destype = 11
+        c.execute("update pt set Destype=:new_destype where Node=:Node and Nodetype=:Nodetype", {"new_destype":new_destype,"Node":Node,"Nodetype":Nodetype})
+
+\end{python}
+
+\begin{python}
+# Recovery function
+#todo = list(cursor.execute("select Node,Tag,a,ClANr,PhANr,WNr,Nodetype from pt where WNr is NULL or WNr = 'None'"))
+todo = list(cursor.execute("select Node,Tag,a,ClANr,PhANr,WNr,Nodetype from pt where Node = '7514' or Node = '7517' or Node = '7520' or Node = '7521' or Node = '1262342'"))
+
+for (Node,Tag,a,ClANr,PhANr,WNr,Nodetype) in todo:
+    ClANr2 = L.u('clause_atom',int(Node))
+    if ClANr2 == None:
+        ClANr2 = 00
+    PhANr2 = L.u('phrase',int(Node))
+    if PhANr2 == None:
+        if F.etcbc4_db_otype.v(int(Node)) in ('phrase','subphrase'):
+            PhANr2 = Node
+        else:
+            PhANr2 = 00
+    WNr2 = L.u('word',int(Node))
+    if WNr2 == None:
+        if F.etcbc4_db_otype.v(int(Node)) == 'word':
+            WNr2 = Node
+        else:
+            WNr2 = 00
+#        print(Tag,ClANr,ClANr2,PhANr,WNr)
+    newtag = a.rjust(15,' ') + "_" + str(ClANr2).rjust(9,'0') + "_" + str(PhANr2).rjust(9,'0') + "_" + str(WNr2).rjust(9,'0') + "_" + str(Nodetype)
+    print(Node,F.etcbc4_db_otype.v(int(Node)),Tag,newtag)
+#    if PhANr != PhANr2:
+#        print(PhANr,PhANr2)
+#    if WNr != WNr2:
+#        print(WNr,WNr2)
+    cursor.execute("update pt set PhANr=:PhANr2, WNr=:WNr2, Tag=:Tag where Node=:Node", {"PhANr2":PhANr2,"WNr2":WNr2,"Tag":newtag,"Node":Node})
+
+\end{python}
+
+\begin{python}
+# Recovery function for Cltype and Phtype
+todo = list(c.execute("select Node,Nodetype from pt where Phtype is NULL;"))
+for (Node,Nodetype) in todo:
+    if Nodetype == "4":
+        Cltype = F.etcbc4_ft_typ.v(int(Node))
+    elif Nodetype in ("1","2","3"):
+        Cltype = F.etcbc4_ft_typ.v(L.u('clause',int(Node)))
+    if Nodetype == "3":
+        Phtype = F.etcbc4_ft_typ.v(int(Node))
+    elif Nodetype in ("1","2") or Phtype is None:
+        Phtype = F.etcbc4_ft_typ.v(L.u('phrase',int(Node)))
+    print(Node,Nodetype,Cltype,Phtype)
+    c.execute("update pt set Cltype=:Cltype, Phtype=:Phtype where Node=:Node and Nodetype=:Nodetype", {"Cltype":Cltype, "Phtype":Phtype, "Node":Node, "Nodetype":Nodetype})
+
+\end{python}
+
+\begin{python}
+# Test function
+done = []
+test = list(c.execute("select * from pt"))
+for i in range(84):
+    todo = True
+    for x in test:
+        if x[i] == None:
+            todo = True
+        else: 
+            todo = False
+            done.append(i)
+            break
+
+print("done: ",done)
+for i in range(84):
+    if not i in done:
+        print("todo: ", i)
+\end{python}
+
+\begin{python}
+catch = False
+words = []
+
+for node in NN():
+    otype = F.etcbc4_db_otype.v(node)
+    if otype == "book" and not F.etcbc4_sft_book.v(node) == "Genesis":
+        break
+    if otype == "verse":
+        catch = False
+        place = F.etcbc4_sft_label.v(node)
+        if place == " GEN 01,01":
+            print("catch!")
+            catch = True
+        else:
+            break
+    elif otype == "word" and catch == True:
+        print(node)
+        words.append(node)
+
+print(words, len(words))
+for x in words:
+    cons = F.etcbc4_ft_g_cons.v(x)
+    print(x,cons,len(cons))
+
+\end{python}
+
+
+
+\begin{python}
+# Function to test for identical Tags (which should not occur)
+Tags = []
+double = []
+data = list(cursor.execute("select ID,Tag from pt"))
+for (ID,Tag) in data:
+    if Tag in Tags:
+        double.append((ID,Tag))
+    else:
+        Tags.append(Tag)
+
+for (ID,Tag) in double:
+    Tag = str(Tag) +"0"
+    cursor.execute("update pt set Tag=:Tag where ID=:ID",{"Tag":Tag,"ID":"ID"})
+
+\end{python}
+
+\begin{python}
+# Make histogram
+import operator
+from pandas import Series,DataFrame
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+#df = DataFrame(np.random.rand(6,4))
+
+freq1 = {}
+names = list(c.execute("select Name,Sub,Destype from pt where Human = 1"))
+for (Name,Sub,Destype) in names:
+    if not str(Sub).strip().endswith("Sub1"):
+        if Name in freq1:
+            freq1[Name] += 1
+        elif not Name in freq1:
+            freq1[Name] = 1
+
+sortednames = sorted(freq1.items(), key=operator.itemgetter(1))
+topnames = sortednames[-10:]
+
+freq2 = {}
+for Name,_ in topnames:
+    freq2[Name] = list(c.execute("select Destype,Count(*) from pt where Name = :Name group by Destype order by Destype", {"Name":Name}))
+
+freq3 = {}
+destypes = ["Noun", "Noun_phrase", "Name", "Name_phrase", "Pers_pronoun", "Demonstr_pronoun", "Suffix", "Verb", "Adjective"]
+for Name in freq2.keys():
+    freq3[Name] = {}
+    for (Destype, cnt) in freq2[Name]:
+        destype_real = destypes[int(Destype)-1]
+        freq3[Name][destype_real] = cnt
+    for x in destypes:
+        if x not in freq3[Name]:
+            freq3[Name][x] = 0
+
+df = DataFrame(freq3).transpose()
+cols = df.columns.tolist()
+cols = ["Verb","Suffix","Pers_pronoun","Demonstr_pronoun","Adjective","Noun","Noun_phrase","Name","Name_phrase"]
+df = df[cols]
+df2 = df.divide(df.sum(axis=1), axis=0)
+df2
+df2.plot(kind="bar",stacked=True)
+plt.show()
+
+\end{python}
+
+\begin{python}
+# Histogram for subjects and non-subjects
+import operator
+from pandas import Series,DataFrame
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+#pd.options.display.mpl_style='default'
+
+freq1 = {}
+names = list(c.execute("select Name,Sub,Destype,Role from pt where Human = 1"))
+for (Name,Sub,Destype,Role) in names:
+    if not str(Sub).strip().endswith("Sub1"):
+        if Name in freq1:
+           freq1[Name] += 1
+        elif not Name in freq1:
+            freq1[Name] = 1
+
+#Option including compound participants
+#for (Name,Sub,Destype,Role) in names:
+#    real_names = Name.split(",")
+#    real_names = [x.strip() for x in real_names]
+#    for real_name in real_names:
+#        if not str(Sub).strip().endswith("Sub1"):
+#            if Name in freq1:
+#               freq1[Name] += 1
+#            elif not Name in freq1:
+#                freq1[Name] = 1
+
+sortednames = sorted(freq1.items(), key=operator.itemgetter(1))
+topnames = sortednames[-10:]
+
+freqSubj = {}
+freqNonSubj = {}
+PreO = []
+for Name,_ in topnames:
+    freqSubj[Name] = list(c.execute("select Destype,Count(*) from pt where Name = :Name and Role in ('Subj','Pred','PreC','PreS') group by Destype order by Destype", {"Name":Name}))
+    freqNonSubj[Name] = list(c.execute("select Destype,Count(*) from pt where Name = :Name and Role not in ('Subj','Pred','PreC','PreS','PreO') group by Destype order by Destype", {"Name":Name}))
+    PreO = list(c.execute("select Destype,Count(*) from pt where Name=:Name and Role = 'PreO' group by Destype order by Destype", {"Name":Name})) # PreO has both a verb (the 'Pre') and a suffix (the 'O'). The first belongs to freqSubj, the second to freqNonSubj.
+    for (Destype, cnt) in PreO:
+        if Destype == "8":
+            freqSubj[Name].append((Destype,cnt))
+            print("PreO with Destype 8")
+        elif Destype == "7":
+            freqNonSubj[Name].append((Destype,cnt))
+            print("PreO with Destype 7")
+
+freqSubj2 = {}
+freqNonSubj2 = {}
+destypes = ["Noun", "Noun_phrase", "Name", "Name_phrase", "Pers_pronoun", "Demonstr_pronoun", "Suffix", "Verb", "Adjective", "PtcA", "PtcP"]
+for Name in freqSubj.keys():
+    freqSubj2[Name] = {}
+    for (Destype, cnt) in freqSubj[Name]:
+        destype_real = destypes[int(Destype)-1]
+        freqSubj2[Name][destype_real] = cnt
+    for x in destypes:
+        if x not in freqSubj2[Name]:
+            freqSubj2[Name][x] = 0
+
+for Name in freqNonSubj.keys():
+    freqNonSubj2[Name] = {}
+    for (Destype, cnt) in freqNonSubj[Name]:
+        destype_real = destypes[int(Destype)-1]
+        freqNonSubj2[Name][destype_real] = cnt
+    for x in destypes:
+        if x not in freqNonSubj2[Name]:
+            freqNonSubj2[Name][x] = 0
+
+dfSubj = DataFrame(freqSubj2).transpose()
+cols = dfSubj.columns.tolist()
+cols = ["Verb","PtcA","PtcP","Suffix","Pers_pronoun","Demonstr_pronoun","Adjective","Noun","Noun_phrase","Name","Name_phrase"]
+dfSubj = dfSubj[cols]
+dfSubj2 = dfSubj.divide(dfSubj.sum(axis=1), axis=0)
+dfSubj2
+dfSubj2.plot(kind="bar",stacked=True,legend='reverse',title = "Subject or predicate")
+
+dfNonSubj = DataFrame(freqNonSubj2).transpose()
+cols = dfNonSubj.columns.tolist()
+cols = ["Verb","PtcA","PtcP","Suffix","Pers_pronoun","Demonstr_pronoun","Adjective","Noun","Noun_phrase","Name","Name_phrase"]
+dfNonSubj = dfNonSubj[cols]
+dfNonSubj2 = dfNonSubj.divide(dfNonSubj.sum(axis=1), axis=0)
+dfNonSubj2
+dfNonSubj2.plot(kind="bar",stacked=True,legend='reverse',title = "Non-subject")
+
+plt.show()
+\end{python}
+
+\subsection{Runge's encoding contexts}
+
+Runge defines the following encoding contexts (Runge p.90):\\
+\emph{Subject contexts}
+\begin{itemize}
+    \item INT -- initial introduction of a brand new participant
+    \item S1 -- participant was the subject of the immediately preceding clause
+    \item S1+ -- participant was the subject of the immediately preceding clause, and at least one other subject participant is added in the present clause to create a compound subject
+    \item S2 -- participant was the addressee of a speech reported in preceding clause
+    \item S3 -- participant was in non-subject role other than addressee in preceding clause
+    \item S4 -- participant is semi-active/accessible, context is other than those covered by S1-3
+    \item S5 -- participant is inactive, context is other than those covered by S1-S4
+\end{itemize}
+
+\emph{Non-subject contexts}
+\begin{itemize}
+    \item INT -- initial introduction of brand new participant
+    \item N1 -- participant was in the same non-subject role in the preceding clause
+    \item N2 -- participant was the speaker in a speech reported in the preceding clause
+    \item N3 -- participant was in a role in the preceding clause other than N1-N2
+    \item N4 -- participant is semi-active/accessible, context is other than those covered by N1-3
+    \item N5 -- participant is inactive, context is other than those covered by N1-N4
+\end{itemize}
+
+\begin{python}
+# Runge
+
+\end{python}

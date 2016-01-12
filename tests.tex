@@ -52,6 +52,12 @@ from etcbc.trees import Tree
 from etcbc.featuredoc import FeatureDoc
 fabric = LafFabric()
 tr = Transcription()
+import operator
+from pandas import Series,DataFrame
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib2tikz import save as tikz_save
           
 #}}}
 \end{python}
@@ -593,11 +599,6 @@ def flow_clan(place, node, node_type):
 \end{python}
 \begin{python}
 #How much Direct Speech?
-from pandas import Series,DataFrame
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib2tikz import save as tikz_save
 data = {}
 DSU = False
 books = []
@@ -618,23 +619,60 @@ for node in NN():
 df = DataFrame(data,columns=books).transpose()
 df.plot(kind="bar",legend=False)
 plt.savefig("plots/narrative_speech.pgf", bbox_inches="tight")
-tikz_save("plots/narrative_speech.tex")
+tikz_save("plots/narrative_speech.tex") #Does not work, creates only empty plot
 plt.show()
 
 \end{python}
 
 \input{plots/narrative_speech.pgf}
 
+\subsection{Encoding of references after prepositions in OT}
 
 \begin{python}
-# Find all subjects in narrative and direct speech sections in whole OT 
-# NOTE: Names, pronouns etc often are accompanied by a finite verb. This verb should not be counted as a "verb" referent. Idea for a solution: check for every "verb" referent whether there is another referent with the same name in de same clause --> should not be counted as a "verb". The problem is that a referent's name is only known for part of Genesis; it is not part of the ETCBC data. Therefore we have to work around this by deleting from the plot all finite verbs that occur in a clause that has a subject phrase - assuming these verbs and subjects belong to the same referent. My hypothesis is that for such a large corpus the error rate will be quite small.
+# Under construction
+def ref_types_prep(data,phrases): #function called in next code block
+    for phrase in phrases:
+        data[phrase] = {"node": phrase}
+        phrase_nodes = give_me_your_words(phrase)[1:] # The prep needs not be processed furhter
+        phrase_cons = list(map(F.etcbc4_ft_g_cons.v, phrase_nodes))[1:] # The prep needs not be processed further
+        for x in phrase_cons:
+            if len(x) == 1:
+                phrase_cons.remove(x)
+        if len(phrase_cons) > 1:
+            name_phrase = False
+            for y in phrase_nodes:
+                if F.etcbc4_ft_sp.v(y) == "nmpr":
+                    data[phrase]["destype"] = "name_phrase"
+                    name_phrase = True
+            if name_phrase == False:
+                data[phrase]["destype"] = "phrase"
+        elif len(phrase_cons) == 1:
+            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "verb":
+                if F.etcbc4_ft_vt.v(phrase_nodes[-1]) == "ptca":
+                    data[phrase]["destype"] = "ptca"
+                    clause = L.u('clause',phrase)
+                elif F.etcbc4_ft_vt.v(phrase_nodes[-1]) == "ptcp":
+                    data[phrase]["destype"] = "ptcp"
+                    clause = L.u('clause',phrase)
+                else:
+                    data[phrase]["destype"] = "verb" # Will likely not occur with objects
+                    clause = L.u('clause',phrase)
+            elif F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "subs":
+                data[phrase]["destype"] = "noun"
+            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "nmpr":
+                data[phrase]["destype"] = "name"
+            elif F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "prps":
+                data[phrase]["destype"] = "personal_pronoun"
+            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "prde":
+                data[phrase]["destype"] = "demonstr_pronoun"
+            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "adjv":
+                data[phrase]["destype"] = "adjective"
+    return(data)
+                    
+\end{python}
+\begin{python}
+# Find all references after a preposition in narrative and direct speech sections in whole OT 
 
-import operator
-from pandas import Series,DataFrame
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
 DSU = False
 potential_ref = False
 potential_suffix = False
@@ -645,62 +683,201 @@ speech_phrases = []
 
 for node in NN():
     otype = F.etcbc4_db_otype.v(node)
+#    if otype == "book" and F.etcbc4_sft_book.v(node) == "Judices":
+#        break
     if otype == "verse":
         place = F.etcbc4_sft_label.v(node)
     elif otype == "clause":
         DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
-    elif F.etcbc4_db_otype.v(node) == "word" and DSU == False:
+    elif F.etcbc4_db_otype.v(node) == "word":
         potential_ref = False
         potential_suffix = False
         if not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA")):
             potential_ref = True
             phrase = L.u('phrase',node)
-            if not phrase in nar_phrases and DSU == False:
+            phrase_nodes = give_me_your_words(phrase)
+            if DSU == False and F.etcbc4_ft_sp.v(phrase_nodes[0]) == "prep" and not F.etcbc4_ft_g_cons.v(phrase_nodes[0]) == ">T" and not phrase in nar_phrases:
                 nar_phrases.append(phrase)
-            if not phrase in speech_phrases and DSU == True:
-                speech_prhases.append(phrase) 
+            if DSU == True and F.etcbc4_ft_sp.v(phrase_nodes[0]) == "prep" and not F.etcbc4_ft_g_cons.v(phrase_nodes[0]) == ">T" and not phrase in speech_phrases:
+                speech_phrases.append(phrase) 
         if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
             potential_suffix = True
-            if F.etcbc4_ft_function.v(L.u('phrase',node)) in ('PreS','ExsS','IntS','ModS','NCoS','PrcS'): # Subject suffix
+            if F.etcbc4_ft_sp.v(node) == "prep" and not F.etcbc4_ft_g_cons.v(node) == ">T":
                 if DSU == False:
                     nar_data[node] = {"node":node,"destype":"suffix"}
                 elif DSU == True:
                     speech_data[node] = {"node":node,"destype":"suffix"}
 
+nar_data = ref_types_prep(nar_data,nar_phrases)
+speech_data = ref_types_prep(speech_data,speech_phrases)
+
 \end{python}
 
 \begin{python}
-# NOTE: this function and the next one still need to be adapted from working with one data dict to working with two (nar_data and speech_data)
-nonverbs = []
-verbs = []
+# Make histogram of prep destypes in OT
+nar = DataFrame(nar_data).transpose()
+nar2 = nar['destype'].value_counts()
+nar3 = Series(nar2,index = ["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
+nar3.plot(kind="bar",title="Narrative")
+plt.savefig("plots/Destypes_of_Prep_Narrative_OT.pgf", bbox_inches="tight")
 
-for phrase in ref_phrases:
-    if F.etcbc4_ft_function.v(phrase) in ('Subj','Pred','PreC','PreO'):
-        data[phrase] = {}
-        data[phrase]["node"] = phrase
+speech = DataFrame(speech_data).transpose()
+speech2 = speech['destype'].value_counts()
+speech3 = Series(speech2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
+speech3.plot(kind="bar",title="Direct Speech")
+plt.savefig("plots/Destypes_of_Prep_Speech_OT.pgf", bbox_inches="tight")
+
+plt.show()
+
+\end{python}
+\subsection{Object encoding in OT}
+
+\begin{python}
+def ref_types_obj(data,phrases): #function called in next code block
+    for phrase in phrases:
+        data[phrase] = {"node": phrase}
+        phrase_nodes = give_me_your_words(phrase)
+        phrase_cons = list(map(F.etcbc4_ft_g_cons.v, phrase_nodes))
+        for x in phrase_cons:
+            if len(x) == 1:
+                phrase_cons.remove(x)
+#            if len(phrase_cons) > 1 and not phrase_cons[0] == ">T": # Excludes objects introduced by >T. Can easily be changed to get the reverse result, but then be careful for one-word-objects that become two-word-ones by >T.
+        if len(phrase_cons) > 2 and phrase_cons[0] == ">T": # For >T
+            name_phrase = False
+            for y in phrase_nodes:
+                if F.etcbc4_ft_sp.v(y) == "nmpr":
+                    data[phrase]["destype"] = "name_phrase"
+                    name_phrase = True
+            if name_phrase == False:
+                data[phrase]["destype"] = "phrase"
+#            elif len(phrase_cons) == 1:
+        elif len(phrase_cons) == 2 and phrase_cons[0] == ">T": # for >T
+            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "verb":
+                if F.etcbc4_ft_vt.v(phrase_nodes[-1]) == "ptca":
+                    data[phrase]["destype"] = "ptca"
+                    clause = L.u('clause',phrase)
+                elif F.etcbc4_ft_vt.v(phrase_nodes[-1]) == "ptcp":
+                    data[phrase]["destype"] = "ptcp"
+                    clause = L.u('clause',phrase)
+                else:
+                    data[phrase]["destype"] = "verb" # Will likely not occur with objects
+                    clause = L.u('clause',phrase)
+            elif F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "subs":
+                data[phrase]["destype"] = "noun"
+            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "nmpr":
+                data[phrase]["destype"] = "name"
+            elif F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "prps":
+                data[phrase]["destype"] = "personal_pronoun"
+            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "prde":
+                data[phrase]["destype"] = "demonstr_pronoun"
+            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "adjv":
+                data[phrase]["destype"] = "adjective"
+    return(data)
+                    
+
+\end{python}
+
+\begin{python}
+# Find all objects in narrative and direct speech sections in whole OT 
+
+DSU = False
+potential_ref = False
+potential_suffix = False
+nar_data = {}
+speech_data = {}
+nar_phrases = []
+speech_phrases = []
+
+for node in NN():
+    otype = F.etcbc4_db_otype.v(node)
+#    if otype == "book" and F.etcbc4_sft_book.v(node) == "Judices":
+#        break
+    if otype == "verse":
+        place = F.etcbc4_sft_label.v(node)
+    elif otype == "clause":
+        DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
+    elif F.etcbc4_db_otype.v(node) == "word":
+        potential_ref = False
+        potential_suffix = False
+        if not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA")):
+            potential_ref = True
+            phrase = L.u('phrase',node)
+            
+            if DSU == False and F.etcbc4_ft_function.v(phrase) == "Objc" and not phrase in nar_phrases:
+                nar_phrases.append(phrase)
+            if DSU == True and F.etcbc4_ft_function.v(phrase) == "Objc" and not phrase in speech_phrases:
+                speech_phrases.append(phrase) 
+        if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
+            potential_suffix = True
+            if F.etcbc4_ft_g_cons.v(node) == ">T": # for >T
+#            if F.etcbc4_ft_function.v(L.u('phrase',node)) in ('PreO','PtcO'): # Object suffix
+                if DSU == False:
+                    nar_data[node] = {"node":node,"destype":"suffix"}
+                elif DSU == True:
+                    speech_data[node] = {"node":node,"destype":"suffix"}
+
+nar_data = ref_types_obj(nar_data,nar_phrases)
+speech_data = ref_types_obj(speech_data,speech_phrases)
+
+\end{python}
+
+\begin{python}
+# Make histogram of object destypes in OT
+nar = DataFrame(nar_data).transpose()
+nar2 = nar['destype'].value_counts()
+nar3 = Series(nar2,index = ["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
+nar3.plot(kind="bar",title="Narrative")
+#plt.savefig("plots/Destypes_of_Objects_Narrative_OT.pgf", bbox_inches="tight")
+plt.savefig("plots/Destypes_of_>T_Narrative_OT.pgf", bbox_inches="tight")
+
+speech = DataFrame(speech_data).transpose()
+speech2 = speech['destype'].value_counts()
+speech3 = Series(speech2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
+speech3.plot(kind="bar",title="Direct Speech")
+#plt.savefig("plots/Destypes_of_Objects_Speech_OT.pgf", bbox_inches="tight")
+plt.savefig("plots/Destypes_of_>T_Speech_OT.pgf", bbox_inches="tight")
+
+plt.show()
+
+\end{python}
+
+
+\subsection{Subject encoding in OT}
+\begin{python}
+def ref_types_subj(data,phrases): #function called in next code block
+    nonverbs = []
+    verbs = []
+    for phrase in phrases:
+        data[phrase] = {"node":phrase}
         phrase_nodes = give_me_your_words(phrase)
         phrase_cons = list(map(F.etcbc4_ft_g_cons.v, phrase_nodes))
         for x in phrase_cons:
             if len(x) == 1:
                 phrase_cons.remove(x)
         if len(phrase_cons) > 1:
-            if F.etcbc4_ft_sp.v(phrase_nodes[0]) == "nmpr" or F.etcbc4_ft_ls.v(phrase_nodes[1]) == "nmpr":
-                data[phrase]["destype"] = "name_phrase"
-                nonverbs.append(L.u('clause',phrase))
-            else:
+            name_phrase = False
+            for y in phrase_nodes:
+                if F.etcbc4_ft_sp.v(y) == "nmpr":
+                    data[phrase]["destype"] = "name_phrase"
+                    nonverbs.append(L.u('clause',phrase))
+                    name_phrase = True
+            if name_prhase == False:
                 data[phrase]["destype"] = "phrase"
                 nonverbs.append(L.u('clause',phrase))
         elif len(phrase_cons) == 1:
             if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "verb":
                 if F.etcbc4_ft_vt.v(phrase_nodes[-1]) == "ptca":
                     data[phrase]["destype"] = "ptca"
-                    verbs.append((L.u('clause',phrase),phrase))
+                    clause = L.u('clause',phrase)
+                    verbs.append((clause,phrase))
                 elif F.etcbc4_ft_vt.v(phrase_nodes[-1]) == "ptcp":
                     data[phrase]["destype"] = "ptcp"
-                    verbs.append((L.u('clause',phrase),phrase))
+                    clause = L.u('clause',phrase)
+                    verbs.append((clause,phrase))
                 else:
                     data[phrase]["destype"] = "verb"
-                    verbs.append((L.u('clause',phrase),phrase))
+                    clause = L.u('clause',phrase)
+                    verbs.append((clause,phrase))
             elif F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "subs":
                 data[phrase]["destype"] = "noun"
                 nonverbs.append(L.u('clause',phrase))
@@ -716,46 +893,78 @@ for phrase in ref_phrases:
             if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "adjv":
                 data[phrase]["destype"] = "adjective"
                 nonverbs.append(L.u('clause',phrase))
+    print("number of items:", len(data))
+    for (verb_clause,phrase) in verbs:
+        if verb_clause in nonverbs: # There is already a more extensive subject reference in the same clause, so we assume the verb is not a reference on its own
+            del data[phrase]
+            if phrase in data:
+                print("problem: still double")
+    print("new number of items:" , len(data))
+    return(data)
+                    
 
-for (verb_clause,phrase) in verbs:
-    if verb_clause in nonverbs: # There is already a more extensive subject reference in the same clause, so we assume the verb is not a reference on its own
-        del data[phrase]
-        if phrase in data:
-            print("problem: still double")
-        
-# Check if everything went well
-# Check fails, for there are compount subjects. These are multiple referents in the same clause
+\end{python}
+\begin{python}
+# Find all subjects in narrative and direct speech sections in whole OT 
+# NOTE: Names, pronouns etc often are accompanied by a finite verb. This verb should not be counted as a "verb" referent. Idea for a solution: check for every "verb" referent whether there is another referent with the same name in de same clause --> should not be counted as a "verb". The problem is that a referent's name is only known for part of Genesis; it is not part of the ETCBC data. Therefore we have to work around this by deleting from the plot all finite verbs that occur in a clause that has a subject phrase - assuming these verbs and subjects belong to the same referent. My hypothesis is that for such a large corpus the error rate will be quite small.
 
-check = {}
-for key in data:
-    if L.u('clause',key) in check:
-#        print("Oops!", key)
-        check[L.u('clause',key)].append((key,data[key]["destype"]))
-    else:
-        check[L.u('clause',key)] = []
-        check[L.u('clause',key)].append((key,data[key]["destype"]))
-    
-#print(data)
-                
+DSU = False
+potential_ref = False
+potential_suffix = False
+nar_data = {}
+speech_data = {}
+nar_phrases = []
+speech_phrases = []
+
+for node in NN():
+    otype = F.etcbc4_db_otype.v(node)
+    if otype == "book" and F.etcbc4_sft_book.v(node) == "Judices":
+        break
+    elif otype == "verse":
+        place = F.etcbc4_sft_label.v(node)
+    elif otype == "clause":
+        DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
+    elif F.etcbc4_db_otype.v(node) == "word":
+        potential_ref = False
+        potential_suffix = False
+        if not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA")):
+            potential_ref = True
+            phrase = L.u('phrase',node)
+            if DSU == False and F.etcbc4_ft_function.v(phrase) in ('Subj','Pred','PreC','PreO') and not phrase in nar_phrases: #PreS is already covered with its suffix
+                nar_phrases.append(phrase)
+            if DSU == True and F.etcbc4_ft_function.v(phrase) in ('Subj','Pred','PreC','PreO') and not phrase in speech_phrases: #PreS is already covered with its suffix
+                speech_phrases.append(phrase) 
+        if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
+            potential_suffix = True
+            if F.etcbc4_ft_function.v(L.u('phrase',node)) in ('PreS','ExsS','IntS','ModS','NCoS','PrcS'): # Subject suffix
+                if DSU == False:
+                    nar_data[node] = {"node":node,"destype":"suffix"}
+                elif DSU == True:
+                    speech_data[node] = {"node":node,"destype":"suffix"}
+
+nar_data = ref_types_subj(nar_data,nar_phrases)
+speech_data = ref_types_subj(speech_data,speech_phrases)
+
 \end{python}
 
 \begin{python}
 # Make histogram
-import operator
-from pandas import Series,DataFrame
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-#df = DataFrame(np.random.rand(6,4))
+nar = DataFrame(nar_data).transpose()
+nar2 = nar['destype'].value_counts()
+nar3 = Series(nar2,index = ["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
+nar3.plot(kind="bar",title="Narrative")
+plt.savefig("plots/Destypes_of_Subjects_Narrative_OT.pgf", bbox_inches="tight")
 
+speech = DataFrame(speech_data).transpose()
+speech2 = speech['destype'].value_counts()
+speech3 = Series(speech2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
+speech3.plot(kind="bar",title="Direct Speech")
+plt.savefig("plots/Destypes_of_Subjects_Speech_OT.pgf", bbox_inches="tight")
 
-df = DataFrame(data).transpose()
-t2 = df['destype'].value_counts()
-t3 = Series(t2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-t3.plot(kind="bar")
 plt.show()
 
 \end{python}
+
 \begin{python}
 #{{{ Commit and close the database
 db.commit()
@@ -763,7 +972,7 @@ db.close()
 #}}}
 \end{python}
 
-\chapter{Part-2.py}
+
 \begin{python}
 # Load database
 import json as j

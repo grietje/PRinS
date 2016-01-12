@@ -9,6 +9,10 @@
 \usepackage{tikz}
 \usetikzlibrary{calc,shapes, positioning,arrows}
 \usepackage{arydshln}
+%\usepackage[utf8]{inputenc}
+%\usepackage{fontspec}
+%\uespackage{pgfplots}
+\usepackage{pgf}
 
 \usepackage{minted1}
 \usepackage{listings}
@@ -180,6 +184,7 @@ How extensive this relevant context is, can vary. Sub-participants, for example,
 In order to get an impression of the possibilities to express participant references on various slots, below is an overview of options that occur in direct speech sections of the Old Testament. The frequency of the various options does of course differ, and there are many other factors that are not taken into account here. But at least we can learn from \emph{missing} types of encoding that these apparently fall outside the range of available options.
 
 \paragraph{Subject encoding}
+
 \begin{itemize}
 \item With (verbal) inflection: \bibleverse{Gen}(14:22) \\ \hebr{\cl{red}{HRJMTJ} JDJ >L JHWH >L <LJWN QNH CMJM W >RY} \\ ``I have lifted up my hand to Yahweh, God Most High, possessor of heaven and earth...''
 \item With a suffix (on verb): \bibleverse{Gen}(2:17) \\ \hebr{B JWM \cl{red}{>KLK} MMNW MWT TMWT} \\``... in the day that you eat of it, you will surely die.''
@@ -202,6 +207,16 @@ HW> JCLX ML>KW L PNJK
 ``Yahweh, the God of heaven -- who took me from my father’s house, and from the land of my birth, who spoke to me, and who swore to me, saying, `I will give this land to your offspring' -- he will send his angel before you...''
 \end{itemize}
 
+Not all of these options occur with the same frequency. See below for the statistics for the whole Hebrew Bible, splitted for narrative texts and direct speech texts. Note that direct speech texts include books and text portions that are generally called poetic or prophetic.
+\begin{figure}
+\input{plots/Destypes_of_Subjects_Speech_OT.pgf}
+\caption{Subject references}
+\end{figure}
+\begin{figure}
+\input{plots/Destypes_of_Subjects_Narrative_OT.pgf}
+\caption{Subject references}
+\end{figure}
+
 \paragraph{Object encoding}
 Objects are sometimes introduced by the nota objecti \hebr{>T}. These are dealt with in section \ref{prep}, because the ETCBC database sees \hebr{>T} as a preposition. Indirect objects are also introduced with a preposition. \textcolor{blue}{Always?} Objects without a preposition can be encoded in the following ways:
 \begin{itemize}
@@ -216,6 +231,17 @@ Objects are sometimes introduced by the nota objecti \hebr{>T}. These are dealt 
 \item With an adjective: \bibleverse{Gen}(3:22) \\ \hebr{HN H >DM HJH K >XD MMNW L D<T \cl{red}{VWB} W \cl{red}{R<W}} \\ ``Behold, the man has become like one of us, knowing good and evil.''
 \item With a phrase (multiple words): \bibleverse{Gen}(1:11) \\ \hebr{TDC> H >RY DC> <FB MZRJ< ZR< \cl{red}{<Y PRJ <FH PRJ L MJNW >CR ZR<W BW} <L H >RY} \\ ``Let the earth yield grass, herbs yielding seeds, and fruit trees bearing fruit after their kind, with their seeds in it, on the earth.''
 \end{itemize}
+
+Some statistics of object references in the Hebrew Bible:
+
+\begin{figure}
+\input{plots/Destypes_of_Objects_Speech_OT.pgf}
+\caption{Destypes of objects}
+\end{figure}
+\begin{figure}
+\input{plots/Destypes_of_Objects_Narrative_OT.pgf}
+\caption{Destypes of objects}
+\end{figure}
 
 \paragraph{Encoding options after prepositions}\label{prep}
 The Old Testament has many prepositions, usually followed by participant references. The option of encoding a participant by (verbal) inflection obviously is not available for prepositions, since these do not have inflection. They just serve as an introduction to a participant reference, and do not form part of the reference themselves. Except for inflection (and zero encoding), all options are available for prepositions, as will be shown with examples below.
@@ -233,6 +259,16 @@ The Old Testament has many prepositions, usually followed by participant referen
 \item With an adjective: \bibleverse{Gen}(18:23) \\ \hebr{H>P TSPH YDJQ \cl{red}{<M RC<}} \\ ``Will you consume the righteous with the wicked?''
 \end{itemize}
 
+Statistics of these references:
+\begin{figure}
+\input{plots/Destypes_of_Prep_Narrative_OT.pgf}
+\caption{References after prepositions}
+\end{figure}
+\begin{figure}
+\input{plots/Destypes_of_Prep_Speech_OT.pgf}
+\caption{References after prepositions}
+\end{figure}
+
 \paragraph{Nota objecti \hebr{>T}}
 A special category are the nota objecti \hebr{>T} and the nota accusativi \hebr{JT} (occurring only once, in \bibleverse{Dan}(3:12)). These introduce an object slot, and have the same options as other prepositions, except for the personal pronoun, which does not occur anywhere in the Old Testament.
 \begin{itemize}
@@ -246,6 +282,16 @@ A special category are the nota objecti \hebr{>T} and the nota accusativi \hebr{
 \item With an adjective: \bibleverse{Gen}(22:2) \\ \hebr{QX N> >T BNK \cl{red}{>T JXJDK} >CR >HBT >T JYXQ} \\ ``Now take your son, your only [son], whom you love, Isaac [GC]''
 \end{itemize}
 These options can be extended by \mi{subphrases} or elaborate descriptions of the object, thus creating an extensive participant reference. The reference to \bibleverse{Gen}(22:2) can serve as an example here.
+
+Statistics of these references:
+\begin{figure}
+\input{plots/Destypes_of_>T_Narrative_OT.pgf}
+\caption{Object references with \hebr{>T}}
+\end{figure}
+\begin{figure}
+\input{plots/Destypes_of_>T_Speech_OT.pgf}
+\caption{Object references with \hebr{>T}}
+\end{figure}
 
 \paragraph{\mi{Rec} sub-participants}
 Sub-participants annotated with the \mi{rectum} part of the \mi{Regens-rectum relation} are, as we have seen above, not directly dependent on the grammatical context beyond the word that reigns them. We therefore consider words annotated as \mi{Regens} as a separate category of introduction, followed by an alternative `slot'. Since this relationship only occurs on words, it is not assigned to suffixes. However, I think there are suffixes fulfilling a comparable function:
@@ -281,13 +327,13 @@ Examples of references with a different identity:
 \hline
 \emph{Available encoding options} & \emph{Subject} & \emph{Object} & \emph{On prepositions} & \cjRL{>T} & \emph{Sub-participants (Rec)} \\ \hline
 \emph{Verbal inflection} & Yes & No & No & No & No \\ \hline
-\emph{Suffix} & Yes & Yes & Yes & Yes & Yes (comparable) \\ \hline
-\emph{Personal pronoun} & Yes & No & Yes & No & Yes (same identity) \\ \hline
-\emph{Demonstrative pronoun} & Yes & Yes & Yes & Yes & Yes (at least with same identity)\\ \hline
-\emph{Interrogative pronoun} & Yes & Yes & Yes & Yes & Yes \\ \hline
-\emph{Verb (participle)} & Yes & Yes & Yes & Yes & Yes \\ \hline
+\emph{Suffix} & Yes & Yes & Yes & No & Yes (comparable) \\ \hline
+\emph{Personal pronoun} & Yes & Very rare & Very rare & No & Yes (same identity) \\ \hline
+\emph{Demonstrative pronoun} & Yes & Yes & Very rare & Very rare & Yes (at least with same identity)\\ \hline
+%\emph{Interrogative pronoun} & Yes & Yes & Yes & Yes & Yes \\ \hline
+\emph{Verb (participle)} & Yes & Rare & Yes & Rare & Yes \\ \hline
 \emph{Noun} & Yes & Yes & Yes & Yes & Yes \\ \hline
-\emph{Personal noun} & Yes & Yes & Yes & Yes & Yes \\ \hline
+\emph{Name} & Yes & Yes & Yes & Yes & Yes \\ \hline
 \emph{Adjective} & Yes & Yes & Yes & Yes & Yes \\ \hline
 \emph{Phrase} & Yes & Yes & Yes & Yes & Yes \\ \hline
 \end{tabularx}

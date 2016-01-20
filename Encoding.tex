@@ -11,8 +11,12 @@
 \usepackage{arydshln}
 %\usepackage[utf8]{inputenc}
 %\usepackage{fontspec}
-%\uespackage{pgfplots}
+\usepackage{pgfplots}
 \usepackage{pgf}
+\def\barcolor{red!80!black}
+\def\barcolorr{blue!80!white}
+\def\bardrawcolor{black}
+\def\xticklabel{rotate = 45, anchor = east}
 
 \usepackage{minted1}
 \usepackage{listings}
@@ -77,6 +81,8 @@ every new ->/.style={shorten >=.3cm}]
 \node at (2.5,0.5)[right]{Noun / proper noun / adjective};
 \node at (2.5,0)[right]{Phrase or even clause / sentence};
 \end{tikzpicture}
+
+\input{plots/test.tex}
 
 \subsubsection{Slots and sub-participants}
 Usually, a sentence has a verb that takes certain elements with it: a subject, sometimes an object, or an indirect object. The verb \hebr{NTN} (``to give''), for example, normally has a giver, a receiver and a gift. There can also be `free' optional elements, like a time reference or some other circumstantial information. The places where all these elements can occur, are called `slots'. This is not to say that their relative position within the sentence is fixed as if they had a particular place and word order, but that there is the expectation of some element with a particular semantic relation to the verb. Participant references occur on these slots. See a text portion from \bibleverse{Gen}(1:29) and \bibleverse{Gen}(15:3) for clarification:
@@ -207,15 +213,16 @@ HW> JCLX ML>KW L PNJK
 ``Yahweh, the God of heaven -- who took me from my father’s house, and from the land of my birth, who spoke to me, and who swore to me, saying, `I will give this land to your offspring' -- he will send his angel before you...''
 \end{itemize}
 
-Not all of these options occur with the same frequency. See below for the statistics for the whole Hebrew Bible, splitted for narrative texts and direct speech texts. Note that direct speech texts include books and text portions that are generally called poetic or prophetic.
-\begin{figure}
-\input{plots/Destypes_of_Subjects_Speech_OT.pgf}
-\caption{Subject references}
-\end{figure}
-\begin{figure}
-\input{plots/Destypes_of_Subjects_Narrative_OT.pgf}
-\caption{Subject references}
-\end{figure}
+Not all of these options occur with the same frequency. See below for the statistics for the whole Hebrew Bible, splitted for narrative texts and direct speech texts. Note that direct speech texts include books and text portions that are generally called poetic or prophetic.\\
+
+\noindent
+\begin{minipage}{.5\textwidth}
+\input{plots/Destypes_of_Subjects_Narrative_OT.tex}
+\end{minipage}
+\begin{minipage}{.5\textwidth}
+\centering
+\input{plots/Destypes_of_Subjects_Speech_OT.tex}
+\end{minipage}
 
 \paragraph{Object encoding}
 Objects are sometimes introduced by the nota objecti \hebr{>T}. These are dealt with in section \ref{prep}, because the ETCBC database sees \hebr{>T} as a preposition. Indirect objects are also introduced with a preposition. \textcolor{blue}{Always?} Objects without a preposition can be encoded in the following ways:
@@ -234,14 +241,14 @@ Objects are sometimes introduced by the nota objecti \hebr{>T}. These are dealt 
 
 Some statistics of object references in the Hebrew Bible:
 
-\begin{figure}
-\input{plots/Destypes_of_Objects_Speech_OT.pgf}
-\caption{Destypes of objects}
-\end{figure}
-\begin{figure}
-\input{plots/Destypes_of_Objects_Narrative_OT.pgf}
-\caption{Destypes of objects}
-\end{figure}
+\noindent
+\begin{minipage}{.5\textwidth}
+\input{plots/Destypes_of_Objects_Narrative_OT.tex}
+\end{minipage}
+\begin{minipage}{.5\textwidth}
+\centering
+\input{plots/Destypes_of_Objects_Speech_OT.tex}
+\end{minipage}
 
 \paragraph{Encoding options after prepositions}\label{prep}
 The Old Testament has many prepositions, usually followed by participant references. The option of encoding a participant by (verbal) inflection obviously is not available for prepositions, since these do not have inflection. They just serve as an introduction to a participant reference, and do not form part of the reference themselves. Except for inflection (and zero encoding), all options are available for prepositions, as will be shown with examples below.
@@ -260,14 +267,17 @@ The Old Testament has many prepositions, usually followed by participant referen
 \end{itemize}
 
 Statistics of these references:
-\begin{figure}
-\input{plots/Destypes_of_Prep_Narrative_OT.pgf}
-\caption{References after prepositions}
-\end{figure}
-\begin{figure}
-\input{plots/Destypes_of_Prep_Speech_OT.pgf}
-\caption{References after prepositions}
-\end{figure}
+
+\noindent
+\begin{minipage}{.5\textwidth}
+\input{plots/Destypes_of_Prep_Narrative_OT.tex}
+\end{minipage}
+\begin{minipage}{.5\textwidth}
+\centering
+\input{plots/Destypes_of_Prep_Speech_OT.tex}
+\end{minipage}
+
+The encoding options used after a preposition are similar to those of objects, with the major difference that prepositions can use suffixes.
 
 \paragraph{Nota objecti \hebr{>T}}
 A special category are the nota objecti \hebr{>T} and the nota accusativi \hebr{JT} (occurring only once, in \bibleverse{Dan}(3:12)). These introduce an object slot, and have the same options as other prepositions, except for the personal pronoun, which does not occur anywhere in the Old Testament.
@@ -284,15 +294,16 @@ A special category are the nota objecti \hebr{>T} and the nota accusativi \hebr{
 \item A special kind of extensive reference is seen in, for example, \bibleverse{Gen}(30:29), where an object references exists only of a preposition \hebr{>T} with a subordinated \hebr{>CR} phrase. Here \hebr{>T} thus does not function as a preposition to an object, but is itself the head of an object phrase.
 \end{itemize}
 
-Statistics of these references:
-\begin{figure}
-\input{plots/Destypes_of_>T_Narrative_OT.pgf}
-\caption{Object references with \hebr{>T}}
-\end{figure}
-\begin{figure}
-\input{plots/Destypes_of_>T_Speech_OT.pgf}
-\caption{Object references with \hebr{>T}}
-\end{figure}
+Statistics of these references: \\
+\noindent
+\begin{minipage}{.5\textwidth}
+\input{plots/Destypes_of_>T_Narrative_OT.tex}
+\end{minipage}
+\begin{minipage}{.5\textwidth}
+\centering
+\input{plots/Destypes_of_>T_Speech_OT.tex}
+\end{minipage}
+As can be seen clearly from the bar plots, references introduced by \hebr{>T} are generally nouns, names or phrases. A remarkable difference with other prepositions is that \hebr{>T} does not occur with a suffix if \hebr{>T} denotes an object. \textbf{How about Gen 31:27?}
 
 \textbf{In \bibleverse{Gen}(30:29) and other places, there is an object with only >T, followed by and >CR phrase. (In \bibleverse{Gen}(30:30) there even is a reference where the \hebr{>CR} phrase does not have a head at all).}\\
 \textbf{All >CR phrases have a phrase number different from the reference they are attached to, so they are not included in the plots. Should that be fixed? EDIT: the clause\_feature rela seems to be helpful here, since that tells that the clause is object}

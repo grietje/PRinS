@@ -624,12 +624,82 @@ plt.show()
 
 \end{python}
 
+\begin{python}
+def nicebound(n):
+    import math
+    l = math.floor(math.log10(n))
+    m = (10**l)*math.ceil(2*n/(10**l))
+    return math.floor(m/2)
+
+def barplot(s, fn=None):
+    tex = "\\begin{tikzpicture}[baseline]\n"
+    tex += "\\begin{axis}[\n"
+    # Set up axis options
+    if s.index.name != None:
+        tex += "title = " + s.index.name + ",\n"
+    tex += "xmin=-0.5, "
+    tex += "xmax=" + str(len(s)-1) + ".5,\n"
+    tex += "ymin=0, "
+    tex += "ymax=" + str(nicebound(s.max())) + ",\n"
+    tex += "xtick={" + ",".join([str(n) for n in range(len(s))]) + "},\n"
+    tex += "xticklabels={" + ",".join(s.index).replace("_","\_") + "},\n"
+    tex += "xticklabel style = {\\xticklabel},\n"
+    tex += "]\n"
+    # Draw data bars
+    for i in range(len(s)):
+        tex += "\\draw[draw=\\bardrawcolor,fill=\\barcolor] (axis cs:" + str(i - 0.25)
+        tex += ",0) rectangle (axis cs:" + str(i + 0.25)
+        tex += "," + str(s[i]) + ");\n"
+    tex += "\\end{axis}\n"
+    tex += "\\end{tikzpicture}\n"
+    if fn == None:
+        return tex
+    with open(fn, "w") as tf:
+        print(tex, file=tf)
+
+\end{python}
+
+\begin{python}
+def barplot2(s,t, fn=None):
+    tex = "\\begin{tikzpicture}[baseline]\n"
+    tex += "\\begin{axis}[\n"
+    # Set up axis options
+    if s.index.name != None:
+        tex += "title = \\textcolor{\\barcolor}{" + s.index.name + "}"
+    if t.index.name != None:
+        tex += "\n \\textcolor{\\barcolorr}{" + t.index.name + "}"
+    tex += ",\n"
+    tex += "xmin=-0.5, "
+    tex += "xmax=" + str(len(s)-1) + ".5,\n"
+    tex += "ymin=0, "
+    ymax = max(nicebound(s.max()),nicebound(t.max()))
+    tex += "ymax=" + str(ymax) + ",\n"
+    tex += "xtick={" + ",".join([str(n) for n in range(len(s))]) + "},\n"
+    tex += "xticklabels={" + ",".join(s.index).replace("_","\_") + "},\n"
+    tex += "xticklabel style = {\\xticklabel},\n"
+    tex += "]\n"
+    # Draw data bars
+    for i in range(len(s)):
+        tex += "\\draw[draw=\\bardrawcolor,fill=\\barcolor] (axis cs:" + str(i - 0.25)
+        tex += ",0) rectangle (axis cs:" + str(i)
+        tex += "," + str(s[i]) + ");\n"
+    for i in range(len(t)):
+        tex += "\\draw[draw=\\bardrawcolor,fill=\\barcolorr] (axis cs:" + str(i)
+        tex += ",0) rectangle (axis cs:" + str(i + 0.25)
+        tex += "," + str(t[i]) + ");\n"
+    tex += "\\end{axis}\n"
+    tex += "\\end{tikzpicture}\n"
+    if fn == None:
+        return tex
+    with open(fn, "w") as tf:
+        print(tex, file=tf)
+
+\end{python}
 \input{plots/narrative_speech.pgf}
 
 \subsection{Encoding of references after prepositions in OT}
 
 \begin{python}
-# Under construction
 def ref_types_prep(data,phrases): #function called in next code block
     for phrase in phrases:
         data[phrase] = {"node": phrase}
@@ -669,10 +739,10 @@ def ref_types_prep(data,phrases): #function called in next code block
                 data[phrase]["destype"] = "adjective"
     return(data)
                     
+
 \end{python}
 \begin{python}
 # Find all references after a preposition in narrative and direct speech sections in whole OT 
-
 DSU = False
 potential_ref = False
 potential_suffix = False
@@ -718,16 +788,14 @@ speech_data = ref_types_prep(speech_data,speech_phrases)
 nar = DataFrame(nar_data).transpose()
 nar2 = nar['destype'].value_counts()
 nar3 = Series(nar2,index = ["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-nar3.plot(kind="bar",title="Narrative")
-plt.savefig("plots/Destypes_of_Prep_Narrative_OT.pgf", bbox_inches="tight")
+nar3.index.name = "Destypes after Preposition in Narrative"
+tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Prep_Narrative_OT.tex")
 
 speech = DataFrame(speech_data).transpose()
 speech2 = speech['destype'].value_counts()
 speech3 = Series(speech2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-speech3.plot(kind="bar",title="Direct Speech")
-plt.savefig("plots/Destypes_of_Prep_Speech_OT.pgf", bbox_inches="tight")
-
-plt.show()
+speech3.index.name = "Destypes after Preposition in Direct Speech"
+tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Prep_Speech_OT.tex")
 
 \end{python}
 \subsection{Object encoding in OT}
@@ -826,21 +894,20 @@ speech_data = ref_types_obj(speech_data,speech_phrases)
 nar = DataFrame(nar_data).transpose()
 nar2 = nar['destype'].value_counts()
 nar3 = Series(nar2,index = ["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-nar3.plot(kind="bar",title="Narrative")
-#plt.savefig("plots/Destypes_of_Objects_Narrative_OT.pgf", bbox_inches="tight")
-plt.savefig("plots/Destypes_of_>T_Narrative_OT.pgf", bbox_inches="tight")
+#nar3.index.name = "Destypes of Objects in Narrative"
+#tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Objects_Narrative_OT.tex")
+nar3.index.name = "Destypes after \hebr{>T} in Narrative"
+tex = barplot((nar3.fillna(0)),"plots/Destypes_of_>T_Narrative_OT.tex")
+
 
 speech = DataFrame(speech_data).transpose()
 speech2 = speech['destype'].value_counts()
 speech3 = Series(speech2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-speech3.plot(kind="bar",title="Direct Speech")
-#plt.savefig("plots/Destypes_of_Objects_Speech_OT.pgf", bbox_inches="tight")
-plt.savefig("plots/Destypes_of_>T_Speech_OT.pgf", bbox_inches="tight")
-
-plt.show()
-
+#speech3.index.name = "Destypes of Objects in Direct Speech"
+#tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Objects_Speech_OT.tex")
+speech3.index.name = "Destypes after \hebr{>T} in Direct Speech"
+tex = barplot((speech3.fillna(0)),"plots/Destypes_of_>T_Speech_OT.tex")
 \end{python}
-
 
 \subsection{Subject encoding in OT}
 \begin{python}
@@ -861,7 +928,7 @@ def ref_types_subj(data,phrases): #function called in next code block
                     data[phrase]["destype"] = "name_phrase"
                     nonverbs.append(L.u('clause',phrase))
                     name_phrase = True
-            if name_prhase == False:
+            if name_phrase == False:
                 data[phrase]["destype"] = "phrase"
                 nonverbs.append(L.u('clause',phrase))
         elif len(phrase_cons) == 1:
@@ -952,16 +1019,14 @@ speech_data = ref_types_subj(speech_data,speech_phrases)
 nar = DataFrame(nar_data).transpose()
 nar2 = nar['destype'].value_counts()
 nar3 = Series(nar2,index = ["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-nar3.plot(kind="bar",title="Narrative")
-plt.savefig("plots/Destypes_of_Subjects_Narrative_OT.pgf", bbox_inches="tight")
+nar3.index.name = "Destypes of Subjects in Narrative"
+tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Subjects_Narrative_OT.tex")
 
 speech = DataFrame(speech_data).transpose()
 speech2 = speech['destype'].value_counts()
 speech3 = Series(speech2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-speech3.plot(kind="bar",title="Direct Speech")
-plt.savefig("plots/Destypes_of_Subjects_Speech_OT.pgf", bbox_inches="tight")
-
-plt.show()
+speech3.index.name = "Destypes of Subjects in Direct Speech"
+tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Subjects_Speech_OT.tex")
 
 \end{python}
 

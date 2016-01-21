@@ -971,6 +971,54 @@ def ref_types_subj(data,phrases): #function called in next code block
                     
 
 \end{python}
+
+
+\begin{python}
+# Find all subjects in narrative and direct speech sections in Psalms 
+# NOTE: Names, pronouns etc often are accompanied by a finite verb. This verb should not be counted as a "verb" referent. Idea for a solution: check for every "verb" referent whether there is another referent with the same name in de same clause --> should not be counted as a "verb". The problem is that a referent's name is only known for part of Genesis; it is not part of the ETCBC data. Therefore we have to work around this by deleting from the plot all finite verbs that occur in a clause that has a subject phrase - assuming these verbs and subjects belong to the same referent. My hypothesis is that for such a large corpus the error rate will be quite small.
+
+DSU = False
+potential_ref = False
+potential_suffix = False
+nar_data = {}
+speech_data = {}
+nar_phrases = []
+speech_phrases = []
+Psalms = False
+
+for node in NN():
+    otype = F.etcbc4_db_otype.v(node)
+    if otype == "book" and F.etcbc4_sft_book.v(node) == "Psalmi":
+        Psalms = True
+    elif otype == "book" and not F.etcbc4_sft_book.v(node) == "Psalmi":
+        Psalms = False
+    elif otype == "verse":
+        place = F.etcbc4_sft_label.v(node)
+    elif otype == "clause" and Psalms == True:
+        DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
+    elif F.etcbc4_db_otype.v(node) == "word" and Psalms == True:
+        potential_ref = False
+        potential_suffix = False
+        if not (F.etcbc4_ft_ps.v(node) in ("unknown", "NA") and F.etcbc4_ft_nu.v(node) in ("unknown","NA") and F.etcbc4_ft_gn.v(node) in ("unknown","NA")):
+            potential_ref = True
+            phrase = L.u('phrase',node)
+            if DSU == False and F.etcbc4_ft_function.v(phrase) in ('Subj','Pred','PreC','PreO') and not phrase in nar_phrases: #PreS is already covered with its suffix
+                nar_phrases.append(phrase)
+            if DSU == True and F.etcbc4_ft_function.v(phrase) in ('Subj','Pred','PreC','PreO') and not phrase in speech_phrases: #PreS is already covered with its suffix
+                speech_phrases.append(phrase) 
+        if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
+            potential_suffix = True
+            if F.etcbc4_ft_function.v(L.u('phrase',node)) in ('PreS','ExsS','IntS','ModS','NCoS','PrcS'): # Subject suffix
+                if DSU == False:
+                    nar_data[node] = {"node":node,"destype":"suffix"}
+                elif DSU == True:
+                    speech_data[node] = {"node":node,"destype":"suffix"}
+
+nar_data = ref_types_subj(nar_data,nar_phrases)
+speech_data = ref_types_subj(speech_data,speech_phrases)
+
+\end{python}
+
 \begin{python}
 # Find all subjects in narrative and direct speech sections in whole OT 
 # NOTE: Names, pronouns etc often are accompanied by a finite verb. This verb should not be counted as a "verb" referent. Idea for a solution: check for every "verb" referent whether there is another referent with the same name in de same clause --> should not be counted as a "verb". The problem is that a referent's name is only known for part of Genesis; it is not part of the ETCBC data. Therefore we have to work around this by deleting from the plot all finite verbs that occur in a clause that has a subject phrase - assuming these verbs and subjects belong to the same referent. My hypothesis is that for such a large corpus the error rate will be quite small.
@@ -1019,14 +1067,14 @@ speech_data = ref_types_subj(speech_data,speech_phrases)
 nar = DataFrame(nar_data).transpose()
 nar2 = nar['destype'].value_counts()
 nar3 = Series(nar2,index = ["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-nar3.index.name = "Destypes of Subjects in Narrative in Narrative Books"
-tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Subjects_Narrative_Nar.tex")
+nar3.index.name = "Destypes of Subjects in Narrative in Psalms"
+tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Subjects_Narrative_Psalms.tex")
 
 speech = DataFrame(speech_data).transpose()
 speech2 = speech['destype'].value_counts()
 speech3 = Series(speech2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-speech3.index.name = "Destypes of Subjects in Direct Speech in Narrative Books"
-tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Subjects_Speech_Nar.tex")
+speech3.index.name = "Destypes of Subjects in Direct Speech in Psalms"
+tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Subjects_Speech_Psalms.tex")
 
 \end{python}
 

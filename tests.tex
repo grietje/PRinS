@@ -753,8 +753,8 @@ speech_phrases = []
 
 for node in NN():
     otype = F.etcbc4_db_otype.v(node)
-#    if otype == "book" and F.etcbc4_sft_book.v(node) == "Judices":
-#        break
+    if otype == "book" and F.etcbc4_sft_book.v(node) == "Jesaia":
+        break
     if otype == "verse":
         place = F.etcbc4_sft_label.v(node)
     elif otype == "clause":
@@ -784,18 +784,18 @@ speech_data = ref_types_prep(speech_data,speech_phrases)
 \end{python}
 
 \begin{python}
-# Make histogram of prep destypes in OT
+# Make histogram of prep destypes in OT NOTE: edited for narrative books only
 nar = DataFrame(nar_data).transpose()
 nar2 = nar['destype'].value_counts()
 nar3 = Series(nar2,index = ["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-nar3.index.name = "Destypes after Preposition in Narrative"
-tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Prep_Narrative_OT.tex")
+nar3.index.name = "Destypes after Preposition in Narrative in Narrative books"
+tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Prep_Narrative_Nar.tex")
 
 speech = DataFrame(speech_data).transpose()
 speech2 = speech['destype'].value_counts()
 speech3 = Series(speech2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-speech3.index.name = "Destypes after Preposition in Direct Speech"
-tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Prep_Speech_OT.tex")
+speech3.index.name = "Destypes after Preposition in Direct Speech in Narrative books"
+tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Prep_Speech_Nar.tex")
 
 \end{python}
 \subsection{Object encoding in OT}
@@ -846,7 +846,7 @@ def ref_types_obj(data,phrases): #function called in next code block
 \end{python}
 
 \begin{python}
-# Find all objects in narrative and direct speech sections in whole OT 
+# Find all objects in narrative and direct speech sections in whole OT. NOTE: edited for narrative books only
 
 DSU = False
 potential_ref = False
@@ -858,8 +858,8 @@ speech_phrases = []
 
 for node in NN():
     otype = F.etcbc4_db_otype.v(node)
-#    if otype == "book" and F.etcbc4_sft_book.v(node) == "Judices":
-#        break
+    if otype == "book" and F.etcbc4_sft_book.v(node) == "Jesaia":
+        break
     if otype == "verse":
         place = F.etcbc4_sft_label.v(node)
     elif otype == "clause":
@@ -896,8 +896,8 @@ nar2 = nar['destype'].value_counts()
 nar3 = Series(nar2,index = ["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
 #nar3.index.name = "Destypes of Objects in Narrative"
 #tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Objects_Narrative_OT.tex")
-nar3.index.name = "Destypes after \hebr{>T} in Narrative"
-tex = barplot((nar3.fillna(0)),"plots/Destypes_of_>T_Narrative_OT.tex")
+nar3.index.name = "Destypes after \hebr{>T} in Narrative in Narrative books"
+tex = barplot((nar3.fillna(0)),"plots/Destypes_of_>T_Narrative_Nar.tex")
 
 
 speech = DataFrame(speech_data).transpose()
@@ -905,8 +905,8 @@ speech2 = speech['destype'].value_counts()
 speech3 = Series(speech2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
 #speech3.index.name = "Destypes of Objects in Direct Speech"
 #tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Objects_Speech_OT.tex")
-speech3.index.name = "Destypes after \hebr{>T} in Direct Speech"
-tex = barplot((speech3.fillna(0)),"plots/Destypes_of_>T_Speech_OT.tex")
+speech3.index.name = "Destypes after \hebr{>T} in Direct Speech in Narrative books"
+tex = barplot((speech3.fillna(0)),"plots/Destypes_of_>T_Speech_Nar.tex")
 \end{python}
 
 \subsection{Subject encoding in OT}
@@ -985,7 +985,7 @@ speech_phrases = []
 
 for node in NN():
     otype = F.etcbc4_db_otype.v(node)
-    if otype == "book" and F.etcbc4_sft_book.v(node) == "Judices":
+    if otype == "book" and F.etcbc4_sft_book.v(node) == "Jesaia":
         break
     elif otype == "verse":
         place = F.etcbc4_sft_label.v(node)
@@ -1015,18 +1015,18 @@ speech_data = ref_types_subj(speech_data,speech_phrases)
 \end{python}
 
 \begin{python}
-# Make histogram
+# Make histogram NOTE: edited for narrative books only
 nar = DataFrame(nar_data).transpose()
 nar2 = nar['destype'].value_counts()
 nar3 = Series(nar2,index = ["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-nar3.index.name = "Destypes of Subjects in Narrative"
-tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Subjects_Narrative_OT.tex")
+nar3.index.name = "Destypes of Subjects in Narrative in Narrative Books"
+tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Subjects_Narrative_Nar.tex")
 
 speech = DataFrame(speech_data).transpose()
 speech2 = speech['destype'].value_counts()
 speech3 = Series(speech2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-speech3.index.name = "Destypes of Subjects in Direct Speech"
-tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Subjects_Speech_OT.tex")
+speech3.index.name = "Destypes of Subjects in Direct Speech in Narrative Books"
+tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Subjects_Speech_Nar.tex")
 
 \end{python}
 

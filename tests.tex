@@ -617,13 +617,54 @@ for node in NN():
             data[book]["narrative"] += 1
 
 df = DataFrame(data,columns=books).transpose()
-df.plot(kind="bar",legend=False)
-plt.savefig("plots/narrative_speech.pgf", bbox_inches="tight")
-tikz_save("plots/narrative_speech.tex") #Does not work, creates only empty plot
-plt.show()
+#df.plot(kind="bar",legend=False)
+#plt.savefig("plots/narrative_speech.pgf", bbox_inches="tight")
+#tikz_save("plots/narrative_speech.tex") #Does not work, creates only empty plot
+#plt.show()
+tex = barplot3(df,"plots/test4.tex")
 
 \end{python}
 
+\begin{python}
+def nicebound(n):
+    import math
+    l = math.floor(math.log10(n))
+    m = (10**l)*math.ceil(2*n/(10**l))
+    return math.floor(m/2)
+
+def barplot3(s, fn=None):
+    tex = "\\begin{tikzpicture}[baseline]\n"
+    tex += "\\begin{axis}[\n"
+    # Set up axis options
+    tex += "width=\\textwidth,\n"
+    if s.index.name != None:
+        tex += "title = " + s.index.name + ",\n"
+    tex += "xmin=-0.5, "
+    tex += "xmax=" + str(len(s)-1) + ".5,\n"
+    tex += "ymin=0, "
+    tex += "ymax=" + str(max(nicebound(s["narrative"].max()),nicebound(s["direct_speech"].max()))) + ",\n"
+    tex += "xtick={" + ",".join([str(n) for n in range(len(s))]) + "},\n"
+    tex += "xticklabels={" + ",".join(s.index).replace("_","\_") + "},\n"
+    tex += "xticklabel style = {\\xticklabel},\n"
+    tex += "]\n"
+    # Draw data bars
+    for i in range(len(s)):
+        tex += "\\draw[draw=\\bardrawcolor,fill=\\barcolor] (axis cs:" + str(i - 0.25)
+        tex += ",0) rectangle (axis cs:" + str(i)
+        tex += "," + str(s["narrative"][i]) + ");\n"
+        tex += "\\draw[draw=\\bardrawcolor,fill=\\barcolorr] (axis cs:" + str(i + 0.05)
+        tex += ",0) rectangle (axis cs:" + str(i + 0.30)
+        tex += "," + str(s["direct_speech"][i]) + ");\n"
+#    tex += "\\addlegendentry{'narrative'}\n"
+#    tex += "\\addlegendentry{'direct speech'}\n"
+    tex += "\\end{axis}\n"
+    tex += "\\end{tikzpicture}\n"
+    if fn == None:
+        return tex
+    with open(fn, "w") as tf:
+        print(tex, file=tf)
+
+\end{python}
 \begin{python}
 def nicebound(n):
     import math
@@ -972,7 +1013,6 @@ def ref_types_subj(data,phrases): #function called in next code block
 
 \end{python}
 
-
 \begin{python}
 # Find all subjects in narrative and direct speech sections in Psalms 
 # NOTE: Names, pronouns etc often are accompanied by a finite verb. This verb should not be counted as a "verb" referent. Idea for a solution: check for every "verb" referent whether there is another referent with the same name in de same clause --> should not be counted as a "verb". The problem is that a referent's name is only known for part of Genesis; it is not part of the ETCBC data. Therefore we have to work around this by deleting from the plot all finite verbs that occur in a clause that has a subject phrase - assuming these verbs and subjects belong to the same referent. My hypothesis is that for such a large corpus the error rate will be quite small.
@@ -1022,8 +1062,12 @@ speech_data = ref_types_subj(speech_data,speech_phrases)
 \begin{python}
 # Find all subjects in narrative and direct speech sections in whole OT 
 # NOTE: Names, pronouns etc often are accompanied by a finite verb. This verb should not be counted as a "verb" referent. Idea for a solution: check for every "verb" referent whether there is another referent with the same name in de same clause --> should not be counted as a "verb". The problem is that a referent's name is only known for part of Genesis; it is not part of the ETCBC data. Therefore we have to work around this by deleting from the plot all finite verbs that occur in a clause that has a subject phrase - assuming these verbs and subjects belong to the same referent. My hypothesis is that for such a large corpus the error rate will be quite small.
+# NOTE: Edited for playing with stricter text_types
 
 DSU = False
+Medium = False
+Medium_data = {}
+Medium_phrases = []
 potential_ref = False
 potential_suffix = False
 nar_data = {}
@@ -1038,7 +1082,11 @@ for node in NN():
     elif otype == "verse":
         place = F.etcbc4_sft_label.v(node)
     elif otype == "clause":
-        DSU = (F.etcbc4_ft_txt.v(node).count("Q") > 0)    # If the text_type contains a Q, we consider the clause as Direct Speech
+        DSU = (F.etcbc4_ft_txt.v(node).count("Q")) > 0   # If the text_type contains a Q, we consider the clause as Direct Speech
+        if DSU == True and not F.etcbc4_ft_txt.v(node).endswith("Q"):     
+            Medium = True
+        else:
+            Medium = False
     elif F.etcbc4_db_otype.v(node) == "word":
         potential_ref = False
         potential_suffix = False
@@ -1047,18 +1095,21 @@ for node in NN():
             phrase = L.u('phrase',node)
             if DSU == False and F.etcbc4_ft_function.v(phrase) in ('Subj','Pred','PreC','PreO') and not phrase in nar_phrases: #PreS is already covered with its suffix
                 nar_phrases.append(phrase)
-            if DSU == True and F.etcbc4_ft_function.v(phrase) in ('Subj','Pred','PreC','PreO') and not phrase in speech_phrases: #PreS is already covered with its suffix
-                speech_phrases.append(phrase) 
+            if DSU == True and Medium == True and F.etcbc4_ft_function.v(phrase) in ('Subj','Pred','PreC','PreO') and not phrase in speech_phrases: #PreS is already covered with its suffix
+#                speech_phrases.append(phrase) 
+                Medium_phrases.append(phrase)
         if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
             potential_suffix = True
             if F.etcbc4_ft_function.v(L.u('phrase',node)) in ('PreS','ExsS','IntS','ModS','NCoS','PrcS'): # Subject suffix
                 if DSU == False:
                     nar_data[node] = {"node":node,"destype":"suffix"}
-                elif DSU == True:
-                    speech_data[node] = {"node":node,"destype":"suffix"}
+                elif DSU == True and Medium == True:
+                    Medium_data[node] = {"node":node,"destype":"suffix"}
+#                    speech_data[node] = {"node":node,"destype":"suffix"}
 
 nar_data = ref_types_subj(nar_data,nar_phrases)
 speech_data = ref_types_subj(speech_data,speech_phrases)
+Medium_data = ref_types_subj(Medium_data,Medium_phrases)
 
 \end{python}
 
@@ -1067,15 +1118,20 @@ speech_data = ref_types_subj(speech_data,speech_phrases)
 nar = DataFrame(nar_data).transpose()
 nar2 = nar['destype'].value_counts()
 nar3 = Series(nar2,index = ["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-nar3.index.name = "Destypes of Subjects in Narrative in Psalms"
-tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Subjects_Narrative_Psalms.tex")
+nar3.index.name = "Destypes of Subjects in Narrative in Narrative books"
+tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Subjects_Narrative_real_Nar.tex")
 
 speech = DataFrame(speech_data).transpose()
 speech2 = speech['destype'].value_counts()
 speech3 = Series(speech2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-speech3.index.name = "Destypes of Subjects in Direct Speech in Psalms"
-tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Subjects_Speech_Psalms.tex")
+speech3.index.name = "Destypes of Subjects in Direct Speech strict in Narrative books"
+tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Subjects_Speech_strict_Nar.tex")
 
+medium = DataFrame(Medium_data).transpose()
+medium2 = medium['destype'].value_counts()
+medium3 = Series(medium2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
+medium3.index.name = "Destypes of Subjects in Medium in OT"
+tex = barplot((medium3.fillna(0)),"plots/Destypes_of_Subjects_Medium_OT.tex")
 \end{python}
 
 \begin{python}
@@ -1147,24 +1203,6 @@ for (DSUtag,) in DSU_todo:
     cursor.execute("update gcdsu set Part=:Part where DSUtag=:DSUtag", {"Part":str(parts), "DSUtag":DSUtag})
 
 \end{python}
-
-In order to facilitate the combination of information between SQlite rows,
-we assign a number to each participant reference, indicating how many times
-this participant has been referred to, including the current reference.
-Later on, we can then identify the \mi{Ref}-values by selecting values with the
-same \mi{Name} and a \mi{Nr} that is 1 lower than the current \mi{Nr}.
-A difficulty arises when a participant is referred to as part of a group,
-e.g. ``God said to them...'' meaning both the man and the woman of \bibleverse{Gen}[1].
-Therefore I provide two kinds of information:
-\begin{itemize}
-\item A \mi{Nr} that indicates the number of occurrences of exactly the same referent. This is relevant for \mi{Prev}-data and \mi{Ref}-data.
-\item I mention the names of relevant referents that are included in other referents etc in the column \mi{Referents}, so that these can be counted and processed later on (e.g. to see how often someone is referred to in a particular DSU).
-\end{itemize}
-Note: In de first 15 chapters of Genesis, this data has not been entered consistently. This needs to be checked.
-Remark / question: What to do with sub-participants like possessive pronouns?
-Another aspect that adds complexity, is the occurrence of sub-participants.
-I do not count them in the column \mi{Nr}, but their name is stored in the columns
-\mi{Name} and \mi{Referents}.
 
 
 \begin{python}
@@ -1521,6 +1559,93 @@ Runge defines the following encoding contexts (Runge p.90):\\
 \end{itemize}
 
 \begin{python}
-# Runge
+# Quick test about text types
+Nar_strict = 0
+Medium = 0
+Speech_Strict = 0
+
+for node in NN():
+    otype = F.etcbc4_db_otype.v(node)
+#    if otype == "book" and F.etcbc4_sft_book.v(node) == "Jesaia":
+#        break
+    if otype == "verse":
+        place = F.etcbc4_sft_label.v(node)
+    elif otype == "clause":
+        if (F.etcbc4_ft_txt.v(node).count("Q")) == 0:
+            Nar_strict += 1
+        else:
+            if F.etcbc4_ft_txt.v(node).endswith("Q"):
+                Speech_Strict += 1
+            else:
+                Medium += 1
+
+print("Nar_strict:" , Nar_strict, "Medium:",Medium,"Speech_strict:",Speech_Strict)
+\end{python}
+
+\begin{python}
+# Try some Runge-scripting on subjects 
+init = list(cursor.execute("select Node,Destype from pt where Nr=1"))
+Destypes = {}
+
+for (Node,Destype) in init:
+    if Destype == "1":
+        if not "Noun" in Destypes:
+            Destypes["Noun"] = 1
+        else:
+            Destypes["Noun"] += 1
+    elif Destype == "2":
+        if not "Phrase" in Destypes:
+            Destypes["Phrase"] = 1
+        else:
+            Destypes["Phrase"] += 1
+    elif Destype == "3":
+        if not "Name" in Destypes:
+            Destypes["Name"] = 1
+        else:
+            Destypes["Name"] += 1
+    elif Destype == "4":
+        if not "Name_phrase" in Destypes:
+            Destypes["Name_phrase"] = 1
+        else:
+            Destypes["Name_phrase"] += 1
+    elif Destype == "5":
+        if not "Pers_pronoun" in Destypes:
+            Destypes["Pers_pronoun"] = 1
+        else:
+            Destypes["Pers_pronoun"] += 1
+    elif Destype == "6":
+        if not "Dem_pronoun" in Destypes:
+            Destypes["Dem_pronoun"] = 1
+        else:
+            Destypes["Dem_pronoun"] += 1
+    elif Destype == "7":
+        if not "Suffix" in Destypes:
+            Destypes["Suffix"] = 1
+        else:
+            Destypes["Suffix"] += 1
+    elif Destype == "8":
+        if not "Verb" in Destypes:
+            Destypes["Verb"] = 1
+        else:
+            Destypes["Verb"] += 1
+    elif Destype == "9":
+        if not "Adjv" in Destypes:
+            Destypes["Adjv"] = 1
+        else:
+            Destypes["Adjv"] += 1
+    elif Destype == "10":
+        if not "PtcA" in Destypes:
+            Destypes["PtcA"] = 1
+        else:
+            Destypes["PtcA"] += 1
+    elif Destype == "11":
+        if not "PtcP" in Destypes:
+            Destypes["PtcP"] = 1
+        else:
+            Destypes["PtcP"] += 1
+    
+
+print(Destypes)
+
 
 \end{python}

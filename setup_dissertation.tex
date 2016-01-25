@@ -6,6 +6,13 @@
 
 \usepackage[usenames,dvipsnames]{color}
 \usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{pgf}
+\def\barcolor{red!80!black}
+\def\barcolorr{blue!80!white}
+\def\bardrawcolor{black}
+\def\xticklabel{rotate = 45, anchor = east}
+
 \usepackage{xspace}
 \usepackage{graphicx}
 \usepackage{parskip}
@@ -33,8 +40,8 @@
 \usepackage{mparhack}
 \def\degree{${}^{\circ}$\xspace}
 
-\newcommand{\fixme}[1]{{\color{red} #1}}
-\newcommand{\marginfixme}[1]{\marginpar{\raggedright \color{red} #1}}
+%\newcommand{\fixme}[1]{{\color{red} #1}}
+%\newcommand{\marginfixme}[1]{\marginpar{\raggedright \color{red} #1}}
 \usepackage[hmargin=3cm,vmargin=2.5cm]{geometry}
 
 \widowpenalty10000
@@ -91,7 +98,6 @@
 \end{center}
 
 \newpage
-\fixme{Motto}
 \newpage
 \section*{Abstract}
 \newpage
@@ -108,7 +114,7 @@ DSU \> Direct Speech Unit \\
 \end{tabbing}
 
 \subsection{Key terms}
-Some key terms that are used in this dissertation, are used by other researchers as well. However, nuances in meaning might differ. Other terms are coined by myself, because existing terms have connotations that would be misleading in my use of them. To avoid confusion, below I give an overview of some key term.
+Some key terms that are used in this dissertation, are used by other researchers as well. However, nuances in meaning might differ. Other terms are coined by myself, because existing terms have connotations that would be misleading in my use of them. To avoid confusion, below I give an overview of some key terms.
 
 \begin{tabular}{p{19ex}p{80ex}}
 Direct Speech Unit & An uninterrupted portion of direct speech, together with its Quotative Frame. In practice, this often means that a Direct Speech Unit forms one turn in a conversation or a closed-off portion of direct speech within a non-direct speech context. \\
@@ -131,32 +137,55 @@ Verb of speech & Also called ``verb of quotation''. A type of verbs denoting a s
 \newpage
 \section{Introduction}
 \subsection{Topic / problem}
-The Hebrew Bible consists of texts, 
+The Hebrew Bible is full of participants acting in narratives, speaking to each other, or being spoken about. Usually, it is pretty clear who is who and what each participant is saying or doing, thanks to the linguistic systems of participant reference and participant tracking.
+However, there are some ambiguities in participant \emph{tracking}, and far more unclarity exists about the \emph{encoding} of the participants: why is the same participant encoded differently throughout a text? Consider for example \bibleverse{Gen}(18:26-29) where Abraham pleads for Sodom:
+\begin{tabbing}
+\hspace{2ex} \= ``And \textcolor{BrickRed}{the LORD} said:\\
+\> \hspace{2ex} \= If \textcolor{BrickRed}{I\textsuperscript{conjugated verb}} find in Sodom fifty righteous within the city, \\
+\>\>then \textcolor{BrickRed}{I\textsuperscript{conjugated verb}} will spare all the place for their sakes.\\
+\> And \textcolor{Green}{Abraham} answered and said:\\
+\>\>Behold now, \textcolor{Green}{I\textsuperscript{conjugated verb}} have taken upon me to speak unto \textcolor{BrickRed}{the Lord}, \\
+\>\>\textcolor{Green}{I\textsuperscript{personal pronoun}}, but dust and ashes: Maybe there shall lack five of the fifty righteous: \\ \>\>
+will \textcolor{BrickRed}{you\textsuperscript{conjugated verb}} destroy all the city for five?\\
+\>And \textcolor{BrickRed}{he\textsuperscript{conjugated verb}} said:\\
+\>\>\textcolor{BrickRed}{I\textsuperscript{conjugated verb}} will not destroy if \textcolor{BrickRed}{I\textsuperscript{conjugated verb}} find there forty and five.\\
+\> And \textcolor{Green}{he\textsuperscript{conjugated verb}} continued to speak unto \textcolor{BrickRed}{him\textsuperscript{suffix}}...''
+\end{tabbing}
+It is immediately clear that the Lord and Abraham are designated by various reference devices, some of which seem interchangeable at first sight. It is not immediately clear why, for example, the Quotative Frames sometimes contain a personal name, and sometimes just a conjugated verb. And how (except by the content of the following direct speech) is a reader to know that it is Abraham, not the Lord, who continues to speak in the last sentence?
+
+In general linguistics, and in particular for narrative, there are quite some theories and explanations that might provide insights in participant reference in Biblical Hebrew direct speech sections as well, but they need to be tested, applied and probably adapted. \\
+
 \subsection{Purpose}
 \subsection{Scope}
 \subsection{Methodology}
 \subsection{Choices and conventions in encoding the data}
 \subsubsection{DSU's and QF's}
-It is not always easy to point out the boundaries of direct speeches and conversations. When, for example, in Genesis 3 God speaks with Adam and Eve, after a while the serpent is included in the conversation. Does his entering the scene start a new conversation (because there is an extra participant now), or is the first conversation going on because God, Adam and Eve are still active participants? And how do we account for the three monologues of God to the serpent, Eve and Adam respectively, that follow (or continue) the conversation?
+It is not always easy to point out the boundaries of direct speeches and conversations. When, for example, in \bibleverse{Genesis}(3:) God speaks with Adam and Eve, after a while the serpent is included in the conversation. Does his entering the scene start a new conversation (because there is an extra participant now), or is the first conversation going on because God, Adam and Eve are still active participants? And how do we account for the three monologues of God to the serpent, Eve and Adam respectively, that follow (or continue) the conversation?
 
-In order to keep my data as ``objective'' and ``theory-independent'' as possible, I based my encodings on a very basic discourse level, which I named ``Direct Speech Unit''. This is an uninterrupted portion of direct speech, together with its Quotative Frame. In practice, this often means that a Direct Speech Unit forms one turn in a conversation or a closed-off portion of direct speech within a non-direct speech context. Such units can still be long and complex, but most of the time they are not. Moreover, the theoretical choices behind the DSU are very basic and simple. These DSU's can then form the building blocks for more complex and high-level analyses, without choosing a particular theoretical framework beforehand. 
+In order to keep my data as ``objective'' and ``theory-independent'' as possible, I based my encodings on a very basic discourse level, which I named ``Direct Speech Unit''. This is an uninterrupted portion of direct speech, together with its Quotative Frame. In practice, this often means that a Direct Speech Unit forms one turn in a conversation or a closed-off portion of direct speech within a non-direct speech context. Such units can still be long and complex, but most of the time they are not. Moreover, the theoretical choices behind the DSU are very basic and simple. These DSU's can then form the building blocks of more complex and high-level analyses, without choosing a particular theoretical framework beforehand. 
 
 A Quotative Frame is the introduction to a direct speech section, and frames a DSU in its textual context. Commonly, a QF is the clause immediately preceding the direct speech portion, and containing one or more verbs of speech, e.g. \hebr{WJMR} (``he said''). Sometimes speaker and/or addressee are explicitly mentioned, but this is not necessary. Often the textual context gives us enough clues about the participants involved. Sometimes it is not clear whether there is an addressee at all, for example in the creation account where God speaks things into being, or in case of a blessing.
 
 \subsubsection{Participant references}
 
 \section{Theoretical framework}
-\subsection{Narrative, direct speech and quotative frames}
-Biblical texts belong to various genres, such as narrative or poetic texts. Within these texts occur portions of quoted direct speech. These are part of the text as a whole, but also in a way separate from it: their textual structure is different, the participants and their roles are different, and they are written from different perspectives.
+\subsection{Narrative texts and Direct Speech in the Hebrew Bible}
+Biblical texts belong to various genres. A basic distinction can be drawn between text portions that contain direct speech and text portions that do not contain direct speech. In the ETCBC database the presence of direct speech is indicated by a \mi{Q} in the feature \mi{domain} and in the more elaborate feature \mi{text\_type} (the latter works with embedded domains, thus including options like \mi{NQN}). The number of clauses containing direct speech make up about two third of the whole Hebrew Bible. This includes poetic and profetic books, but even in the so-called \emph{narrative books} the amount of direct speech is considerable, as can be seen in the bar plot.
+\begin{minipage}{.9\textwidth}
+\input{plots/test4.tex}
+\end{minipage}
 
-Portions of direct speech usually do not occur out of nowhere; they are introduced by so called \mi{quotative frames}, abbreviated as \mi{QF}'s. An important question is the delineation of these \mi{QF}'s and their function in the text. They serve as a bridge between narrative and direct speech, but to what extend do they fit in the text structure of the narrative and to what extend are they dependent on, and influenced by, the content and position of the direct speech portion they are introducing?
+\subsection{Narrative, Direct Speech and Quotative Frames}
+Direct Speech text portions are part of the text as a whole, but also in a way separate from it: their textual structure is different, the participants and their roles are different, and they are written from different perspectives.
 
-It is clear that the options for mentioning speaker and addressee are restricted by the surrounding textual context. When there are three male individuals interacting with each other, for example, a pretty high level of encoding may be necessary to disambiguate who is speaking to whom. When a man and a woman are discussing something, only speech verbs would be enough for disambiguation, because they are inflected for gender. The question remains, however, what is going on beyond this necessary level of identification. To what extent does a narrator play with quotative frames in order to get accross some message about the importance of the quote within the text, or about the social relationship between the participants involved, and so on?
+Portions of direct speech usually do not occur out of nowhere; they are introduced by so called \mi{Quotative Frames}, abbreviated as \mi{QF}'s. An important question is the delineation of these \mi{QF}'s and their function in the text. They serve as a bridge between narrative and direct speech, but to what extend do they fit in the text structure of the narrative and to what extend are they dependent on, and influenced by, the content and position of the direct speech portion they are introducing?
+
+It is clear that the options for mentioning speaker and addressee are restricted by the surrounding textual context. When there are three male individuals interacting with each other, for example, a pretty high level of encoding may be necessary to disambiguate who is speaking to whom. When a man and a woman are discussing something, only speech verbs would be enough for disambiguation, because these are inflected for gender. The question remains, however, what is going on beyond this necessary level of identification. To what extent does a narrator play with quotative frames in order to get accross some message about the importance of the quote within the text, or about the social relationship between the participants involved, and so on?
 
 \subsection{The extensiveness of quotative frames}
 It is not immediately clear how extensive a quotative frame is, in other words what does belong to the QF and what does not. The \mi{minimal quotative frame} or \mi{quotative frame proper} only contains the clause or clauses with the verb of speech. This verb can be a form of \hebr{>MR}, \hebr{DBR}, or (in \bibleverse{Daniel}) \hebr{MLL}. In the case of \hebr{L>MR} it is reasonable to include the clause immediately preceding \hebr{L>MR} because \hebr{L>MR} is not an independent verb on itself.
 
-Cynthia Miller \fixme{reference!} proposes to include metapragmatic verbs, and thus to make the QF more extensive. Many of these verbs occur with \hebr{L>MR}, and would thus be included in our \mi{minimal quotative frame}, but with less theoretical justification. These verbs are:
+Cynthia Miller\autocite{Miller} proposes to include metapragmatic verbs, and thus to make the QF more extensive. Many of these verbs occur with \hebr{L>MR}, and would thus be included in our \mi{minimal quotative frame}, but with less theoretical justification. These verbs are:
 %\begin{multicolumn}{2}
     
 \begin{itemize}
@@ -233,13 +262,13 @@ Not occurring as single speech verb:
 \end{itemize}
 %\end{multicolumn}
 
-\fixme{reference! Miller pages 210-212}
+\autocite[210-212]{Miller}
 
-Just the occurrence of one of those verbs does not make it part of the quotative frame. There are some further restrictions: ``each verb refers to the same speech event, the speech participants are identical and have identical roles, the verbs share arguments, the verbs are inflected identically with respect to gender and number (with corporate entities this may be different), and the tense/aspect is either identical or consecutive.'' \fixme{reference: Miller 204-205} If I understand Miller correctly, a sequence of multiple metapragmatic verbs can form a pretty extensive quotative frame, as for example in \bibleverse{Gen}(28:01): \hebr{\cl{red}{W JQR>} JYXQ >L J<QB \cl{red}{W JBRK} >TW \cl{red}{W JYWHW} \cl{red}{W J>MR} LW}.
+Just the occurrence of one of those verbs does not make it part of the quotative frame. There are some further restrictions: ``each verb refers to the same speech event, the speech participants are identical and have identical roles, the verbs share arguments, the verbs are inflected identically with respect to gender and number (with corporate entities this may be different), and the tense/aspect is either identical or consecutive.'' \autocite[204-205]{Miller} If I understand Miller correctly, a sequence of multiple metapragmatic verbs can form a pretty extensive quotative frame, as for example in \bibleverse{Gen}(28:01): \hebr{\cl{red}{W JQR>} JYXQ >L J<QB \cl{red}{W JBRK} >TW \cl{red}{W JYWHW} \cl{red}{W J>MR} LW}.
 
-Miller's theory is an adaptation or an even more elaborate proposal made by Longacre. \fixme{reference Longacre}. He proposes to include verbs of motion, psychological verbs, and metapragmatic verbs, which in some cases means that ``the clause with the verb `say' may be preceded by two or three such preparatory clauses. In such a situation the whole sequence of two to four clauses with whatever nouns and pronouns that it contains is relevant to the specification or nonspecification of speaker and addressee; it functions as an \emph{expanded quotation formula}.'' \fixme{reference: Longacre page 160}
+Miller's theory is an adaptation of an even more elaborate proposal made by Longacre. \autocite{Longacre}. He proposes to include verbs of motion, psychological verbs, and metapragmatic verbs, which in some cases means that ``the clause with the verb `say' may be preceded by two or three such preparatory clauses. In such a situation the whole sequence of two to four clauses with whatever nouns and pronouns that it contains is relevant to the specification or nonspecification of speaker and addressee; it functions as an \emph{expanded quotation formula}.'' \autocite[160]{Longacre}
 This very extensive view of quotative frames makes the boundary between QF and surrounding narrative less strict; the QF is more a fluent part of the narrative that just happens to be positioned before the direct speech section, instead of a separate block in between the narrative and the quote. 
-At the very least, as Miller notes \fixme{reference: Miller 204-205}, Longacre's theory does not make very clear when a clause does or does not belong to the quotative frame.
+At the very least, as Miller notes \autocite[204-205]{Miller}, Longacre's theory does not make very clear when a clause does or does not belong to the quotative frame.
 
 \subsection{Perspective and information}
 Direct speech sections are spoken by a speaker, in principle from his own perspective. This perspective might differ from that of the narrator and the reader. In some cases it is clear that the speaker lacks information that the reader has, for example in \bibleverse{Gen}(27:18), where Isaak asks \hebr{MJ >TH BNJ}, and the narrator has told already about Jacob's plans to deceive his father.
@@ -249,12 +278,14 @@ Since direct speech portions reflect the perspective of the speaker and addresse
 The reverse is also true, namely that speakers and addressees have a corpus of knowledge that readers do not share. It is the narrator's task to make their conversations intelligible for readers by selecting quotes, narrating background stories et cetera. But this is never done ``objectively'', as if every possible narrator would do this in exactly the same way. Narrators have a purpose with their stories; they select and arrange the narrated information accordingly. This process of arrangement is, among other ways, reflected in the framing of direct speech sections.
 
 \subsection{Basic rules for participant encoding in direct speech}
-Runge \fixme{reference} described a basic system for participant references in narrative texts. Using a similar model for direct speech texts asks for some extra rules:
+Runge \autocite{Runge} described a basic system for participant references in narrative texts. Using a similar model for direct speech texts asks for some extra rules:
 \begin{itemize}
     \item Speaker and addressee, in first and second person respectively, are active participants. They need not be introduced by a noun or personal name, for the speech setting alone is sufficient for disambiguation.
     \item The identification of speaker and addressee for the \emph{reader} happens in the quotative frame, not in the direct speech section itself. The direct speech section is encoded from the perspective of the interlocutors, not from that of the narrator or reader.
     \item Honorifics and other complex forms denoting speaker and addressee are, \emph{with respect to their identity}, equated with straightforward first and second person denotations. (It is clear that the marked formulation used has to be accounted for in other aspects of our analysis.) In other words, expressions like \hebr{NPCK} (e.g. \bibleverse{Gen}(27:19)) semantically have the same value as a simple "you". This is important for the encoding of following references to the same person, that thus do not need to be overencoded as if there had been a switch of referent, and for references to other persons, that might be ambiguous if the honorific form would be seen as a third person reference. An example to clarify this is found in \bibleverse{Gen}(6:3), where JHWH says: \hebr{L> JDWN \cl{red}{RWXJ} B H >DM L <WLM B C GM \cl{red}{HJW} BFR}. In the first clause, \hebr{RWXJ} is subject. In the subordinated clause that follows, the \hebr{>DM} is subject, and only encoded with a personal pronoun. My hypothesis is that this is possible because \hebr{RWXJ} is not seen as a third person masculine, but as a first person. 
 \end{itemize}
+
+\subsection{Some constraints on encoding options}
 
 \section{Observations from computer-assisted analyses}
 \section{Model of participant reference system}

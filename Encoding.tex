@@ -118,6 +118,7 @@ In order to make our data and analyses as clear as possible, we distinguish betw
 \item Value \mi{Rec} for sub-participants with an identity different from the reference they are part of, and who either are a suffix on the \mi{Sub1} or are annotated with the \mi{Regens-rectum} relationship (e.g. ``\emph{his} father''). These are closely connected to the \mi{Sub1} participant.
 \item Value \mi{RecPre} for sub-participants who precede the \mi{Sub1} sub-participant, and having an identity different from the reference they are part of (in other words, this is a \mi{Rec}sub-participant that does not follow but precede its \mi{parent}.) The typical example here is \hebr{KL}.
 \item Value \mi{Attr} for sub-participants in clauses with the value \mi{Attr} on the feature \mi{Rela} in the ETCBC database. These usually provide extra information about a participant, without a different participant being involved in the description.
+\item Value \mi{AttrPre}: similar to \mi{Attr}, but occurring before the \mi{Sub1} sub-participant.
 \end{itemize}
 
 In complex cases, such as a \mi{Regens-rectum} relationship within an attributive clause, these labels can be nested.
@@ -243,6 +244,21 @@ Compare with Psalms only, to see whether poetic books make a difference:\\
 \centering
 \input{plots/Destypes_of_Subjects_Speech_Psalms.tex}
 \end{minipage}
+
+Compare with a stricter definition of Direct Speech (ends with Q):\\
+\noindent
+\begin{minipage}{.5\textwidth}
+\input{plots/Destypes_of_Subjects_Narrative_real_Nar.tex}
+\end{minipage}
+\begin{minipage}{.5\textwidth}
+\centering
+\input{plots/Destypes_of_Subjects_Speech_strict_Nar.tex}
+\end{minipage}
+\begin{minipage}{.5\textwidth}
+\centering
+\input{plots/Destypes_of_Subjects_Medium_OT.tex}
+\end{minipage}
+
 \paragraph{Object encoding}
 Objects are sometimes introduced by the nota objecti \hebr{>T}. These are dealt with in section \ref{prep}, because the ETCBC database sees \hebr{>T} as a preposition. Indirect objects are also introduced with a preposition. \textcolor{blue}{Always?} Objects without a preposition can be encoded in the following ways:
 \begin{itemize}
@@ -391,6 +407,14 @@ Examples of references with a different identity:
 \emph{Adjective} & Yes & Yes & Yes & Yes & Yes \\ \hline
 \emph{Phrase} & Yes & Yes & Yes & Yes & Yes \\ \hline
 \end{tabularx}
+
+\subsection{Some constraints on encoding options}
+\begin{itemize}
+\item Grammatical features of referent
+\item Surrounding text and text structure
+\item Surrounding participants
+
+\end{itemize}
 
 \subsection{Position of references}
 Not only the encoding type of the reference, but also its place in the clause or sentence can be important. Some references are bound to a fixed position within the clause. Verbal inflection, of course, manifests on the verb. Suffixes are attached to nouns, verbs et cetera. Extensive references are more flexible with regard to their position. This leaves some options open; the difference between a \mi{We-X-Qatal} and \mi{We-Qatal-X clause}, for example, only is the relative position of the verb and the subject. Since the ordering of verb and participant reference thus is not fully determined by verb type and reference type, we need to reckon with the possibility of meaningful decisions based on different factors here.

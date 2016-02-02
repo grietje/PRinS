@@ -999,24 +999,34 @@ I do not count them in the column \mi{Nr}, but their name is stored in the colum
 
 \begin{python}
 #{{{ Assign Nr - new try
-nrs_todo = list(cursor.execute("select Sub, Name, Tag, Nr from pt where Nr is NULL or Nr = ''"))  # Select all rows that need a Nr
+#nrs_todo = list(cursor.execute("select Sub, Name, Tag, Nr from pt where Nr is NULL or Nr = ''"))  # Select all rows that need a Nr
 nrs = {}    # Create dict for all relevant Names + their Nrs
 Sub1 = 0
+notSub1 = 0
+Subs = {}
 
 for (Sub, Name, Tag, Nr) in nrs_todo:
     Name = str(Name).strip()
-    if not str(Sub).strip().endswith('Sub1'):
+    if not str(Sub).strip().endswith('Sub1') and not str(Sub) == 'Sub1':
+        notSub1 += 1
+        if not str(Sub) in Subs:
+            Subs[str(Sub)] = 1
+        else:
+            Subs[str(Sub)] += 1
         if Name in nrs:
             newnr = nrs[Name] + 1
         elif Name not in nrs:
-            oldnr = list(cursor.execute("select Nr from pt where Name=:Name and not Nr is NULL ORDER BY Tag DESC LIMIT 1", {"Name":Name,}))
+            oldnr = list(cursor.execute("select Nr from pt where Name=:Name and not Nr = NULL or Nr = '' ORDER BY Tag DESC LIMIT 1", {"Name":Name,}))
             if oldnr in ([],None) or oldnr[0][0] in ('',None):
                 newnr = 1
             else:
                 newnr = int(oldnr[0][0]) + 1
         nrs[Name] = newnr
-        cursor.execute("update pt set Nr=:newnr where Tag=:Tag", {"newnr":newnr, "Tag":Tag})
+        newnr2 = str(newnr)+"!"
+        cursor.execute("update pt set Nr=:newnr2 where Tag=:Tag", {"newnr2":newnr2, "Tag":Tag})
         print(Name,Sub,nrs[Name])
+        if str(Sub).strip().endswith('Sub1'):
+            print("problem!",Tag)
     else:
         Sub1 += 1
 
@@ -1068,3 +1078,76 @@ for (Tag,Name,Nr) in todo:
 \end{document}
 #sagemathcloud={"latex_command":"pdflatex -synctex=1 -shell-escape -interact=nonstopmode 'workflow2.tex'"}
 
+
+
+\begin{python}
+# Recovery function
+todo = list(cursor.execute("select Node,Tag,a,ClANr,PhANr,WNr,Nodetype from pt where WNr is NULL or WNr = 'None'"))
+
+for (Node,Tag,a,ClANr,PhANr,WNr,Nodetype) in todo:
+    ClANr2 = L.u('clause_atom',int(Node))
+    if ClANr2 == None:
+        ClANr2 = 00
+    PhANr2 = L.u('phrase',int(Node))
+    if PhANr2 == None:
+        if F.etcbc4_db_otype.v(int(Node)) in ('phrase','subphrase'):
+            PhANr2 = Node
+        else:
+            PhANr2 = 00
+    WNr2 = L.u('word',int(Node))
+    if WNr2 == None:
+        if F.etcbc4_db_otype.v(int(Node)) == 'word':
+            WNr2 = Node
+        else:
+            WNr2 = 00
+#        print(Tag,ClANr,ClANr2,PhANr,WNr)
+    newtag = a.rjust(15,' ') + "_" + str(ClANr2).rjust(9,'0') + "_" + str(PhANr2).rjust(9,'0') + "_" + str(WNr2).rjust(9,'0') + "_" + str(Nodetype)
+    print(Node,F.etcbc4_db_otype.v(int(Node)),Tag,newtag)
+#    if PhANr != PhANr2:
+#        print(PhANr,PhANr2)
+#    if WNr != WNr2:
+#        print(WNr,WNr2)
+    cursor.execute("update pt set PhANr=:PhANr2, WNr=:WNr2, Tag=:Tag where Node=:Node", {"PhANr2":PhANr2,"WNr2":WNr2,"Tag":newtag,"Node":Node})
+
+\end{python}
+
+\begin{python}
+# Fix identical Tags
+Tags = list(cursor.execute("select Tag from pt"))
+Tags2 = []
+doubles = []
+for Tag in Tags:
+    if Tag in Tags2:
+        doubles.append(Tag)
+    else:
+        Tags2.append(Tag)
+
+\end{python}
+
+\begin{python}
+for Tag in doubles:
+    refs = list(cursor.execute("select Node,a,Sub,Des,Destype,ClANr,PhANr,WNr,Nodetype from pt where Tag=:Tag", {"Tag":Tag[0], }))
+    for (Node,a,Sub,Des,Destype,ClANr,PhANr,WNr,Nodetype) in refs:
+        ClANr2 = L.u('clause_atom',int(Node))
+        if ClANr2 == None:
+            ClANr2 = 00
+        PhANr2 = L.u('phrase',int(Node))
+        if PhANr2 == None:
+            if F.etcbc4_db_otype.v(int(Node)) in ('phrase','subphrase'):
+                PhANr2 = Node
+            else:
+                PhANr2 = 00
+        WNr2 = F.etcbc4_ft_number.v(L.u('word',int(Node)))
+        if WNr2 == None:
+            if F.etcbc4_db_otype.v(int(Node)) == 'word':
+                WNr2 = F.etcbc4_ft_number.v(Node)
+            else:
+                WNr2 = 00
+    #        print(Tag,ClANr,ClANr2,PhANr,WNr)
+        newtag = a.rjust(15,' ') + "_" + str(ClANr2).rjust(9,'0') + "_" + str(PhANr2).rjust(9,'0') + "_" + str(WNr2).rjust(9,'0') + "_" + str(Nodetype)
+        if newtag != Tag[0]:
+            print("correction done")
+            print(Node,Tag,newtag)
+#        cursor.execute("update pt set PhANr=:PhANr2, WNr=:WNr2, Tag=:Tag where Node=:Node", {"PhANr2":PhANr2,"WNr2":WNr2,"Tag":newtag,"Node":Node})
+
+\end{python}

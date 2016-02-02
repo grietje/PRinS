@@ -682,6 +682,7 @@ def barplot(s, fn=None):
     tex += "xmax=" + str(len(s)-1) + ".5,\n"
     tex += "ymin=0, "
     tex += "ymax=" + str(nicebound(s.max())) + ",\n"
+#    tex += "ymax=" + str(s.max()) + ",\n"
     tex += "xtick={" + ",".join([str(n) for n in range(len(s))]) + "},\n"
     tex += "xticklabels={" + ",".join(s.index).replace("_","\_") + "},\n"
     tex += "xticklabel style = {\\xticklabel},\n"
@@ -742,22 +743,30 @@ def barplot2(s,t, fn=None):
 
 \begin{python}
 def ref_types_prep(data,phrases): #function called in next code block
+    test = {}
+    prps = []
     for phrase in phrases:
         data[phrase] = {"node": phrase}
-        phrase_nodes = give_me_your_words(phrase)[1:] # The prep needs not be processed furhter
-        phrase_cons = list(map(F.etcbc4_ft_g_cons.v, phrase_nodes))[1:] # The prep needs not be processed further
+#        print("full phrase: ", get_cons_of_word_list(give_me_your_words(phrase)))
+        phrase_nodes = give_me_your_words(phrase)[1:] # The prep needs not be processed further
+#        phrase_cons = list(map(F.etcbc4_ft_g_cons.v, phrase_nodes))[1:] # The prep needs not be processed further
+        phrase_cons = list(map(F.etcbc4_ft_g_cons.v, phrase_nodes))
+#        print("phrase minus prep: ",phrase_cons)
         for x in phrase_cons:
-            if len(x) == 1:
+            if len(x) <= 1:
                 phrase_cons.remove(x)
         if len(phrase_cons) > 1:
-            name_phrase = False
+#            print("phrase minus articles: ",phrase_cons)
+            namephrase = False
             for y in phrase_nodes:
                 if F.etcbc4_ft_sp.v(y) == "nmpr":
                     data[phrase]["destype"] = "name_phrase"
-                    name_phrase = True
-            if name_phrase == False:
+                    namephrase = True
+            if namephrase == False:
                 data[phrase]["destype"] = "phrase"
         elif len(phrase_cons) == 1:
+            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "prps":
+                print("one-word phrase: ",phrase_cons, phrase_nodes, F.etcbc4_ft_sp.v(phrase_nodes[-1]))
             if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "verb":
                 if F.etcbc4_ft_vt.v(phrase_nodes[-1]) == "ptca":
                     data[phrase]["destype"] = "ptca"
@@ -770,14 +779,19 @@ def ref_types_prep(data,phrases): #function called in next code block
                     clause = L.u('clause',phrase)
             elif F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "subs":
                 data[phrase]["destype"] = "noun"
-            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "nmpr":
+            elif F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "nmpr":
                 data[phrase]["destype"] = "name"
+            elif F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "prde":
+                data[phrase]["destype"] = "demonstr_pronoun"
+            elif F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "adjv":
+                data[phrase]["destype"] = "adjective"
             elif F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "prps":
                 data[phrase]["destype"] = "personal_pronoun"
-            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "prde":
-                data[phrase]["destype"] = "demonstr_pronoun"
-            if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "adjv":
-                data[phrase]["destype"] = "adjective"
+                print("catch!")
+                prps.append(phrase)
+                test[phrase] = {"destype": "prps"}
+    print("personal pronouns: ",prps)
+    print(test)
     return(data)
                     
 
@@ -794,8 +808,8 @@ speech_phrases = []
 
 for node in NN():
     otype = F.etcbc4_db_otype.v(node)
-    if otype == "book" and F.etcbc4_sft_book.v(node) == "Jesaia":
-        break
+#    if otype == "book" and not F.etcbc4_sft_book.v(node) in ("Genesis","Exodus"):
+#        break
     if otype == "verse":
         place = F.etcbc4_sft_label.v(node)
     elif otype == "clause":
@@ -813,7 +827,7 @@ for node in NN():
                 speech_phrases.append(phrase) 
         if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
             potential_suffix = True
-            if F.etcbc4_ft_sp.v(node) == "prep" and not F.etcbc4_ft_g_cons.v(node) == ">T":
+            if F.etcbc4_ft_sp.v(node) == "prep" and not F.etcbc4_ft_lex.v(node) == ">T":
                 if DSU == False:
                     nar_data[node] = {"node":node,"destype":"suffix"}
                 elif DSU == True:
@@ -829,14 +843,14 @@ speech_data = ref_types_prep(speech_data,speech_phrases)
 nar = DataFrame(nar_data).transpose()
 nar2 = nar['destype'].value_counts()
 nar3 = Series(nar2,index = ["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-nar3.index.name = "Destypes after Preposition in Narrative in Narrative books"
-tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Prep_Narrative_Nar.tex")
+nar3.index.name = "Destypes after Preposition in Narrative"
+tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Prep_Narrative_OT.tex")
 
 speech = DataFrame(speech_data).transpose()
 speech2 = speech['destype'].value_counts()
 speech3 = Series(speech2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-speech3.index.name = "Destypes after Preposition in Direct Speech in Narrative books"
-tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Prep_Speech_Nar.tex")
+speech3.index.name = "Destypes after Preposition in Direct Speech"
+tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Prep_Speech_OT.tex")
 
 \end{python}
 \subsection{Object encoding in OT}
@@ -850,8 +864,8 @@ def ref_types_obj(data,phrases): #function called in next code block
         for x in phrase_cons:
             if len(x) == 1:
                 phrase_cons.remove(x)
-#            if len(phrase_cons) > 1 and not phrase_cons[0] == ">T": # Excludes objects introduced by >T. Can easily be changed to get the reverse result, but then be careful for one-word-objects that become two-word-ones by >T.
-        if len(phrase_cons) > 2 and phrase_cons[0] == ">T": # For >T
+        if len(phrase_cons) > 1 and not phrase_cons[0] == ">T": # Excludes objects introduced by >T. Can easily be changed to get the reverse result, but then be careful for one-word-objects that become two-word-ones by >T.
+#       if len(phrase_cons) > 2 and phrase_cons[0] == ">T": # For >T
             name_phrase = False
             for y in phrase_nodes:
                 if F.etcbc4_ft_sp.v(y) == "nmpr":
@@ -859,8 +873,8 @@ def ref_types_obj(data,phrases): #function called in next code block
                     name_phrase = True
             if name_phrase == False:
                 data[phrase]["destype"] = "phrase"
-#            elif len(phrase_cons) == 1:
-        elif len(phrase_cons) == 2 and phrase_cons[0] == ">T": # for >T
+        elif len(phrase_cons) == 1:
+#       elif len(phrase_cons) == 2 and phrase_cons[0] == ">T": # for >T
             if F.etcbc4_ft_sp.v(phrase_nodes[-1]) == "verb":
                 if F.etcbc4_ft_vt.v(phrase_nodes[-1]) == "ptca":
                     data[phrase]["destype"] = "ptca"
@@ -899,8 +913,8 @@ speech_phrases = []
 
 for node in NN():
     otype = F.etcbc4_db_otype.v(node)
-    if otype == "book" and F.etcbc4_sft_book.v(node) == "Jesaia":
-        break
+#    if otype == "book" and F.etcbc4_sft_book.v(node) == "Jesaia":
+#        break
     if otype == "verse":
         place = F.etcbc4_sft_label.v(node)
     elif otype == "clause":
@@ -918,8 +932,8 @@ for node in NN():
                 speech_phrases.append(phrase) 
         if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
             potential_suffix = True
-            if F.etcbc4_ft_g_cons.v(node) == ">T": # for >T
-#            if F.etcbc4_ft_function.v(L.u('phrase',node)) in ('PreO','PtcO'): # Object suffix
+#            if F.etcbc4_ft_lex.v(node) == ">T": # for >T
+            if F.etcbc4_ft_function.v(L.u('phrase',node)) in ('PreO','PtcO'): # Object suffix
                 if DSU == False:
                     nar_data[node] = {"node":node,"destype":"suffix"}
                 elif DSU == True:
@@ -935,19 +949,19 @@ speech_data = ref_types_obj(speech_data,speech_phrases)
 nar = DataFrame(nar_data).transpose()
 nar2 = nar['destype'].value_counts()
 nar3 = Series(nar2,index = ["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-#nar3.index.name = "Destypes of Objects in Narrative"
-#tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Objects_Narrative_OT.tex")
-nar3.index.name = "Destypes after \hebr{>T} in Narrative in Narrative books"
-tex = barplot((nar3.fillna(0)),"plots/Destypes_of_>T_Narrative_Nar.tex")
+nar3.index.name = "Destypes of Objects in Narrative"
+tex = barplot((nar3.fillna(0)),"plots/Destypes_of_Objects_Narrative_OT.tex")
+#nar3.index.name = "Destypes after \hebr{>T} in Narrative"
+#tex = barplot((nar3.fillna(0)),"plots/Destypes_of_>T_Narrative_OT.tex")
 
 
 speech = DataFrame(speech_data).transpose()
 speech2 = speech['destype'].value_counts()
 speech3 = Series(speech2,index=["verb","ptca","suffix","personal_pronoun","demonstr_pronoun","adjective","ptcp","noun","phrase","name","name_phrase"])
-#speech3.index.name = "Destypes of Objects in Direct Speech"
-#tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Objects_Speech_OT.tex")
-speech3.index.name = "Destypes after \hebr{>T} in Direct Speech in Narrative books"
-tex = barplot((speech3.fillna(0)),"plots/Destypes_of_>T_Speech_Nar.tex")
+speech3.index.name = "Destypes of Objects in Direct Speech"
+tex = barplot((speech3.fillna(0)),"plots/Destypes_of_Objects_Speech_OT.tex")
+#speech3.index.name = "Destypes after \hebr{>T} in Direct Speech"
+#tex = barplot((speech3.fillna(0)),"plots/Destypes_of_>T_Speech_OT.tex")
 \end{python}
 
 \subsection{Subject encoding in OT}
@@ -1583,7 +1597,7 @@ print("Nar_strict:" , Nar_strict, "Medium:",Medium,"Speech_strict:",Speech_Stric
 \end{python}
 
 \begin{python}
-# Try some Runge-scripting on subjects 
+
 init = list(cursor.execute("select Node,Destype from pt where Nr=1"))
 Destypes = {}
 
@@ -1647,5 +1661,189 @@ for (Node,Destype) in init:
 
 print(Destypes)
 
+
+\end{python}
+\begin{python}
+# Try to test Runge's S1 references
+S1test = list(cursor.execute("select Node,Destype,Role,Name,Nr,ClANr,PhANr from pt where not Nr is NULL and not Nr = '' and not Nr = 1 order by Name,Nr"))
+Destypes_S = {}
+Destypes_N = {}
+Names = {}
+Name_prev = ""
+Role_prev = ""
+ClANr_prev = 0
+PhANr_prev = 0
+Roles = {}
+same_clause = []
+
+for (Node,Destype,Role,Name,Nr,ClANr,PhANr) in S1test:
+    if Role == "Pred": # NOTE: still need to exclude verbs following a more extensive reference? Or is this done already by "(ClANr_now-ClANr_Prev) == 1"?
+        Role = "Subj"
+    Name_now = Name
+    Role_now = Role
+#    Nr_now = Nr
+    ClANr_now = ClANr
+    PhANr_now = PhANr
+    if Name_prev == Name_now and Role_now == Role_prev and (ClANr_now-ClANr_prev) in (0,1):
+    #and not (PhANr_now == PhANr_prev):
+#    and (Nr_now-Nr_prev) == 1 
+        if (ClANr_now-ClANr_prev) == 0 and PhANr_now == PhANr_prev:
+            same_clause.append(Node)
+        if Role_now == "Subj":
+            if Destype in Destypes_S:
+                Destypes_S[Destype] += 1
+            else:
+                Destypes_S[Destype] = 1
+        else:
+            if Destype in Destypes_N:
+                Destypes_N[Destype] += 1
+            else:
+                Destypes_N[Destype] = 1
+            if Role in Roles:
+                Roles[Role] += 1
+            else:
+                Roles[Role] = 1
+    Name_prev = Name
+    Role_prev = Role
+#    Nr_prev = Nr
+    ClANr_prev = ClANr
+    PhANr_prev = PhANr
+
+print("Same role S:", Destypes_S, "Same role N:", Destypes_N)
+
+
+\end{python}
+
+\begin{python}
+# Find out what the frequency distribution is for the functions of suffixes
+nar_suffix = {}
+speech_suffix = {}
+function = None
+nar_other = {}
+speech_other = {}
+infc = []
+ptca = []
+ptcp = []
+adjv = []
+prep = {}
+
+for node in NN():
+    other = None
+    otype = F.etcbc4_db_otype.v(node)
+#    if otype == "book" and F.etcbc4_sft_book.v(node) == "Jesaia":
+#        break
+    if otype == "clause":
+        DSU = (F.etcbc4_ft_txt.v(node).count("Q")) > 0   # If the text_type contains a Q, we consider the clause as Direct Speech
+    elif F.etcbc4_db_otype.v(node) == "word":
+        potential_suffix = False
+        if not F.etcbc4_ft_prs.v(node) in ("absent","n/a"):
+            potential_suffix = True
+            if F.etcbc4_ft_function.v(L.u('phrase',node)) in ('PreS','ExsS','IntS','ModS','NCoS','PrcS'): # Subject suffix
+                function = "subject on verb"
+            elif F.etcbc4_ft_function.v(L.u('phrase',node)) in ('PreO','PtcO'): # Object suffix
+                function = "object on verb"
+            elif F.etcbc4_ft_sp.v(node) == "prep":
+                function = "prep"
+                if F.etcbc4_ft_function.v(L.u('phrase',node)) in prep:
+                    prep[F.etcbc4_ft_function.v(L.u('phrase',node))] += 1
+                else:
+                    prep[F.etcbc4_ft_function.v(L.u('phrase',node))] = 1
+            elif F.etcbc4_ft_sp.v(node) == "subs":
+                function = "noun"
+            elif F.etcbc4_ft_sp.v(node) == "verb" and F.etcbc4_ft_vt.v(node) == "infc":
+                function = "infc"
+                infc.append((node,F.etcbc4_sft_label.v(L.u('verse',node)),get_cons_of_word_list(give_me_your_words(node))))
+            elif F.etcbc4_ft_sp.v(node) == "verb" and F.etcbc4_ft_vt.v(node) == "ptca":
+                function = "ptca"
+                ptca.append((node,F.etcbc4_sft_label.v(L.u('verse',node)),get_cons_of_word_list(give_me_your_words(node))))
+            elif F.etcbc4_ft_sp.v(node) == "verb" and F.etcbc4_ft_vt.v(node) == "ptcp":
+                function = "ptcp"
+                ptcp.append((node,F.etcbc4_sft_label.v(L.u('verse',node)),get_cons_of_word_list(give_me_your_words(node))))
+            elif F.etcbc4_ft_sp.v(node) == "adjv":
+                function = "adjv"
+                adjv.append((node,F.etcbc4_sft_label.v(L.u('verse',node)),get_cons_of_word_list(give_me_your_words(node))))
+            else:
+                function = "other"
+                other = F.etcbc4_ft_function.v(L.u('phrase',node)) + " " + F.etcbc4_ft_sp.v(node) + " " + F.etcbc4_ft_vt.v(node)
+            if DSU == False:
+                if function in nar_suffix:
+                    nar_suffix[function] += 1
+                else:
+                    nar_suffix[function] = 1
+                if not other == None:
+                    if other in nar_other:
+                        nar_other[other].append(node)
+                    else:
+                        nar_other[other] = [node]
+            elif DSU == True:
+                if function in speech_suffix:
+                    speech_suffix[function] += 1
+                else:
+                    speech_suffix[function] = 1
+                if not other == None:
+                    if other in speech_other:
+                        speech_other[other].append(node)
+                    else:
+                        speech_other[other] = [node]
+
+df = DataFrame.from_dict(nar_suffix,orient='index')
+df1 = df.reindex(['subject on verb','infc','object on verb','ptca','noun','ptcp','adjv','prep','other'])
+df2 = DataFrame.from_dict(speech_suffix,orient='index')
+df3 = df2.reindex(['subject on verb','infc','object on verb','ptca','noun','ptcp','adjv','prep','other'])
+
+\end{python}
+
+\begin{python}
+tex = "\\begin{tikzpicture}[baseline]\n"
+tex += "\\begin{axis}[\n"
+# Set up axis options
+tex += "title = Functions of suffixes in narrative,\n"
+tex += "xmin=-0.5, "
+tex += "xmax=" + str(len(df1)-1) + ".5,\n"
+tex += "ymin=0, "
+tex += "ymax=" + str(nicebound(df1[0].max())) + ",\n"
+tex += "xtick={" + ",".join([str(n) for n in range(len(df1))]) + "},\n"
+tex += "xticklabels={" + ",".join(df1.index).replace("_","\_") + "},\n"
+tex += "xticklabel style = {\\xticklabel},\n"
+tex += "]\n"
+# Draw data bars
+for i in range(len(df1)):
+    tex += "\\draw[draw=\\bardrawcolor,fill=\\barcolor] (axis cs:" + str(i - 0.25)
+    tex += ",0) rectangle (axis cs:" + str(i + 0.25)
+    tex += "," + str(df1[0][i]) + ");\n"
+
+tex += "\\end{axis}\n"
+tex += "\\end{tikzpicture}\n"
+fn = "plots/suffixes_nar.tex"
+with open(fn, "w") as tf:
+    print(tex, file=tf)
+
+\end{python}
+
+\begin{python}
+tex = "\\begin{tikzpicture}[baseline]\n"
+tex += "\\begin{axis}[\n"
+# Set up axis options
+tex += "title = Functions of suffixes in direct speech,\n"
+tex += "xmin=-0.5, "
+tex += "xmax=" + str(len(df3)-1) + ".5,\n"
+tex += "ymin=0, "
+tex += "ymax=" + str(nicebound(df3[0].max())) + ",\n"
+tex += "xtick={" + ",".join([str(n) for n in range(len(df3))]) + "},\n"
+tex += "xticklabels={" + ",".join(df3.index).replace("_","\_") + "},\n"
+tex += "xticklabel style = {\\xticklabel},\n"
+tex += "]\n"
+# Draw data bars
+for i in range(len(df3)):
+    if not str(df3[0][i]) in ("NaN","nan"):
+        tex += "\\draw[draw=\\bardrawcolor,fill=\\barcolor] (axis cs:" + str(i - 0.25)
+        tex += ",0) rectangle (axis cs:" + str(i + 0.25)
+        tex += "," + str(df3[0][i]) + ");\n"
+
+tex += "\\end{axis}\n"
+tex += "\\end{tikzpicture}\n"
+fn = "plots/suffixes_speech.tex"
+with open(fn, "w") as tf:
+    print(tex, file=tf)
 
 \end{python}

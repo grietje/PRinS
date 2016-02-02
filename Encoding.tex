@@ -44,7 +44,7 @@
 \def\bv{\bibleverse}
 \usepackage{ecjhebrew}
 \newcommand{\cl}[2]{\begingroup\beginL\begingroup\color{#1}\beginR#2\endR\endgroup\endL\endgroup}
-\newcommand{\hebr}[1]{\cjRL{#1}}
+\newcommand{\hebr}[1]{\hbox{\cjRL{#1}}}
 
 %\usepackage[usenames, dvipsnames]{color}
 %\newcommand{\fixme}[1]{{#1}}
@@ -56,7 +56,7 @@
 \maketitle
 
 
-\section{Options for encoding a participant}
+\chapter{Options for encoding a participant}
 
 In analyzing participant references, it is important to distinguish between \\
 \begin{enumerate*}[label=\itshape\alph*\upshape)]
@@ -64,7 +64,7 @@ In analyzing participant references, it is important to distinguish between \\
 \item the position of the reference in the clause.
 \end{enumerate*}
 
-\subsection{Types of reference}
+\section{Types of reference}
 In Biblical Hebrew, there are various options to refer to a participant. Some of these options are more extensive than others.
 
 \begin{tikzpicture}[outline/.style={draw=#1,thick,fill=#1!50},
@@ -78,13 +78,12 @@ every new ->/.style={shorten >=.3cm}]
 \node at (2.5,2)[right]{Suffix};
 \node at (2.5,1.5)[right]{Personal pronoun};
 \node at (2.5,1)[right]{Demonstrative pronoun};
-\node at (2.5,0.5)[right]{Noun / proper noun / adjective};
+\node at (2.5,0.5)[right]{Noun / proper noun (name)/ adjective};
 \node at (2.5,0)[right]{Phrase or even clause / sentence};
 \end{tikzpicture}
 
-%\input{plots/test.tex}
 
-\subsubsection{Slots and sub-participants}
+\subsection{Slots and sub-participants}
 Usually, a sentence has a verb that takes certain elements with it: a subject, sometimes an object, or an indirect object. The verb \hebr{NTN} (``to give''), for example, normally has a giver, a receiver and a gift. There can also be `free' optional elements, like a time reference or some other circumstantial information. The places where all these elements can occur, are called `slots'. This is not to say that their relative position within the sentence is fixed as if they had a particular place and word order, but that there is the expectation of some element with a particular semantic relation to the verb. Participant references occur on these slots. See a text portion from \bibleverse{Gen}(1:29) and \bibleverse{Gen}(15:3) for clarification:
 
 \begin{table}[h]
@@ -106,18 +105,27 @@ Usually, a sentence has a verb that takes certain elements with it: a subject, s
 \end{tabularx}
 \end{table}
 
-Extensive references can sometimes be `deconstructed' into multiple sub-participants. This is the case, for example, with personal pronouns indicating a possessive relation: the phrase ``his father'' contains a reference to a father, but also to his son. Other examples are words with a \mi{sub_phrase} attached to them, such as ``\emph{fruit} trees \emph{bearing fruit after their kind, with their seeds in it, on the earth}''. This kind of references is dealt with on multiple levels: the reference as a whole is treated as such, but the sub-participants are also taken into account, because they fulfill a function in the text and influence other participant references.
+Extensive references can sometimes be `deconstructed' into multiple sub-participants. This is the case, for example, with personal pronouns indicating a possessive relation: the phrase ``his father'' contains a reference to a father, but also to his son. Other examples are words with a \mi{sub\_phrase} attached to them, such as ``\emph{fruit} trees \emph{bearing fruit after their kind, with their seeds in it, on the earth}''. This kind of references is dealt with on multiple levels: the reference as a whole is treated as such, but the sub-participants are also taken into account, because they fulfill a function in the text and influence other participant references.
 
 A working hypothesis is that all potential participants that do not independently fulfill a slot in the text, are sub-participants. If there are multiple parallel participants in a subject slot, for example, these are not sub-participants but multiple independent participants. But if a participant reference carries with it an extensive clause that further specifies the reference \emph{without filling a slot itself}, the potential references within this \mi{clause} are considered sub-participants.
 
-In order to make our data and analyses as clear as possible, we distinguish between various types of sub-participants. We do this by assigning them a value on the feature \mi{Sub} in \mi{gcdata.pt}:
+There are two major categories of these sub-participants, that fill a similarly positioned `alternative slot' but have a very different function:
+\begin{itemize}
+\item[\emph{Rec}] Sub-participants with an identity different from the main participant of the reference, expressing a kind of possessive relationship. In the ETCBC-database, these are annotated with the \mi{Regens-rectum} relationship, whereby the main participant is the \mi{Regens} and the subordinated sub-participant is the \mi{rectum}. A typical example is ``his father'', whereby ``father'' is the \mi{Regens} and ``his'' is the \mi{rectum} (more intuitively we could phrase this as ``the father of him'', making the order and relationship of the participants more clear).
+\item[\emph{Attr}] Sub-participants elaborating on the main participant, giving attributive information without any other entity being involved in the description. These references have the value \mi{Attr} on the feature \mi{Rela} in the ETCBC database. A typical class of \mi{Attr} references are demonstrative pronouns, but there are also attributive nouns like \hebr{>DNJ >BRHM}, ``my lord \emph{Abraham}'' (\bibleverse{Gen}(24:12) or phrases like \hebr{JHWH >LHJ >DNJ >BRHM}, ``YHWH \emph{the God of my lord Abraham}'' (also \bibleverse{Gen}(24:12)).
+\item A possible third category exists of subordinated clauses introduced by \hebr{>CR}. These can be very extensive, involving many other participants in descriptions like:\\
+\hebr{BJT\_>L >CR MCXT CM MYBH >CR NDRT LJ CM NDR} (``Bethel, where you annointed a pillar, where you vowed a vow to me'', \bibleverse{Gen}(31:13)). The problem here is that, although being a sub-participant of the main reference, the references within the \hebr{>CR} clause also fill slots that main participants can fill, like subject and object slots, with the same encoding options as independent participant references (\textbf{as far as I can think of}). I therefore do consider the \hebr{>CR} clause as being part of the main reference, but encode the sub-participants occurring within the \hebr{>CR} clause like they were free and independent references. Besides being probably useless, constructions taking into account the subordinated position of these sub-participant as factors influencing their encoding would become very complex and unclear.
+\end{itemize}
+
+\paragraph{Encoding of sub-participants}
+In order to make our data and analyses as clear as possible, we distinguish between the various types of sub-participants. We do this by assigning them a value on the feature \mi{Sub} in \mi{gcdata.pt}:
 \begin{itemize}
 \item Value \mi{No} for a simple independent participant
 \item Value \mi{Super} for an extensive independent participant reference that is deconstructed into sub-participants
 \item Value \mi{Sub1} for the sub-participant with the same identity as the \mi{Super} participant it is part of; in other words the core of the extensive participant (e.g. ``his \emph{father}'')
-\item Value \mi{Rec} for sub-participants with an identity different from the reference they are part of, and who either are a suffix on the \mi{Sub1} or are annotated with the \mi{Regens-rectum} relationship (e.g. ``\emph{his} father''). These are closely connected to the \mi{Sub1} participant.
-\item Value \mi{RecPre} for sub-participants who precede the \mi{Sub1} sub-participant, and having an identity different from the reference they are part of (in other words, this is a \mi{Rec}sub-participant that does not follow but precede its \mi{parent}.) The typical example here is \hebr{KL}.
-\item Value \mi{Attr} for sub-participants in clauses with the value \mi{Attr} on the feature \mi{Rela} in the ETCBC database. These usually provide extra information about a participant, without a different participant being involved in the description.
+\item Value \mi{Rec} for sub-participants with an identity different from the main reference they are part of.
+\item Value \mi{RecPre} for sub-participants who precede the \mi{Sub1} sub-participant, and having an identity different from the reference they are part of (in other words, this is a \mi{Rec} sub-participant that does not follow but precede its \mi{parent}.) The typical example here is \hebr{KL}.
+\item Value \mi{Attr} for sub-participants giving extra information without any reference to another entity. 
 \item Value \mi{AttrPre}: similar to \mi{Attr}, but occurring before the \mi{Sub1} sub-participant.
 \end{itemize}
 
@@ -126,9 +134,9 @@ In order to avoid unclarity in nested labels, sometimes the `empty' label \mi{0}
 
 \textbf{Is this 0 a good idea?? Also: need to think about imperative with object suffix (``subdue her'').} \\
 \textbf{Think about constructions like \hebr{>RY KN<N}. Is \hebr{KN<N} Attr or Rec?} \\
-\textbf{There are inconsistencies in the coding of suffixes attached to Sub1. Is this case `Sub1 Rec' or just `Rec'? Mainly in larger constructions}
-\textbf{In \bibleverse{Gen}(30:1,2) there is an interrupted participant reference: \hebr{TXT >LHJM} (\hebr{>NKJ}) \hebr{>CR MN< MMK PRJ BVN}}
-\textbf{Double object, with suffix and >T: GEN 30:20}
+\textbf{There are inconsistencies in the coding of suffixes attached to Sub1. Is this case `Sub1 Rec' or just `Rec'? Mainly in larger constructions} \\
+\textbf{In \bibleverse{Gen}(30:1,2) there is an interrupted participant reference: \hebr{TXT >LHJM} (\hebr{>NKJ}) \hebr{>CR MN< MMK PRJ BVN}}\\
+\textbf{Double object, with suffix and \hebr{>T}: GEN 30:20}
 
 In the case of a suffix, the labeling is altered a bit in order to avoid clumsy constructions in which the whole word has a \mi{Super} label, and is then splitted into the word without suffix and the suffix, with a \mi{Sub1} and \mi{Rec} label respectively. If the only difference between a \mi{Super} participant and its \mi{Sub1} is a suffix, the whole word is assigned a label \mi{Super1} (indicating this is a \mi{Super} participant which is almost identical with its \mi{Sub1}), and the suffix is coded as usual.
 
@@ -148,7 +156,6 @@ In the case of a suffix, the labeling is altered a bit in order to avoid clumsy 
 \end{tabular}\\
 
 In this text portion, we also see other participant references that deserve our attention. I marked them with red text color. These are suffixes on nouns and adjectives that fulfill a role comparable with the blue text portions (i.e. with \mi{sub_phrases} marked with the \mi{Regens-rectum} relationship). %The ETCBC database contains 18,476 of these suffixes.\\
-As can be seen at the first line of Hebrew text, there are also suffixes on prepositions, that do not belong to this class. They independently fill a slot in the text, often that of a prepositional phrase. An example of this last category is marked with green in the text above. Still other options are subject or (indirect) object suffixes on verbs and participles. See an example in cyan above. These suffixes also fill a slot for themselves, and are not sub-participants.
 
 \paragraph{Example of a labeled participant reference}
 In \bibleverse{Gen}(1:28) we encounter the participant reference \hebr{KL XJH H RMFT <L H >RY}. This extensive reference can be deconstructed in the following way:
@@ -183,12 +190,12 @@ In \bibleverse{Gen}(1:28) we encounter the participant reference \hebr{KL XJH H 
 \hspace{4ex} \mi{Attr Rec Attr Rec} \> \hebr{\cl{light-gray}{<Y PRJ <FH PRJ L MNJW >CR ZR<W B}W} \\
 \end{tabbing}
 
-\subsubsection{Encoding options on various slots}
+\subsection{Encoding options on various slots}
 The options that are available for encoding a participant in a certain slot, are constrained by (among other things) grammatical features of the slot and its immediate textual context, such as a slot's role in the sentence.
 
-How extensive this relevant context is, can vary. Sub-participants, for example, are dependent on their `parent', and not directly on \mi{clause_type} and \mi{phrase_function}. They are in a way embedded in an independent participant, and thereby isolated from the influence of other textual elements. They live within the protection of their family, and do not fill a slot themselves. My hypothesis is that (the clearest category of) these occurrences are annotated with the \mi{Regens-rectum} relationship in the ETCBC database.\\
+How extensive this relevant context is, can vary. Sub-participants, for example, are dependent on their `parent', and not directly on \mi{clause\_type} and \mi{phrase\_function}. They are in a way embedded in an independent participant, and thereby isolated from the influence of other textual elements. They live within the protection of their family, and do not fill a slot themselves. My hypothesis is that (the clearest category of) these occurrences are annotated with the \mi{Regens-rectum} relationship in the ETCBC database.\\
 
-In order to get an impression of the possibilities to express participant references on various slots, below is an overview of options that occur in direct speech sections of the Old Testament. The frequency of the various options does of course differ, and there are many other factors that are not taken into account here. But at least we can learn from \emph{missing} types of encoding that these apparently fall outside the range of available options.
+In order to get an impression of the possibilities to express participant references on various slots, below is an overview of options that occur in the Old Testament, followed by a bar plot showing their frequency in narrative texts and direct speech. Note that only the most extensive reference is counted: references filling a subject slot are usually accompanied by a finite verb, e.g. \hebr{YXQH FRH} (``Sarah laughed'', \bibleverse{Gen}(18:13)). If the finite verb would occur on its own, it would count as a participant reference. Now that it is accompanied by a personal noun however, it does not count as a separate reference. The name overrules the verb, because of its `superiority'.
 
 \paragraph{Subject encoding}
 
@@ -202,7 +209,7 @@ In order to get an impression of the possibilities to express participant refere
 \item With a verb (participle): \bibleverse{Gen}(4:15) \\ \hebr{KL \cl{red}{HRG} QJN CB<TJM JQM} \\ ``Therefore whoever slays Cain, vengeance will be taken on him sevenfold.''
 \item With a noun: \bibleverse{Gen}(2:18) \\ \hebr{L> VWB HJWT \cl{red}{H >DM} L BDW} \\ ``It is not good for the man to be alone.''
 \item With a noun with suffix: \bibleverse{Gen}(4:6) \\ \hebr{LMH NPLW \cl{red}{PNJK}} \\ ``Why has (the expression of) your face fallen? [GC]''
-\item With a personal noun: \bibleverse{Gen}(4:9) \\ \hebr{>J \cl{red}{HBL} >XJK} \\ ``Where is Abel, your brother?''
+\item With a personal noun / name: \bibleverse{Gen}(4:9) \\ \hebr{>J \cl{red}{HBL} >XJK} \\ ``Where is Abel, your brother?''
 \item With an adjective: \bibleverse{Gen}(18:24) \\ \hebr{>WLJ JC XMCJM \cl{red}{YDJQM} B TWK H <JR} \\ ``What if there are fifty righteous within the city?''
 \item With a phrase (multiple words): \bibleverse{Gen}(24:7)
 
@@ -214,7 +221,7 @@ HW> JCLX ML>KW L PNJK
 ``Yahweh, the God of heaven -- who took me from my father’s house, and from the land of my birth, who spoke to me, and who swore to me, saying, `I will give this land to your offspring' -- he will send his angel before you...''
 \end{itemize}
 
-Not all of these options occur with the same frequency. See below for the statistics for the whole Hebrew Bible, splitted for narrative texts and direct speech texts. Note that direct speech texts include books and text portions that are generally called poetic or prophetic.\\
+Not all of these options occur with the same frequency. See below for the statistics for the whole Hebrew Bible, splitted for narrative texts and direct speech texts. Note that direct speech texts include books and text portions that are generally called poetic or prophetic (but bar plots for narrative books only show very similar results).\\
 
 \noindent
 \begin{minipage}{.5\textwidth}
@@ -225,39 +232,39 @@ Not all of these options occur with the same frequency. See below for the statis
 \input{plots/Destypes_of_Subjects_Speech_OT.tex}
 \end{minipage}
 
-Compare with narrative books only, to see whether poetic books make a difference:\\
-\noindent
-\begin{minipage}{.5\textwidth}
-\input{plots/Destypes_of_Subjects_Narrative_Nar.tex}
-\end{minipage}
-\begin{minipage}{.5\textwidth}
-\centering
-\input{plots/Destypes_of_Subjects_Speech_Nar.tex}
-\end{minipage}
+%Compare with narrative books only, to see whether poetic books make a difference:\\
+%\noindent
+%\begin{minipage}{.5\textwidth}
+%\input{plots/Destypes_of_Subjects_Narrative_Nar.tex}
+%\end{minipage}
+%\begin{minipage}{.5\textwidth}
+%\centering
+%\input{plots/Destypes_of_Subjects_Speech_Nar.tex}
+%\end{minipage}
 
-Compare with Psalms only, to see whether poetic books make a difference:\\
-\noindent
-\begin{minipage}{.5\textwidth}
-\input{plots/Destypes_of_Subjects_Narrative_Psalms.tex}
-\end{minipage}
-\begin{minipage}{.5\textwidth}
-\centering
-\input{plots/Destypes_of_Subjects_Speech_Psalms.tex}
-\end{minipage}
+%Compare with Psalms only, to see whether poetic books make a difference:\\
+%\noindent
+%\begin{minipage}{.5\textwidth}
+%\input{plots/Destypes_of_Subjects_Narrative_Psalms.tex}
+%\end{minipage}
+%\begin{minipage}{.5\textwidth}
+%\centering
+%\input{plots/Destypes_of_Subjects_Speech_Psalms.tex}
+%\end{minipage}
 
-Compare with a stricter definition of Direct Speech (ends with Q):\\
-\noindent
-\begin{minipage}{.5\textwidth}
-\input{plots/Destypes_of_Subjects_Narrative_real_Nar.tex}
-\end{minipage}
-\begin{minipage}{.5\textwidth}
-\centering
-\input{plots/Destypes_of_Subjects_Speech_strict_Nar.tex}
-\end{minipage}
-\begin{minipage}{.5\textwidth}
-\centering
-\input{plots/Destypes_of_Subjects_Medium_OT.tex}
-\end{minipage}
+%Compare with a stricter definition of Direct Speech (ends with Q):\\
+%\noindent
+%\begin{minipage}{.5\textwidth}
+%\input{plots/Destypes_of_Subjects_Narrative_real_Nar.tex}
+%\end{minipage}
+%\begin{minipage}{.5\textwidth}
+%\centering
+%\input{plots/Destypes_of_Subjects_Speech_strict_Nar.tex}
+%\end{minipage}
+%\begin{minipage}{.5\textwidth}
+%\centering
+%\input{plots/Destypes_of_Subjects_Medium_OT.tex}
+%\end{minipage}
 
 \paragraph{Object encoding}
 Objects are sometimes introduced by the nota objecti \hebr{>T}. These are dealt with in section \ref{prep}, because the ETCBC database sees \hebr{>T} as a preposition. Indirect objects are also introduced with a preposition. \textcolor{blue}{Always?} Objects without a preposition can be encoded in the following ways:
@@ -287,6 +294,7 @@ Some statistics of object references in the Hebrew Bible:
 
 \paragraph{Encoding options after prepositions}\label{prep}
 The Old Testament has many prepositions, usually followed by participant references. The option of encoding a participant by (verbal) inflection obviously is not available for prepositions, since these do not have inflection. They just serve as an introduction to a participant reference, and do not form part of the reference themselves. Except for inflection (and zero encoding), all options are available for prepositions, as will be shown with examples below.
+\textbf{Problem: there are some inflected verbs... probably phrases like ``like I did...''. How to filter these? And is this a broader problem?}
 
 \begin{itemize}
 \item With a suffix: \bibleverse{Gen}(4:10) \\ \hebr{QWL DMY >XYK Y<QJM \cl{red}{>LJ} MN H>DMH} \\ ``Your brother's blood cries to me from the ground.''
@@ -312,20 +320,20 @@ Statistics of these references:
 \input{plots/Destypes_of_Prep_Speech_OT.tex}
 \end{minipage}
 
-The encoding options used after a preposition are similar to those of objects, with the major difference that prepositions can use suffixes.
 
-Comparison with statistics about only narrative books:\\
-\noindent
-\begin{minipage}{.5\textwidth}
-\input{plots/Destypes_of_Prep_Narrative_Nar.tex}
-\end{minipage}
-\begin{minipage}{.5\textwidth}
-\centering
-\input{plots/Destypes_of_Prep_Speech_Nar.tex}
-\end{minipage}
+%Comparison with statistics about only narrative books:\\
+%\noindent
+%\begin{minipage}{.5\textwidth}
+%\input{plots/Destypes_of_Prep_Narrative_Nar.tex}
+%\end{minipage}
+%\begin{minipage}{.5\textwidth}
+%\centering
+%\input{plots/Destypes_of_Prep_Speech_Nar.tex}
+%\end{minipage}
 
 \paragraph{Nota objecti \hebr{>T}}
-A special category are the nota objecti \hebr{>T} and the nota accusativi \hebr{JT} (occurring only once, in \bibleverse{Dan}(3:12)). These introduce an object slot, and have the same options as other prepositions, except for the personal pronoun, which does not occur anywhere in the Old Testament.
+A special category are the nota objecti \hebr{>T} and the nota accusativi \hebr{JT} (occurring only once, in \bibleverse{Dan}(3:12)). These introduce an object slot, and have the same options and a similar frequency distribution as other prepositions.
+
 \begin{itemize}
 \item With a suffix: \bibleverse{Gen}(7:1) \\ \hebr{KJ \cl{red}{>TK} R>JTJ YDJQ} \\ ``I have seen your righteousness before me in this generation.''
 \item With a demonstrative pronoun: \bibleverse{Gen}(29:33) \\ \hebr{KJ CM< JHWH KJ FNW>H >NKJ W JTN LJ GM \cl{red}{>T ZH}} \\ ``Because Yahweh has heard that I am hated, he has therefore given me this son also.''
@@ -348,29 +356,29 @@ Statistics of these references: \\
 \centering
 \input{plots/Destypes_of_>T_Speech_OT.tex}
 \end{minipage}
-As can be seen clearly from the bar plots, references introduced by \hebr{>T} are generally nouns, names or phrases. A remarkable difference with other prepositions is that \hebr{>T} does not occur with a suffix if \hebr{>T} denotes an object. \textbf{How about Gen 31:27?}
+As can be seen clearly from the bar plots, references introduced by \hebr{>T} are generally suffixes, nouns, names or phrases. The relative frequency of names and name\_phrases after \hebr{>T} is clearly larger than its counterpart without \hebr{>T}, especially so in narrative.
 
-Statistics of these references in narrative books only: \\
-\noindent
-\begin{minipage}{.5\textwidth}
-\input{plots/Destypes_of_>T_Narrative_Nar.tex}
-\end{minipage}
-\begin{minipage}{.5\textwidth}
-\centering
-\input{plots/Destypes_of_>T_Speech_Nar.tex}
-\end{minipage}
+%Statistics of these references in narrative books only: \\
+%\noindent
+%\begin{minipage}{.5\textwidth}
+%\input{plots/Destypes_of_>T_Narrative_Nar.tex}
+%\end{minipage}
+%\begin{minipage}{.5\textwidth}
+%\centering
+%\input{plots/Destypes_of_>T_Speech_Nar.tex}
+%\end{minipage}
 
 \textbf{In \bibleverse{Gen}(30:29) and other places, there is an object with only >T, followed by and >CR phrase. (In \bibleverse{Gen}(30:30) there even is a reference where the \hebr{>CR} phrase does not have a head at all).}\\
 \textbf{All >CR phrases have a phrase number different from the reference they are attached to, so they are not included in the plots. Should that be fixed? EDIT: the clause\_feature rela seems to be helpful here, since that tells that the clause is object}
 
-\paragraph{\mi{Rec} sub-participants}
-Sub-participants annotated with the \mi{rectum} part of the \mi{Regens-rectum relation} are, as we have seen above, not directly dependent on the grammatical context beyond the word that reigns them. We therefore consider words annotated as \mi{Regens} as a separate category of introduction, followed by an alternative `slot'. Since this relationship only occurs on words, it is not assigned to suffixes. However, I think there are suffixes fulfilling a comparable function:
+\paragraph{Sub-participants}
+Sub-participants are, as we have seen above, not directly dependent on the grammatical context beyond the word that reigns them. They do not fill one of the slots dealt with above, but a kind of alternative slot introduced by their `parent'. 
+
 
 \begin{itemize}
 \item With a suffix: \bibleverse{Gen}(1:11) \\ \hebr{<Y PRJ <FH PRJ L MJN\cl{red}{W}} \\ ``(...) fruit trees bearing fruit after their kind''
 \end{itemize}
 
-Demonstrative pronouns often occur immediately after a noun, and then refer back to it without a change in identity. The same can happen with personal pronouns and adjectives, although adjectives with a different identity also occur. All these options, of which examples are given below, are more comparable to the article than to the sort of possessive relationship that is reflected by the \mi{rectum} elements with an identity different from that of the \mi{Regens}. They elaborate further on the last mentioned participant, giving more specific information, without referencing to other participants in this description.
 
 \begin{itemize}
 %\item With (verbal) inflection: \bibleverse{Gen}
@@ -395,31 +403,63 @@ Examples of references with a different identity:
 %\noindent%
 \begin{tabularx}{\textwidth}{|l|X|X|X|X|X|X|}
 \hline
-\emph{Available encoding options} & \emph{Subject} & \emph{Object} & \emph{On prepositions} & \cjRL{>T} & \emph{Sub-participants (Rec)} \\ \hline
+\emph{Available encoding options} & \emph{Subject} & \emph{Object} & \emph{On prepositions} & \cjRL{>T} & \emph{Sub-participants} \\ \hline
 \emph{Verbal inflection} & Yes & No & No & No & No \\ \hline
-\emph{Suffix} & Yes & Yes & Yes & Very rare & Yes (comparable) \\ \hline
-\emph{Personal pronoun} & Yes & Very rare & Very rare & No & Yes (same identity) \\ \hline
+\emph{Suffix} & Yes & Yes & Yes & Very rare & Yes \\ \hline
+\emph{Personal pronoun} & Yes & Very rare & Very rare & No & Yes (same identity,comparable with demonstrative) \\ \hline
 \emph{Demonstrative pronoun} & Yes & Yes & Very rare & Very rare & Yes (at least with same identity)\\ \hline
 %\emph{Interrogative pronoun} & Yes & Yes & Yes & Yes & Yes \\ \hline
-\emph{Verb (participle)} & Yes & Rare & Yes & Rare & Yes \\ \hline
+\emph{Verb (participle)} & Yes & Rare & Rare & Rare & Yes \\ \hline
 \emph{Noun} & Yes & Yes & Yes & Yes & Yes \\ \hline
 \emph{Name} & Yes & Yes & Yes & Yes & Yes \\ \hline
 \emph{Adjective} & Yes & Yes & Yes & Yes & Yes \\ \hline
 \emph{Phrase} & Yes & Yes & Yes & Yes & Yes \\ \hline
 \end{tabularx}
 
-\subsection{Some constraints on encoding options}
-\begin{itemize}
-\item Grammatical features of referent
-\item Surrounding text and text structure
-\item Surrounding participants
+\subsection{Looking the other way around: functions of reference types}
+\paragraph{Inflected verbs} If we find a finite verb that is not being accompanied by a more extensive reference, we immediately know that this reference is in subject role. There is no other slot that can be filled by inflected verbs.
+\paragraph{Suffixes} Suffixes can occur on several slots, as can be seen in the table below. It is not immediately clear to what extend suffixes on an infinitive construct are comparable to subject suffixes on finite verbs, suffixes on active participles to object suffixes, and suffixes on passive participles or adjectives to \mi{rec} suffixes on nouns.
 
+\begin{tabular}{|l|l|l|l|l|l|}
+\hline
+\emph{Suffix function} & \emph{Attached to...} & \emph{\# in narrative} & \emph{\% in narrative} & \emph{\# in speech} & \emph{\% in speech} \\ \hline
+Subject & Finite verb & 323 & 2.73\% & 865 & 2.60\% \\ \hline
+Subject ? & Inf Constr & 3 & 0.02\% & 18 & 0.05\% \\\hline
+\emph{Subject} & \emph{Total} & 326 & 2.76\% & 883 & 2.65\% \\\hline
+Object & Finite verb & 1427 & 12.1\% & 4269 & 12.81\% \\\hline
+Object ? & PtcA & 123 & 1.04\%& 589 & 1.77\% \\\hline
+\emph{Object} & \emph{Total} & 1550 & 13.11\% & 4858 & 0.15\% \\\hline
+\mi{Rec} & Noun & 6458 & 54.61\% & 18327 & 54.99\% \\\hline
+\mi{Rec} ? & PtcP & 39 & 0.33\% & 35 & 0.11\% \\\hline
+\mi{Rec} ? & Adjv & 20 & 0.17\% & 149 & 0.45\% \\\hline
+\emph{\mi{Rec}} & \emph{Total} & 6517 & 55.11\% & 18511 & 0.56\% \\\hline
+Various & Prep & 3431 & 29.01\% & 9075 & 27.23\% \\\hline
+\emph{Total} & & 11825 & & 33327 & \\
+\hline
+\end{tabular}
+
+\noindent
+\begin{minipage}{.5\textwidth}
+\input{plots/suffixes_nar.tex}
+\end{minipage}
+\begin{minipage}{.5\textwidth}
+\centering
+\input{plots/suffixes_speech.tex}
+\end{minipage}
+
+\subsection{Some constraints on encoding options}
+As we saw above, there is a wide range of encoding options for participant references. However, the author of a text does not just choose randomly from this list of options. There are several constraints restricting his choices, some of them absolutely and some more loosely. 
+\begin{itemize}
+\item Activation state: a participant reference must be unambiguous about its identity, if it is to be understood well. How much information is necessary for this disambiguation, depends on the referent's activation state. If a referent has not yet been mentioned in a text, it needs an extensive reference. But if there is already a sequence of references to the same referent, he might be so prominent and accessible in the reader's mind that a simple verbal inflection is enough. There are, of course, all kinds of nuances on this scale of accessability.
+\item Grammatical role / slot: as we saw above, verbal inflection is only available for subjects. Other reference types can occur on several slots, but are not all used with the same frequency.
+\item Surrounding text and text structure: see section \ref{chicken} for a discussion whether participant references determine the grammatical text structure or vice versa. If we assume that the larger text structure is chosen first, this restricts the encoding options for participant references. 
+\item Surrounding participants: if there is only one participant active in a text, or the active participants are clearly distinguishable by person / number / gender, this gives room for low-level encoding. If, on the other hand, a text speaks about a number of men or a number of women, these will need more extensive encoding in order to remain unambiguous: an inflected verb or a pronoun could refer to more than one of the active participants.
 \end{itemize}
 
-\subsection{Position of references}
+\section{Position of references}
 Not only the encoding type of the reference, but also its place in the clause or sentence can be important. Some references are bound to a fixed position within the clause. Verbal inflection, of course, manifests on the verb. Suffixes are attached to nouns, verbs et cetera. Extensive references are more flexible with regard to their position. This leaves some options open; the difference between a \mi{We-X-Qatal} and \mi{We-Qatal-X clause}, for example, only is the relative position of the verb and the subject. Since the ordering of verb and participant reference thus is not fully determined by verb type and reference type, we need to reckon with the possibility of meaningful decisions based on different factors here.
 
-\subsection{Prominence}
+\section{Prominence}
 As we saw above, participants can be encoded more or less extensively. In general, extensive encodings draw more attention, and thus are more prominent in a text, than less extensive ones. However, prominence is not only dependent on the encoding option chosen, but also on its textual context.\\
 On the one hand, the grammatical context limits the range of encoding options from which an author can choose. The clause type in which a reference occurs, its grammatical function within the clause, and other factors influence the range of options that are available. Some of these factors are yet unclear, or not easily circumscribed in computer code. Therefore I start with the factors that are indisputable, and try to find others in a process of thinking, testing and rethinking. This is all about the prominence of a reference relative to the grammatical options available.\\
 On the other hand, the prominence as perceived by readers is also dependent on neighboring references, the number of active participants, and many other things that are not easily caught in grammatical rules. These factors will get our attention later on.
@@ -435,12 +475,11 @@ Proposal for indicating prominence:
 \item 6 is reserved for phrases etc, so noun+
 \end{itemize}
 
-\section{The chicken or the egg}
+\section{The chicken or the egg}\label{chicken}
 The encoding of participant references is only one feature among many in a text. For example, a text also has certain clause types, phrase types, verb types, et cetera.
 An important question is the order in which textual choices on different aspects were made by authors and editors of our text corpus. In other words: which features are chosen first, and how do they constrain the liberty of choice of other features?
-To give a concrete example, we consider \bibleverse{Genesis}(3:5): \textbf{To fix: insert Hebrew text!}
-
-The serpent tells the woman that, if eating from the forbidden fruit, she will not die. It then continues stating that ``God knows that\ldots'' something very different will happen. This `knowing' of God is expressed by a participle. Since participles do not show a person (they do show number and gender), expressing person by something like verbal inflection is no option here. The range of choices is limited by the chosen \mi{clause_type} -- if we assume that the clause type was chosen first.
+To give a concrete example, we consider \bibleverse{Genesis}(3:5): \hebr{KJ JD< >LHJM KJ} \\
+The serpent tells the woman that, if eating from the forbidden fruit, she will not die. It then continues stating that ``God knows that\ldots'' something very different will happen. This `knowing' of God is expressed by a participle. Since participles do not show a person (they do show number and gender), expressing person by something like verbal inflection is no option here. The range of choices is limited by the chosen \mi{clause\_type} -- if we assume that the clause type was chosen first.
 
 We can also imagine the process to go the other way round: an author wants to use a particular participant reference, and chooses a clause type that fits his requirements.
 A third possibility, probably closer to the truth, is that the choices of both clause type and participant reference are (more or less unconsciously) based on still other factors like the larger structure of a text. Participants do not occur independently from a text structure, they form a key part of it. In other words, we do not have a chicken and an egg but two little chickens growing up together.
@@ -470,4 +509,3 @@ I annotated MJM as individual; is this correct?
 %Noun, Noun\_phrase, Name, Name\_phrase, Pers\_pronoun, Other\_pronoun, Suffix, Verb
 
 \end{document}
-

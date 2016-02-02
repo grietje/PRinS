@@ -872,7 +872,7 @@ for node in NN():
     if otype == "book" and F.etcbc4_sft_book.v(node) != "Genesis":
         break
     elif otype == "chapter":
-        if int(F.etcbc4_sft_chapter.v(node)) < 30:    # Prevent re-doing already completed chapters
+        if int(F.etcbc4_sft_chapter.v(node)) < 31:    # Prevent re-doing already completed chapters
             completed = True
 #        elif int(F.etcbc4_sft_chapter.v(node)) > 3:    # Set a limit on the amount of data dealt with this time
 #            break
@@ -923,7 +923,7 @@ import sqlite3
 
 db = sqlite3.connect('gcdata.sqlite')
 #db.row_factory = sqlite3.Row
-c = db.cursor()
+cursor = db.cursor()
 
 \end{python}
 
@@ -999,8 +999,9 @@ I do not count them in the column \mi{Nr}, but their name is stored in the colum
 
 \begin{python}
 #{{{ Assign Nr - new try
-nrs_todo = list(cursor.execute("select Sub, Name, Tag, Nr from pt where Nr is null or Nr = ''"))  # Select all rows that need a Nr
+nrs_todo = list(cursor.execute("select Sub, Name, Tag, Nr from pt where Nr is NULL or Nr = ''"))  # Select all rows that need a Nr
 nrs = {}    # Create dict for all relevant Names + their Nrs
+Sub1 = 0
 
 for (Sub, Name, Tag, Nr) in nrs_todo:
     Name = str(Name).strip()
@@ -1016,6 +1017,8 @@ for (Sub, Name, Tag, Nr) in nrs_todo:
         nrs[Name] = newnr
         cursor.execute("update pt set Nr=:newnr where Tag=:Tag", {"newnr":newnr, "Tag":Tag})
         print(Name,Sub,nrs[Name])
+    else:
+        Sub1 += 1
 
 #}}}
 \end{python}
@@ -1038,7 +1041,6 @@ for (Tag,Name,Nr) in todo:
     cursor.execute("update pt set RefDSU=:DSU, Refa=:a, RefClANr=:ClANr, RefPhANr=:PhANr, RefNode=:Node, RefNodetype=:Nodetype, RefWNr =:WNr where Name=:Name and Nr=:Nr",{"DSU":Refdata[0][0],"a":Refdata[0][1],"ClANr":Refdata[0][2],"PhANr":Refdata[0][3],"Node":Refdata[0][4],"Nodetype":Refdata[0][5],"WNr":Refdata[0][6],"Name":Name,"Nr":Nr}) 
     Onedata = list(cursor.execute("select DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Name=:Name ORDER BY Tag LIMIT 1", {"Name":Name, })) # *1-data
     cursor.execute("update pt set DSU1=:DSU, a1=:a, ClANr1=:ClANr, PhANr1=:PhANr, Node1=:Node, Nodetype1=:Nodetype, WNr1=:WNr where Name=:Name and Nr=:Nr",{"DSU":Onedata[0][0],"a":Onedata[0][1],"ClANr":Onedata[0][2],"PhANr":Onedata[0][3],"Node":Onedata[0][4],"Nodetype":Onedata[0][5],"WNr":Onedata[0][6],"Name":Name,"Nr":Nr}) 
-
     index = [y[0] for y in all_tags].index(Tag)  # Check the index of this row in the ordered list all_tags, in order to find the previous row = Prev_data 
     if index == 0:  # Apparently this is the first row of the table
         Prevdata = list(cursor.execute("select Name, DSU, a, ClANr, PhANr, Node, Nodetype, WNr from pt where Tag=:Tag",{"Tag":Tag, })) # Prev-data for first entry
@@ -1058,7 +1060,10 @@ for (Tag,Name,Nr) in todo:
         Prevdata = list(cursor.execute("select Con, Level, Emb, Des, Destype, Role, P, N, G, Lexset, PartSpeech from pt where Tag=:prev_Tag",{"prev_Tag":prev_Tag, })) # Prev-data
     cursor.execute("update pt set PrevCon=:Con, PrevLevel=:Level, PrevEmb=:Emb, PrevDes=:Des, PrevDestype=:Destype, PrevRole=:Role, PrevP=:P, PrevN=:N, PrevG=:G, PrevLexset=:Lexset, PrevPartSpeech=:PartSpeech where Tag=:Tag", {"Con":Prevdata[0][0],"Level":Prevdata[0][1],"Emb":Prevdata[0][2],"Des":Prevdata[0][3],"Destype":Prevdata[0][4],"Role":Prevdata[0][5],"P":Prevdata[0][6],"N":Prevdata[0][7],"G":Prevdata[0][8],"Lexset":Prevdata[0][9],"PartSpeech":Prevdata[0][10],"Tag":Tag})
 #}}}
+
 \end{python}
+
+% Do not forget to commit! (db.commit())
 
 \end{document}
 #sagemathcloud={"latex_command":"pdflatex -synctex=1 -shell-escape -interact=nonstopmode 'workflow2.tex'"}

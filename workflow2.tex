@@ -675,7 +675,7 @@ def add_data(data,candidate):
         current["WNr"] = None
     if current["Nodetype"] in ("1","2"): # Smaller than subphrase, so can have SPhNr and has WNr
         current["SPhNr"] = L.u('subphrase',current["Node"])
-        current["WNr"] = F.etcbc4_ft_number.v(current["Node"])
+        current["WNr"] = current["Node"])
         current["Phfunc"] = F.etcbc4_ft_function.v(L.u('phrase',current["Node"]))
         current["Phtype"] = F.etcbc4_ft_typ.v(L.u('phrase',current["Node"]))
     for x in (current["ClANr"],current["PhANr"],current["SPhNr"],current["WNr"]):
@@ -694,8 +694,8 @@ def add_data(data,candidate):
         current["N"] = suffix_dict[F.etcbc4_ft_prs.v(current["Node"])]['nu']
         current["G"] = suffix_dict[F.etcbc4_ft_prs.v(current["Node"])]['gn']
         current["Lexset"] = "suffix"
-    current["Tag"] = current["a"].rjust(15,' ') + "_" + str(current["ClANr"]).rjust(9,'0') + "_" + str(current["PhANr"]).rjust(9,'0') + "_" + str(current["WNr"]).rjust(9,'0') + "_" + str(current["Nodetype"])
-    if current["Tag"] in list(cursor.execute("select Tag from pt")): # Double-check whether this work
+    current["Tag"] = current["a"].rjust(15,'.') + "_" + str(current["ClANr"]).rjust(9,'0') + "_" + str(current["PhANr"]).rjust(9,'0') + "_" + str(current["WNr"]).rjust(9,'0') + "_" + str(current["Nodetype"])
+    if current["Tag"] in list(cursor.execute("select Tag from pt")): # Double-check whether this works -- it doesn't
         current["Tag"] = current["Tag"][:-1]+"0"
         if current["Tag"] in list(cursor.execute("select Tag from pt")):
             current["Tag"] = current["Tag"][:-1]+"1"
@@ -1159,7 +1159,10 @@ for (a,Node,Nodetype,Tag) in todo:
     Node = int(Node)
     Nodetype = int(Nodetype)
     if Nodetype == 4:
-        ClANr = Node
+        if F.etcbc4_db_otype.v(Node) == "clause_atom":
+            ClANr = Node
+        elif F.etcbc4_db_otype.v(Node) == "clause":
+            ClANr = L.d('clause_atom',Node)
     else:
         ClANr = L.u('clause_atom',current["Node"])
     if Nodetype == 3:
@@ -1177,19 +1180,15 @@ for (a,Node,Nodetype,Tag) in todo:
     for x in (ClANr,PhANr,SPhNr,WNr):
         if str(x).strip() in (None,"None"):
             x = 00
-    Tag = str(a).rjust(15,' ') + "_" + str(ClANr).rjust(9,'0') + "_" + str(PhANr).rjust(9,'0') + "_" + str(WNr).rjust(9,'0') + "_" + str(Nodetype)
-
-
-    current["Tag"] = current["a"].rjust(15,' ') + "_" + str(current["ClANr"]).rjust(9,'0') + "_" + str(current["PhANr"]).rjust(9,'0') + "_" + str(current["WNr"]).rjust(9,'0') + "_" + str(current["Nodetype"])
-    if current["Tag"] in list(cursor.execute("select Tag from pt")): # Double-check whether this work
-        current["Tag"] = current["Tag"][:-1]+"0"
-        if current["Tag"] in list(cursor.execute("select Tag from pt")):
-            current["Tag"] = current["Tag"][:-1]+"1"
-            if current["Tag"] in list(cursor.execute("select Tag from pt")):
-                current["Tag"] = current["Tag"][:-1]+"2"
-    if "None" in current["Tag"]:
-        print("Problem!!!!!!!!!!!!!!!!! Tag is not correct!", current)
-    else:
-        return(current)
+    Tag2 = str(a).rjust(15,'.') + "_" + str(ClANr).rjust(9,'0') + "_" + str(PhANr).rjust(9,'0') + "_" + str(WNr).rjust(9,'0') + "_" + str(Nodetype)
+    if Tag2 in list(cursor.execute("select Tag from pt")[0]):
+        Tag2 = Tag2+"0"
+        if Tag2 in list(cursor.execute("select Tag from pt")[0]):
+            Tag2 = Tag2[:-1]+"1"
+            if Tag2 in list(cursor.execute("select Tag from pt")[0]):
+                Tag2 = Tag2[:-1]+"2"
+    if "None" in Tag2:
+        print("Problem!!!!!!!!!!!!!!!!! Tag is not correct!", Tag)
+    cursor.execute("update pt set Tag=:Tag2 where Tag=:Tag"
 
 \end{python}

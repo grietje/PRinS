@@ -1151,3 +1151,45 @@ for Tag in doubles:
 #        cursor.execute("update pt set PhANr=:PhANr2, WNr=:WNr2, Tag=:Tag where Node=:Node", {"PhANr2":PhANr2,"WNr2":WNr2,"Tag":newtag,"Node":Node})
 
 \end{python}
+\begin{python}
+#Try to fix incorrect Tags
+todo = list(cursor.execute("select a,Node,Nodetype,Tag from pt"))
+
+for (a,Node,Nodetype,Tag) in todo:
+    Node = int(Node)
+    Nodetype = int(Nodetype)
+    if Nodetype == 4:
+        ClANr = Node
+    else:
+        ClANr = L.u('clause_atom',current["Node"])
+    if Nodetype == 3:
+        if F.etcbc4_db_otype.v(Node) == "subphrase":
+            SPhNr = Node
+            PhANr = L.u('phrase_atom',Node)
+        elif F.etcbc4_db_otype.v(Node) == "phrase":
+            PhANr = L.d('phrase_atom',Node)
+        elif F.etcbc4_db_otype,v(Node) == "phrase_atom":
+            PhANr = Node
+    if Nodetype in (1,2):
+        PhANr = L.u('phrase_atom',Node)
+        SPhNr = L.u('subphrase',Node)
+        WNr = Node
+    for x in (ClANr,PhANr,SPhNr,WNr):
+        if str(x).strip() in (None,"None"):
+            x = 00
+    Tag = str(a).rjust(15,' ') + "_" + str(ClANr).rjust(9,'0') + "_" + str(PhANr).rjust(9,'0') + "_" + str(WNr).rjust(9,'0') + "_" + str(Nodetype)
+
+
+    current["Tag"] = current["a"].rjust(15,' ') + "_" + str(current["ClANr"]).rjust(9,'0') + "_" + str(current["PhANr"]).rjust(9,'0') + "_" + str(current["WNr"]).rjust(9,'0') + "_" + str(current["Nodetype"])
+    if current["Tag"] in list(cursor.execute("select Tag from pt")): # Double-check whether this work
+        current["Tag"] = current["Tag"][:-1]+"0"
+        if current["Tag"] in list(cursor.execute("select Tag from pt")):
+            current["Tag"] = current["Tag"][:-1]+"1"
+            if current["Tag"] in list(cursor.execute("select Tag from pt")):
+                current["Tag"] = current["Tag"][:-1]+"2"
+    if "None" in current["Tag"]:
+        print("Problem!!!!!!!!!!!!!!!!! Tag is not correct!", current)
+    else:
+        return(current)
+
+\end{python}

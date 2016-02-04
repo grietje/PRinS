@@ -651,6 +651,10 @@ def add_data(data,candidate):
 #    cand = candidate
 #    if str(candidate).endswith("s") or str(candidate).endswith("c") or str(candidate).endwith("d"):
 #        cand = candidate[:-1]
+    Taglist_proto = list(cursor.execute("select Tag from pt"))
+    Taglist = []
+    for Tag in Taglist_proto:
+        Taglist.append(Tag[0])
     current = data[candidate]
     if current["Nodetype"] == "4":
         ClANr = current["Node"]
@@ -695,12 +699,13 @@ def add_data(data,candidate):
         current["G"] = suffix_dict[F.etcbc4_ft_prs.v(current["Node"])]['gn']
         current["Lexset"] = "suffix"
     current["Tag"] = current["a"].rjust(15,'.') + "_" + str(current["ClANr"]).rjust(9,'0') + "_" + str(current["PhANr"]).rjust(9,'0') + "_" + str(current["WNr"]).rjust(9,'0') + "_" + str(current["Nodetype"])
-    if current["Tag"] in list(cursor.execute("select Tag from pt")): # Double-check whether this works -- it doesn't
-        current["Tag"] = current["Tag"][:-1]+"0"
-        if current["Tag"] in list(cursor.execute("select Tag from pt")):
+    if current["Tag"] in Taglist:
+        current["Tag"] = current["Tag"]+"0"
+        if current["Tag"] in Taglist:
             current["Tag"] = current["Tag"][:-1]+"1"
-            if current["Tag"] in list(cursor.execute("select Tag from pt")):
+            if current["Tag"] in Taglist:
                 current["Tag"] = current["Tag"][:-1]+"2"
+    Taglist.append(current["Tag"])
     if "None" in current["Tag"]:
         print("Problem!!!!!!!!!!!!!!!!! Tag is not correct!", current)
     else:
@@ -1111,84 +1116,5 @@ for (Node,Tag,a,ClANr,PhANr,WNr,Nodetype) in todo:
 
 \end{python}
 
-\begin{python}
-# Fix identical Tags
-Tags = list(cursor.execute("select Tag from pt"))
-Tags2 = []
-doubles = []
-for Tag in Tags:
-    if Tag in Tags2:
-        doubles.append(Tag)
-    else:
-        Tags2.append(Tag)
 
-\end{python}
 
-\begin{python}
-for Tag in doubles:
-    refs = list(cursor.execute("select Node,a,Sub,Des,Destype,ClANr,PhANr,WNr,Nodetype from pt where Tag=:Tag", {"Tag":Tag[0], }))
-    for (Node,a,Sub,Des,Destype,ClANr,PhANr,WNr,Nodetype) in refs:
-        ClANr2 = L.u('clause_atom',int(Node))
-        if ClANr2 == None:
-            ClANr2 = 00
-        PhANr2 = L.u('phrase',int(Node))
-        if PhANr2 == None:
-            if F.etcbc4_db_otype.v(int(Node)) in ('phrase','subphrase'):
-                PhANr2 = Node
-            else:
-                PhANr2 = 00
-        WNr2 = F.etcbc4_ft_number.v(L.u('word',int(Node)))
-        if WNr2 == None:
-            if F.etcbc4_db_otype.v(int(Node)) == 'word':
-                WNr2 = F.etcbc4_ft_number.v(Node)
-            else:
-                WNr2 = 00
-    #        print(Tag,ClANr,ClANr2,PhANr,WNr)
-        newtag = a.rjust(15,' ') + "_" + str(ClANr2).rjust(9,'0') + "_" + str(PhANr2).rjust(9,'0') + "_" + str(WNr2).rjust(9,'0') + "_" + str(Nodetype)
-        if newtag != Tag[0]:
-            print("correction done")
-            print(Node,Tag,newtag)
-#        cursor.execute("update pt set PhANr=:PhANr2, WNr=:WNr2, Tag=:Tag where Node=:Node", {"PhANr2":PhANr2,"WNr2":WNr2,"Tag":newtag,"Node":Node})
-
-\end{python}
-\begin{python}
-#Try to fix incorrect Tags
-todo = list(cursor.execute("select a,Node,Nodetype,Tag from pt"))
-
-for (a,Node,Nodetype,Tag) in todo:
-    Node = int(Node)
-    Nodetype = int(Nodetype)
-    if Nodetype == 4:
-        if F.etcbc4_db_otype.v(Node) == "clause_atom":
-            ClANr = Node
-        elif F.etcbc4_db_otype.v(Node) == "clause":
-            ClANr = L.d('clause_atom',Node)
-    else:
-        ClANr = L.u('clause_atom',current["Node"])
-    if Nodetype == 3:
-        if F.etcbc4_db_otype.v(Node) == "subphrase":
-            SPhNr = Node
-            PhANr = L.u('phrase_atom',Node)
-        elif F.etcbc4_db_otype.v(Node) == "phrase":
-            PhANr = L.d('phrase_atom',Node)
-        elif F.etcbc4_db_otype,v(Node) == "phrase_atom":
-            PhANr = Node
-    if Nodetype in (1,2):
-        PhANr = L.u('phrase_atom',Node)
-        SPhNr = L.u('subphrase',Node)
-        WNr = Node
-    for x in (ClANr,PhANr,SPhNr,WNr):
-        if str(x).strip() in (None,"None"):
-            x = 00
-    Tag2 = str(a).rjust(15,'.') + "_" + str(ClANr).rjust(9,'0') + "_" + str(PhANr).rjust(9,'0') + "_" + str(WNr).rjust(9,'0') + "_" + str(Nodetype)
-    if Tag2 in list(cursor.execute("select Tag from pt")[0]):
-        Tag2 = Tag2+"0"
-        if Tag2 in list(cursor.execute("select Tag from pt")[0]):
-            Tag2 = Tag2[:-1]+"1"
-            if Tag2 in list(cursor.execute("select Tag from pt")[0]):
-                Tag2 = Tag2[:-1]+"2"
-    if "None" in Tag2:
-        print("Problem!!!!!!!!!!!!!!!!! Tag is not correct!", Tag)
-    cursor.execute("update pt set Tag=:Tag2 where Tag=:Tag"
-
-\end{python}

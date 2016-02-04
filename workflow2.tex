@@ -1116,5 +1116,103 @@ for (Node,Tag,a,ClANr,PhANr,WNr,Nodetype) in todo:
 
 \end{python}
 
+\begin{python}
+# Fix identical Tags
+Tags = list(cursor.execute("select Tag from pt"))
+Tags2 = []
+doubles = []
+for Tag in Tags:
+    if Tag in Tags2:
+        doubles.append(Tag)
+    else:
+        Tags2.append(Tag)
 
+\end{python}
 
+\begin{python}
+for Tag in doubles:
+    refs = list(cursor.execute("select Node,a,Sub,Des,Destype,ClANr,PhANr,WNr,Nodetype from pt where Tag=:Tag", {"Tag":Tag[0], }))
+    for (Node,a,Sub,Des,Destype,ClANr,PhANr,WNr,Nodetype) in refs:
+        ClANr2 = L.u('clause_atom',int(Node))
+        if ClANr2 == None:
+            ClANr2 = 00
+        PhANr2 = L.u('phrase',int(Node))
+        if PhANr2 == None:
+            if F.etcbc4_db_otype.v(int(Node)) in ('phrase','subphrase'):
+                PhANr2 = Node
+            else:
+                PhANr2 = 00
+        WNr2 = F.etcbc4_ft_number.v(L.u('word',int(Node)))
+        if WNr2 == None:
+            if F.etcbc4_db_otype.v(int(Node)) == 'word':
+                WNr2 = F.etcbc4_ft_number.v(Node)
+            else:
+                WNr2 = 00
+    #        print(Tag,ClANr,ClANr2,PhANr,WNr)
+        newtag = a.rjust(15,' ') + "_" + str(ClANr2).rjust(9,'0') + "_" + str(PhANr2).rjust(9,'0') + "_" + str(WNr2).rjust(9,'0') + "_" + str(Nodetype)
+        if newtag != Tag[0]:
+            print("correction done")
+            print(Node,Tag,newtag)
+#        cursor.execute("update pt set PhANr=:PhANr2, WNr=:WNr2, Tag=:Tag where Node=:Node", {"PhANr2":PhANr2,"WNr2":WNr2,"Tag":newtag,"Node":Node})
+
+\end{python}
+\begin{python}
+#Try to fix incorrect Tags
+todo = list(cursor.execute("select a,Node,Nodetype,Tag,ID from pt"))
+Taglist_proto = list(cursor.execute("select Tag from pt"))
+Taglist = []
+for Tag in Taglist_proto:
+    Taglist.append(Tag[0])
+
+for (a,Node,Nodetype,Tag,ID) in todo:
+    Node = int(Node)
+    Nodetype = int(Nodetype)
+    if Nodetype == 4:
+        if F.etcbc4_db_otype.v(Node) == "clause_atom":
+            ClANr = Node
+        elif F.etcbc4_db_otype.v(Node) == "clause":
+            ClANr = L.d('clause_atom',Node)
+    else:
+        ClANr = L.u('clause_atom',current["Node"])
+    if Nodetype == 3:
+        if F.etcbc4_db_otype.v(Node) == "subphrase":
+            SPhNr = Node
+            PhANr = L.u('phrase_atom',Node)
+        elif F.etcbc4_db_otype.v(Node) == "phrase":
+            PhANr = L.d('phrase_atom',Node)
+        elif F.etcbc4_db_otype.v(Node) == "phrase_atom":
+            PhANr = Node
+    if Nodetype in (1,2):
+        PhANr = L.u('phrase_atom',Node)
+        SPhNr = L.u('subphrase',Node)
+        WNr = Node
+    for x in (ClANr,PhANr,SPhNr,WNr):
+        if str(x).strip() in (None,"None"):
+            x = 00
+    Tag2 = str(a).rjust(15,'.') + "_" + str(ClANr).rjust(9,'0') + "_" + str(PhANr).rjust(9,'0') + "_" + str(WNr).rjust(9,'0') + "_" + str(Nodetype)
+    if Tag2 in Taglist:
+        Tag2 = Tag2+"0"
+        if Tag2 in Taglist:
+            Tag2 = Tag2[:-1]+"1"
+            if Tag2 in Taglist:
+                Tag2 = Tag2[:-1]+"2"
+    Taglist.append(Tag2)
+    if "None" in Tag2:
+        print("Problem!!!!!!!!!!!!!!!!! Tag is not correct!", Tag)
+    cursor.execute("update pt set Tag=:Tag2 where Tag=:Tag and ID=:ID", {"Tag2":Tag2,"Tag":Tag,"ID",ID})
+
+\end{python}
+
+\begin{python}
+todo = list(cursor.execute("select Node,WNr,Nodetype from pt"))
+
+for (Node,WNr,Nodetype) in todo:
+    Node = int(Node)
+    if Nodetype in ('1','2',1,2) and not F.etcbc4_db_otype.v(WNr) == "word":
+        print(Node,Nodetype,WNr,F.etcbc4_db_otype.v(WNr))
+        print(get_cons_of_word_list(give_me_your_words(Node)),give_me_your_words(Node),F.etcbc4_ft_g_cons.v(Node))
+        Node2 = give_me_your_words(Node)[-1]
+        print(Node2)
+#        cursor.execute("update pt set WNr=:WNr2,Node=:Node2 where Node=:Node and Nodetype=:Nodetype",{"WNr2":Node2,"Node2":Node2,"Node":Node,"Nodetype":Nodetype})
+
+\end{python}

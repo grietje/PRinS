@@ -656,6 +656,7 @@ def add_data(data,candidate):
     for Tag in Taglist_proto:
         Taglist.append(Tag[0])
     current = data[candidate]
+    (ClANr,current["ClANr"],PhANr,current["PhANr"],WNr,current["WNr"]) = (00,00,00,00,00,00)
     if current["Nodetype"] == "4":
         ClANr = current["Node"]
         current["Cltype"] = F.etcbc4_ft_typ.v(current["Node"])
@@ -679,7 +680,7 @@ def add_data(data,candidate):
         current["WNr"] = None
     if current["Nodetype"] in ("1","2"): # Smaller than subphrase, so can have SPhNr and has WNr
         current["SPhNr"] = L.u('subphrase',current["Node"])
-        current["WNr"] = current["Node"])
+        current["WNr"] = current["Node"]
         current["Phfunc"] = F.etcbc4_ft_function.v(L.u('phrase',current["Node"]))
         current["Phtype"] = F.etcbc4_ft_typ.v(L.u('phrase',current["Node"]))
     for x in (current["ClANr"],current["PhANr"],current["SPhNr"],current["WNr"]):
@@ -1004,7 +1005,7 @@ I do not count them in the column \mi{Nr}, but their name is stored in the colum
 
 \begin{python}
 #{{{ Assign Nr - new try
-#nrs_todo = list(cursor.execute("select Sub, Name, Tag, Nr from pt where Nr is NULL or Nr = ''"))  # Select all rows that need a Nr
+nrs_todo = list(cursor.execute("select Sub, Name, Tag, Nr from pt where Nr is NULL or Nr = ''"))  # Select all rows that need a Nr
 nrs = {}    # Create dict for all relevant Names + their Nrs
 Sub1 = 0
 notSub1 = 0
@@ -1173,17 +1174,17 @@ for (a,Node,Nodetype,Tag,ID) in todo:
         elif F.etcbc4_db_otype.v(Node) == "clause":
             ClANr = L.d('clause_atom',Node)
     else:
-        ClANr = L.u('clause_atom',current["Node"])
+        ClANr = L.u('clause_atom',Node)
     if Nodetype == 3:
         if F.etcbc4_db_otype.v(Node) == "subphrase":
             SPhNr = Node
-            PhANr = L.u('phrase_atom',Node)
+            PhANr = L.u('phrase',Node)
         elif F.etcbc4_db_otype.v(Node) == "phrase":
-            PhANr = L.d('phrase_atom',Node)
-        elif F.etcbc4_db_otype.v(Node) == "phrase_atom":
             PhANr = Node
+        elif F.etcbc4_db_otype.v(Node) == "phrase_atom":
+            PhANr = L.u('phrase',Node)
     if Nodetype in (1,2):
-        PhANr = L.u('phrase_atom',Node)
+        PhANr = L.u('phrase',Node)
         SPhNr = L.u('subphrase',Node)
         WNr = Node
     for x in (ClANr,PhANr,SPhNr,WNr):
@@ -1199,7 +1200,7 @@ for (a,Node,Nodetype,Tag,ID) in todo:
     Taglist.append(Tag2)
     if "None" in Tag2:
         print("Problem!!!!!!!!!!!!!!!!! Tag is not correct!", Tag)
-    cursor.execute("update pt set Tag=:Tag2 where Tag=:Tag and ID=:ID", {"Tag2":Tag2,"Tag":Tag,"ID",ID})
+    cursor.execute("update pt set Tag=:Tag2 where Tag=:Tag and ID=:ID", {"Tag2":Tag2,"Tag":Tag,"ID":ID})
 
 \end{python}
 

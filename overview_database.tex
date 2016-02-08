@@ -69,7 +69,7 @@ a & Place in corpus where participant reference is found (book, chapter, verse) 
 Node & Node ID in ETCBC data & Part-1.py \\ \hline
 Nodetype & Type of node: 1=part\_suffix, 2=part\_word, 3=part\_(sub)phrase, 4=part\_clause, 5=part\_sentence & Part-1.py input\\ \hline
 ClANr & Clause atom ID & Part-1.py \\ \hline
-PhANr & Phrase atom ID & Part-1.py \\ \hline
+PhANr & Phrase or Phrase atom ID & Part-1.py \\ \hline
 WNr & Word ID & Part-1.py \\ \hline
 Level & Levels of embedding (of whole DSU) as computed by text\_type and stored in GCdata.db & Part-2.py\\ \hline
 Emb & Levels of embedding as indicated by ETCBC & \fixme{F.etcbc4\_ft\_tab.v(node)} \\ \hline
@@ -139,7 +139,7 @@ P & Person of current reference & Part-1.py \\ \hline
 N & Number of current reference & Part-1.py \\ \hline
 G & Gender of current reference & Part-1.py \\ \hline
 PartSpeech & Part of speech of current reference (article, verb, noun, proper noun, adverb, preposition, conjunction, pers. pronoun, demons. pron, interr. pronoun, interjection, negative, interrogative, adjective) & Part-1.py \\ \hline
-Lexset & Lexical set of current reference(distributive noun, copulative noun, potential adverb, anaphoric adverb, potential preposition, conjunctive adverb, ordinal, copulative verb, noun of multitude, focus particle, interrogative particle, gentilic, quotation verb, cardinal)\footnote{Be aware: might be wrong in case of higher level reference type (e.g. part\_clause), because is it based on the central word only. Same for P,N,G,PartSpeech} & Part-1.py \\ \hline
+Lexset & Lexical set of current reference (distributive noun, copulative noun, potential adverb, anaphoric adverb, potential preposition, conjunctive adverb, ordinal, copulative verb, noun of multitude, focus particle, interrogative particle, gentilic, quotation verb, cardinal)\footnote{Be aware: might be wrong in case of higher level reference type (e.g. part\_clause), because is it based on the central word only. Same for P,N,G,PartSpeech} & Part-1.py \\ \hline
 Anim & 1=animate, 2=non-animate & Part-1.py input \\ \hline
 Human & 1=human (or divine), 2=non-human & Part-1.py input \\ \hline
 MinGram & Minimal encoding possible in this grammatical context & \\ \hline

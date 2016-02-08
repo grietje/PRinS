@@ -1149,6 +1149,48 @@ tex = barplot((medium3.fillna(0)),"plots/Destypes_of_Subjects_Medium_OT.tex")
 \end{python}
 
 \begin{python}
+# Make histogram for destypes of Rec and Attr subparticipants (only from gcdata.pt)
+todo = list(cursor.execute("select Node,Destype,Sub from pt where not Sub = 'Sub1' and not Sub like '%Sub1' and not Sub = 'Super' and not Sub like '%Super' and not Sub = 'Super1' and not Sub like '%0%' and not Sub = '0' and not Sub = 'None'"))
+# Excluded references ending with "Sub1" because these are only an artificially constructed part of a "Super" participant, not a real sub-participant. The Super participants themselves are not sub-participants but extensive normal participants. References with a 0 are mostly part of >CR clauses, which are complex cases with almost "normal" slots (not necessarily Rec/Attr/Prep). I left them out for now.
+
+Rec = 0
+Attr = 0
+Prep = 0
+Destypes["Rec"] = {}
+Destypes["Attr"] = {}
+Destypes["Prep"] = {}
+
+for (Node,Destype,Sub) in todo:
+    if str(Sub).strip().endswith("?"):
+        Sub = str(Sub).replace("?","")
+    if str(Sub).strip().endswith("Super1"):
+        Sub = str(Sub).replace("Super1","")
+#        print(Sub)
+    if not str(Sub).strip().endswith('Sub1') and not str(Sub).strip() in (" ","None","X",None):
+        if str(Sub).strip().endswith("Rec") or str(Sub).strip().endswith("RecPre"):
+            Rec += 1
+            if Destype in Destypes["Rec"]:
+                Destypes["Rec"][Destype] += 1
+            else:
+                Destypes["Rec"][Destype] = 1
+        elif str(Sub).strip().endswith("Attr") or str(Sub).strip().endswith("AttrPre"):
+            Attr += 1
+            if Destype in Destypes["Attr"]:
+                Destypes["Attr"][Destype] += 1
+            else:
+                Destypes["Attr"][Destype] = 1
+        elif str(Sub).strip().endswith("Prep"):
+            Prep += 1
+            if Destype in Destypes["Prep"]:
+                Destypes["Prep"][Destype] += 1
+            else:
+                Destypes["Prep"][Destype] = 1
+        else:
+            print(".",str(Sub),".")
+
+\end{python}
+
+\begin{python}
 #{{{ Commit and close the database
 db.commit()
 db.close()
@@ -1665,10 +1707,9 @@ print(Destypes)
 \end{python}
 \begin{python}
 # Try to test Runge's S1 references
-S1test = list(cursor.execute("select Node,Destype,Role,Name,Nr,ClANr,PhANr from pt where not Nr is NULL and not Nr = '' and not Nr = 1 order by Name,Nr"))
+S1test = list(cursor.execute("select Node,Destype,Role,Name,Nr,ClANr,PhANr from pt where not Nr is NULL and not Nr = '' order by Name,Nr"))
 Destypes_S = {}
 Destypes_N = {}
-Names = {}
 Name_prev = ""
 Role_prev = ""
 ClANr_prev = 0
@@ -1691,14 +1732,14 @@ for (Node,Destype,Role,Name,Nr,ClANr,PhANr) in S1test:
             same_clause.append(Node)
         if Role_now == "Subj":
             if Destype in Destypes_S:
-                Destypes_S[Destype] += 1
+                Destypes_S[Destype].append(Role_now)
             else:
-                Destypes_S[Destype] = 1
+                Destypes_S[Destype] = [Role_now]
         else:
             if Destype in Destypes_N:
-                Destypes_N[Destype] += 1
+                Destypes_N[Destype].append(Role_now)
             else:
-                Destypes_N[Destype] = 1
+                Destypes_N[Destype] = [Role_now]
             if Role in Roles:
                 Roles[Role] += 1
             else:
@@ -1845,5 +1886,38 @@ tex += "\\end{tikzpicture}\n"
 fn = "plots/suffixes_speech.tex"
 with open(fn, "w") as tf:
     print(tex, file=tf)
+
+\end{python}
+
+\begin{python}
+# I am not content with the encoding of cardinal numbers. Try to add some consistency
+data = {}
+cardinals = list(cursor.execute("select ID,Node,a,Des,Destype,Nodetype,Sub,Name,Tag from pt where Lexset = 'card'"))
+all_tags = list(cursor.execute("select Tag from pt order by Tag"))
+for (ID,Node,a,Des,Destype,Nodetype,Sub,Name,Tag) in cardinals:
+    if not Sub == None and not Sub.endswith("AttrPre") and not Sub.endswith("Attr"):
+        index = [y[0] for y in all_tags].index(Tag)
+        context = range(index-2,index+3)
+        for x in context:
+            data[x] = list(cursor.execute("select ID,Node,a,Des,Destype,Nodetype,Sub,Name,Tag from pt where Tag=:Tag2",{"Tag2":all_tags[x][0], }))
+            print(x,data[x][0][0],data[x][0][1].rjust(10,"."),data[x][0][2],data[x][0][3].rjust(15,"."),data[x][0][4],data[x][0][5],data[x][0][6],data[x][0][7])
+        newsub = input("Sub for the cardinal: ")
+        cursor.execute("update pt set Sub=:newsub where Tag=:Tag",{"newsub":newsub,"Tag":Tag})
+
+\end{python}
+
+\begin{python}
+# Fix that phrases have their main word as Node in gcdata.pt
+
+todo = list(cursor.execute("select ID,Node,Nodetype,Destype,Tag from pt where Destype = 2 or Destype = 4"))
+todo2 = []
+for (Node,Nodetype,Destype,Tag) in todo:
+    if Nodetype == '4':
+        todo2.append((Node,Nodetype,Destype,Tag))
+        newNode = L.u('subphrase',int(Node))
+        if newNode == None:
+            newNode = L.u('phrase',int(Node))
+        print(F.etcbc4_db_otype.v(int(Node)),Tag,Nodetype,newNode,F.etcbc4_db_otype.v(newNode))
+        cursor.execute("update pt set Node=:newNode where Tag=:Tag",{"newNode":newNode,"Tag":Tag})
 
 \end{python}

@@ -818,6 +818,12 @@ def interactive_clan(data,clan_members):
             print(format_string_a.format(candidate, current["Sub"], current["Des"]))
             print(format_string_b.format(current["Nodetype"], current["Destype"], current["Name"], current["Anim"], current["Human"], current["Col"], current["Role"]))
             check = input("Is the data correct? Default 'Y' ") or "Y"
+        if F.etcbc4_db_otype.v(int(current["Node"])) == "word" and int(current["Nodetype"]) == 3:
+            current["Node"] = L.u('phrase',int(current["Node"]))
+        elif F.etcbc4_db_otype.v(int(current["Node"])) == "word" and int(current["Nodetype"]) == 4:
+            current["Node"] = L.u('clause_atom',int(current["Node"]))
+        elif F.etcbc4_db_otype.v(int(current["Node"])) == "word" and int(current["Nodetype"]) == 5:
+            current["Node"] = L.u('sentence',int(current["Node"]))
         current["Referents"] = input("Contextually relevant referents that are part of Name: ") or None
         current["ColPart"] = input("Contextually relevant collective of which Name is part: ") or None
         if check == "Y":
